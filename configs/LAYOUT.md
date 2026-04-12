@@ -9,7 +9,7 @@ wrapper logic.
 
 ```text
 configs/
-├── README.md               # this file
+├── LAYOUT.md               # this file
 ├── lm-eval/
 │   ├── coding.toml         # tasks: humaneval, mbpp
 │   ├── reasoning.toml      # tasks: gsm8k, hellaswag, arc_easy, arc_challenge
@@ -24,8 +24,18 @@ configs/
     └── broad-coverage.toml
 ```
 
-Subdirectories are created lazily \u2014 add one when you wire up the first suite
+Subdirectories are created lazily — add one when you wire up the first suite
 for a given tool.
+
+## Non-TOML suite: framework-eval
+
+The `framework-eval` suite does NOT live under `configs/`. It lives at
+[`../harness/framework-eval/`](../harness/framework-eval/) as per-framework
+Python scripts (`eval_langgraph.py`, `eval_qwen_agent.py`,
+`eval_smolagents.py`, `eval_google_adk.py`). Each framework exposes a
+different API shape, so a declarative TOML wrapper would be harder to
+maintain than inline Python. See the harness directory's README for
+details.
 
 ## TOML shape
 
@@ -55,7 +65,7 @@ schema defined in [`schema.json`](../schema.json).
 
 1. Identify which upstream tool covers the measurement you want.
 2. Add a TOML file under the matching subdirectory.
-3. Keep options tool-native \u2014 if you need a wrapper shim, that's a signal
+3. Keep options tool-native — if you need a wrapper shim, that's a signal
    the wrong tool is being used.
 4. Run a single-model smoke sweep locally, verify the envelope output
    validates against `schema.json`, and push the resulting Parquet to the
