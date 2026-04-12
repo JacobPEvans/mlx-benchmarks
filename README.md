@@ -100,7 +100,7 @@ HfApi().create_commit(
     repo_id="JacobPEvans/mlx-benchmarks",
     repo_type="dataset",
     operations=[CommitOperationAdd(
-        path_in_repo=f"data/run-{timestamp}-{sha}-{suite}-{model_slug}.parquet",
+        path_in_repo=f"data/run-{timestamp}-{git_sha}-{suite}-{model_slug}.parquet",
         path_or_fileobj=buf.getvalue(),
     )],
     commit_message=f"feat: add {suite} run for {model}",
