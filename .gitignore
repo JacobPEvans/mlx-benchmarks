@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# uv
+.uv/
+uv.lock
+
+# Run outputs (never commit; they belong on the HF dataset)
+run-output/
+runs/
+*.parquet
+*.jsonl
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# direnv
+.direnv/
+.envrc.local
