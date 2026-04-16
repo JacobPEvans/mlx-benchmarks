@@ -31,7 +31,7 @@ for a given tool.
 
 The `framework-eval` suite does NOT live under `configs/`. It lives at
 [`../harness/framework-eval/`](../harness/framework-eval/) as per-framework
-Python scripts (`eval_langgraph.py`, `eval_qwen_agent.py`,
+Python scripts (`eval_openai_tool_calling.py`, `eval_qwen_agent.py`,
 `eval_smolagents.py`, `eval_google_adk.py`). Each framework exposes a
 different API shape, so a declarative TOML wrapper would be harder to
 maintain than inline Python. See the harness directory's README for

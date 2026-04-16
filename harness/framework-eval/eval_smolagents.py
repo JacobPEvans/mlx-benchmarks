@@ -12,15 +12,18 @@ from smolagents import OpenAIServerModel, ToolCallingAgent, tool
 
 API_URL = os.environ.get("MLX_API_URL", "http://127.0.0.1:11434/v1")
 MODEL = os.environ["MLX_DEFAULT_MODEL"]
+FIXTURE_PATH = "/tmp/eval-test.txt"
 
 
 @tool
 def file_read(path: str) -> str:
-    """Read a file and return its contents.
+    """Read the benchmark fixture file and return its contents.
 
     Args:
-        path: File path to read.
+        path: File path to read (must be the benchmark fixture).
     """
+    if path != FIXTURE_PATH:
+        return f"Error: path not allowed: {path}"
     try:
         with open(path) as f:
             return f.read()

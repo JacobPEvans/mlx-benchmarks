@@ -14,7 +14,7 @@ cleanest way to compare them is to call each one natively.
 
 | Framework | Script | Upstream |
 | --- | --- | --- |
-| LangGraph | [`eval_langgraph.py`](eval_langgraph.py) | [langchain-ai/langgraph](https://github.com/langchain-ai/langgraph) |
+| OpenAI tool-calling (baseline) | [`eval_openai_tool_calling.py`](eval_openai_tool_calling.py) | raw `openai` client — no framework |
 | Qwen-Agent | [`eval_qwen_agent.py`](eval_qwen_agent.py) | [QwenLM/Qwen-Agent](https://github.com/QwenLM/Qwen-Agent) |
 | smolagents | [`eval_smolagents.py`](eval_smolagents.py) | [huggingface/smolagents](https://github.com/huggingface/smolagents) |
 | Google ADK | [`eval_google_adk.py`](eval_google_adk.py) | [google/adk-python](https://github.com/google/adk-python) |
@@ -24,8 +24,9 @@ so scores are directly comparable across frameworks.
 
 ## Installation
 
-Each script is self-contained via `uv run --with` — no `pyproject.toml`
-changes needed for the target environment. The only prerequisites are:
+Each script declares its dependencies via PEP 723 inline metadata (`# ///
+script` header). `uv run --with` adds explicit minimum versions on top.
+No `pyproject.toml` changes needed. The only prerequisites are:
 
 ```bash
 # uv (https://github.com/astral-sh/uv)
@@ -39,18 +40,12 @@ export MLX_API_URL="http://127.0.0.1:11434/v1"
 export MLX_DEFAULT_MODEL="mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit"
 ```
 
-LangGraph additionally requires `langchain-openai` in the calling
-environment — the project's existing `uv run` shell pulls it in as a
-baseline dependency. The other three use ephemeral deps via `uv run
---with` so they don't need the calling environment to have anything
-pre-installed.
-
 ## Usage
 
 Run a single framework:
 
 ```bash
-uv run eval_langgraph.py
+uv run --with 'openai>=1.0.0' eval_openai_tool_calling.py
 uv run --with 'qwen-agent>=0.0.14' --with 'soundfile>=0.13.0' eval_qwen_agent.py
 uv run --with 'smolagents>=1.0.0' eval_smolagents.py
 uv run --with 'google-adk>=0.5.0' eval_google_adk.py
@@ -62,9 +57,9 @@ Or run all four back-to-back (writes to stdout — no file output yet):
 ./run_all.sh
 ```
 
-Each run prints a JSON-like summary to stdout with timing, token count,
-success boolean, and tool-use correctness. See each script's tail for the
-exact output shape.
+Each run prints a JSON object to stdout with `framework`, `answer`, `latency`
+(seconds), and — where the framework exposes them — `tool_calls`, `tokens`,
+and `steps`. See each script's `__main__` block for the exact output shape.
 
 ## API
 

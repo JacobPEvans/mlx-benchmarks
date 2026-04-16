@@ -4,6 +4,7 @@
 # dependencies = ["google-adk>=0.5.0"]
 # ///
 
+import asyncio
 import json
 import os
 import time
@@ -13,17 +14,20 @@ from google.adk.models.lite_llm import LiteLlm
 
 API_URL = os.environ.get("MLX_API_URL", "http://127.0.0.1:11434/v1")
 MODEL = os.environ["MLX_DEFAULT_MODEL"]
+FIXTURE_PATH = "/tmp/eval-test.txt"
 
 
 def file_read(path: str) -> str:
-    """Read a file and return its contents.
+    """Read the benchmark fixture file and return its contents.
 
     Args:
-        path: File path to read.
+        path: File path to read (must be the benchmark fixture).
 
     Returns:
         The file contents as a string.
     """
+    if path != FIXTURE_PATH:
+        return f"Error: path not allowed: {path}"
     try:
         with open(path) as f:
             return f.read()
@@ -43,17 +47,14 @@ def run_agent(prompt: str) -> dict:
     start = time.time()
     try:
         # ADK uses async — run synchronously for evaluation
-        import asyncio
-
         async def _run():
             from google.adk.runners import Runner
             from google.adk.sessions import InMemorySessionService
+            from google.genai.types import Content, Part
 
             session_service = InMemorySessionService()
             runner = Runner(agent=agent, app_name="eval", session_service=session_service)
             session = await session_service.create_session(app_name="eval", user_id="eval-user")
-
-            from google.genai.types import Content, Part
 
             user_msg = Content(role="user", parts=[Part(text=prompt)])
             result_text = ""

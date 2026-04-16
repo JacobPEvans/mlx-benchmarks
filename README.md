@@ -21,7 +21,7 @@ Upstream tools integrated:
 | [linusvwe/MLXBench](https://github.com/linusvwe/MLXBench) | `throughput`, `ttft` | Native vllm-mlx throughput and time-to-first-token |
 | [vllm `benchmark_serving`](https://docs.vllm.ai/en/latest/performance/benchmarks.html) | `throughput` (second opinion) | Cross-check against vllm-upstream's own harness |
 | [huggingface/lighteval](https://github.com/huggingface/lighteval) | `coding` (livecodebench), extended tasks | Broader task coverage where lm-eval lags |
-| [LangGraph](https://github.com/langchain-ai/langgraph), [Qwen-Agent](https://github.com/QwenLM/Qwen-Agent), [smolagents](https://github.com/huggingface/smolagents), [Google ADK](https://github.com/google/adk-python) | `framework-eval` | Per-framework agent evaluation with shared fixture; inline Python scripts under [`harness/framework-eval/`](harness/framework-eval/) |
+| OpenAI tool-calling (baseline), [Qwen-Agent](https://github.com/QwenLM/Qwen-Agent), [smolagents](https://github.com/huggingface/smolagents), [Google ADK](https://github.com/google/adk-python) | `framework-eval` | Per-framework agent evaluation with shared fixture; inline Python scripts under [`harness/framework-eval/`](harness/framework-eval/) |
 
 ## Repository layout
 
@@ -39,10 +39,10 @@ Upstream tools integrated:
 │   ├── vllm/
 │   └── lighteval/
 ├── harness/                  # inline-code suites (non-TOML)
-│   └── framework-eval/       # LangGraph / Qwen-Agent / smolagents / Google ADK
+│   └── framework-eval/       # OpenAI baseline / Qwen-Agent / smolagents / Google ADK
 │       ├── README.md
 │       ├── eval_google_adk.py
-│       ├── eval_langgraph.py
+│       ├── eval_openai_tool_calling.py
 │       ├── eval_qwen_agent.py
 │       ├── eval_smolagents.py
 │       └── run_all.sh

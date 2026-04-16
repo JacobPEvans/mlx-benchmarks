@@ -13,20 +13,27 @@ from qwen_agent.tools.base import BaseTool, register_tool
 
 API_URL = os.environ.get("MLX_API_URL", "http://127.0.0.1:11434/v1")
 MODEL = os.environ["MLX_DEFAULT_MODEL"]
+FIXTURE_PATH = "/tmp/eval-test.txt"
 
 
 @register_tool("file_read")
 class FileReadTool(BaseTool):
-    description = "Read a file and return its contents"
+    description = "Read the benchmark fixture file and return its contents"
     parameters = [{"name": "path", "type": "string", "description": "File path to read", "required": True}]
 
     def call(self, params: str, **kwargs) -> str:
-        args = json.loads(params) if isinstance(params, str) else params
         try:
-            with open(args["path"]) as f:
+            args = json.loads(params) if isinstance(params, str) else params
+        except json.JSONDecodeError:
+            return "Error: malformed tool arguments"
+        path = args.get("path", "")
+        if path != FIXTURE_PATH:
+            return f"Error: path not allowed: {path}"
+        try:
+            with open(path) as f:
                 return f.read()
         except FileNotFoundError:
-            return f"Error: File not found: {args['path']}"
+            return f"Error: File not found: {path}"
 
 
 def run_agent(prompt: str) -> dict:

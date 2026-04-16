@@ -1,4 +1,8 @@
-"""LangGraph evaluation — baseline using existing project dependency."""
+"""OpenAI tool-calling evaluation — baseline using raw OpenAI client (no framework)."""
+
+# /// script
+# dependencies = ["openai>=1.0.0"]
+# ///
 
 import json
 import os
@@ -8,13 +12,14 @@ from openai import OpenAI
 
 API_URL = os.environ.get("MLX_API_URL", "http://127.0.0.1:11434/v1")
 MODEL = os.environ["MLX_DEFAULT_MODEL"]
+FIXTURE_PATH = "/tmp/eval-test.txt"
 
 TOOLS = [
     {
         "type": "function",
         "function": {
             "name": "file_read",
-            "description": "Read a file and return its contents",
+            "description": "Read the benchmark fixture file and return its contents",
             "parameters": {
                 "type": "object",
                 "properties": {"path": {"type": "string", "description": "File path to read"}},
@@ -26,13 +31,19 @@ TOOLS = [
 
 
 def execute_tool(name: str, arguments: str) -> str:
-    args = json.loads(arguments)
+    try:
+        args = json.loads(arguments)
+    except json.JSONDecodeError:
+        return "Error: malformed tool arguments"
     if name == "file_read":
+        path = args.get("path", "")
+        if path != FIXTURE_PATH:
+            return f"Error: path not allowed: {path}"
         try:
-            with open(args["path"]) as f:
+            with open(path) as f:
                 return f.read()
         except FileNotFoundError:
-            return f"Error: File not found: {args['path']}"
+            return f"Error: File not found: {path}"
     return f"Error: Unknown tool: {name}"
 
 
@@ -51,7 +62,8 @@ def run_agent(prompt: str, max_steps: int = 5) -> dict:
             model=MODEL, messages=messages, tools=TOOLS, tool_choice="auto", max_tokens=500, temperature=0
         )
         msg = response.choices[0].message
-        total_tokens += response.usage.completion_tokens if response.usage else 0
+        if response.usage:
+            total_tokens += response.usage.total_tokens or response.usage.completion_tokens or 0
 
         if msg.tool_calls:
             messages.append(msg)
@@ -62,7 +74,7 @@ def run_agent(prompt: str, max_steps: int = 5) -> dict:
         else:
             elapsed = time.time() - start
             return {
-                "framework": "LangGraph (OpenAI client)",
+                "framework": "OpenAI tool-calling (baseline)",
                 "answer": msg.content[:200] if msg.content else "(empty)",
                 "tool_calls": tool_calls_made,
                 "tokens": total_tokens,
@@ -72,7 +84,7 @@ def run_agent(prompt: str, max_steps: int = 5) -> dict:
 
     elapsed = time.time() - start
     return {
-        "framework": "LangGraph (OpenAI client)",
+        "framework": "OpenAI tool-calling (baseline)",
         "answer": "(max steps reached)",
         "tool_calls": tool_calls_made,
         "tokens": total_tokens,

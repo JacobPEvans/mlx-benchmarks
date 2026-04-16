@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Agent Framework Evaluation — run all 4 frameworks back-to-back.
 #
-# Each script is self-contained with ephemeral deps via `uv run --with`.
-# No changes to pyproject.toml or uv.lock required.
+# Each script declares its deps via PEP 723 inline metadata; `uv run --with`
+# adds pinned minimums on top. No changes to pyproject.toml or uv.lock required.
 #
 # Usage: ./harness/framework-eval/run_all.sh
 # Prereqs: vllm-mlx running at localhost:11434 with tool-call-parser enabled
@@ -20,8 +20,8 @@ echo "  Server: ${MLX_API_URL:-http://127.0.0.1:11434/v1}"
 echo "============================================================"
 
 echo ""
-echo ">>> 1/4: LangGraph (baseline — existing dependency)"
-uv run "$SCRIPT_DIR/eval_langgraph.py" 2>&1
+echo ">>> 1/4: OpenAI tool-calling (baseline — raw OpenAI client, no framework)"
+uv run --with "openai>=1.0.0" "$SCRIPT_DIR/eval_openai_tool_calling.py" 2>&1
 
 echo ""
 echo ">>> 2/4: Qwen-Agent (official Qwen framework)"
