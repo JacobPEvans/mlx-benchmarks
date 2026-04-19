@@ -15,7 +15,6 @@ env/
 
 # uv
 .uv/
-uv.lock
 
 # Run outputs (never commit; they belong on the HF dataset)
 run-output/
