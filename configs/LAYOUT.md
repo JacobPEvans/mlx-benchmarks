@@ -61,6 +61,18 @@ The sweep runner is responsible for injecting per-invocation values (`model`,
 run metadata, output paths) and for converting tool output into the envelope
 schema defined in [`schema.json`](../schema.json).
 
+## Local vs cloud execution
+
+**Default: local models only.** Local models share the vllm-mlx inference
+backend via llama-swap and must run sequentially (only one model loaded at a
+time).
+
+**Cloud models can run in parallel** — they go through the Bifrost gateway at
+`http://localhost:30080/v1/chat/completions` and do not touch the local
+inference stack. Only include cloud models in a sweep when the word `cloud` or
+`full` is explicitly requested. When cloud models are included, launch them
+as concurrent background processes to avoid serializing on network I/O.
+
 ## Adding a new config
 
 1. Identify which upstream tool covers the measurement you want.
