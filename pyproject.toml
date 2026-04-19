@@ -1,0 +1,21 @@
+[project]
+name = "mlx-benchmarks"
+version = "0.1.0"
+description = "Benchmark harness for MLX-quantized LLMs on Apple Silicon"
+requires-python = ">=3.11"
+dependencies = [
+    "lm-eval[api]==0.4.11",
+]
+
+[project.optional-dependencies]
+framework-eval = [
+    "openai>=1.0.0",
+    "qwen-agent>=0.0.14",
+    "soundfile>=0.13.0",
+    "smolagents>=1.0.0",
+    "google-adk>=0.5.0",
+]
+upload = [
+    "huggingface-hub",
+    "pyarrow",
+]
