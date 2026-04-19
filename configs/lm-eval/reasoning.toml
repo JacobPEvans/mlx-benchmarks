@@ -1,0 +1,36 @@
+# Passed to lm_eval (installed via pyproject.toml dev shell)
+#
+# IMPORTANT: base_url must be the full chat/completions endpoint URL, not just /v1.
+# lm_eval POSTs to base_url directly.
+#
+# Usage — local models (thinking enabled, use --limit 100 for ~25 sec/example):
+#   lm_eval --model local-chat-completions \
+#     --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,max_length=32768,timeout=3600" \
+#     --tasks gsm8k_cot_zeroshot,arc_challenge \
+#     --batch_size 1 --num_fewshot 0 --limit 100 \
+#     --gen_kwargs "max_gen_toks=8192" \
+#     --apply_chat_template --fewshot_as_multiturn \
+#     --log_samples \
+#     --output_path ./run-output/$SLUG
+#
+# Usage — cloud models via Bifrost (full run, ~2 sec/example):
+#   lm_eval --model local-chat-completions \
+#     --model_args "base_url=http://localhost:30080/v1/chat/completions,model=$MODEL,max_length=32768,timeout=3600" \
+#     --tasks gsm8k_cot_zeroshot,arc_challenge \
+#     --batch_size 1 --num_fewshot 0 \
+#     --gen_kwargs "max_gen_toks=2048" \
+#     --apply_chat_template --fewshot_as_multiturn \
+#     --log_samples \
+#     --output_path ./run-output/$SLUG
+
+model = "local-chat-completions"
+tasks = ["gsm8k_cot_zeroshot", "arc_challenge"]
+batch_size = 1
+num_fewshot = 0
+apply_chat_template = true
+fewshot_as_multiturn = true
+
+[model_args]
+# base_url and model are injected per-sweep
+max_length = 32768
+timeout = 3600
