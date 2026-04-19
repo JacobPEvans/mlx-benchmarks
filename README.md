@@ -57,9 +57,12 @@ for the pattern.
 
 ## Installation
 
-Requires macOS (Apple Silicon) with `uv` (from [Astral](https://github.com/astral-sh/uv))
-and a running `vllm-mlx` OpenAI-compatible inference server on the local
-machine.
+Requires macOS (Apple Silicon) and a running `vllm-mlx` OpenAI-compatible
+inference server on the local machine.
+
+**Prerequisites (pick one path):**
+- **Plain uv**: Install [`uv`](https://github.com/astral-sh/uv) (`brew install uv`)
+- **Nix dev shell**: Install [Nix](https://nixos.org/download/) + [direnv](https://direnv.net/) + [nix-direnv](https://github.com/nix-community/nix-direnv)
 
 ```bash
 # Clone this repo
@@ -67,8 +70,8 @@ git clone https://github.com/JacobPEvans/mlx-benchmarks.git
 cd mlx-benchmarks
 
 # Install dependencies (pick one)
-uv sync                  # plain uv
-direnv allow             # nix flake dev shell (auto-runs uv sync)
+uv sync                  # plain uv — installs lm_eval into .venv
+direnv allow             # nix dev shell — auto-runs uv sync via devenv
 
 # Export a HuggingFace token with `write` scope on the dataset namespace
 # (create at https://huggingface.co/settings/tokens)

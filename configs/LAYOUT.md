@@ -42,7 +42,7 @@ details.
 Keep configs declarative and tool-native. Example (`lm-eval/coding.toml`):
 
 ```toml
-# Passed to lm_eval (installed via pyproject.toml, run via uv sync)
+# Passed to lm_eval (installed into .venv via uv sync)
 model = "local-chat-completions"
 tasks = ["humaneval", "mbpp"]
 batch_size = 1

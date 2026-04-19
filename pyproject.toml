@@ -7,6 +7,9 @@ dependencies = [
     "lm-eval[api]==0.4.11",
 ]
 
+[tool.uv]
+package = false
+
 [project.optional-dependencies]
 framework-eval = [
     "openai>=1.0.0",
