@@ -1,8 +1,16 @@
 # lm_eval coding benchmark
-# Tasks: humaneval_instruct (164 problems, code execution), mbpp_instruct (374 problems, text match)
-# Run with: HF_ALLOW_CODE_EVAL=1 lm_eval ... --confirm_run_unsafe_code
+# Tasks: humaneval_instruct_qwen3, mbpp_instruct_qwen3 (Qwen3.x thinking-mode variants)
+# Run with:
+#   HF_ALLOW_CODE_EVAL=1 lm_eval ... \
+#     --tasks humaneval_instruct_qwen3,mbpp_instruct_qwen3 \
+#     --include_path configs/lm-eval/qwen3-tasks \
+#     --confirm_run_unsafe_code
+#
+# The qwen3-tasks variants strip <think>...</think> blocks before code extraction.
+# lm-eval's api_models backend (local-chat-completions) does not support
+# think_end_token, so stripping must happen at the filter level instead.
 model = "local-chat-completions"
-tasks = ["humaneval_instruct", "mbpp_instruct"]
+tasks = ["humaneval_instruct_qwen3", "mbpp_instruct_qwen3"]
 batch_size = 1
 num_fewshot = 0
 apply_chat_template = true
