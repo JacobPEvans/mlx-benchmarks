@@ -35,3 +35,6 @@ Thumbs.db
 # direnv
 .direnv/
 .envrc.local
+
+# devenv
+.devenv/
