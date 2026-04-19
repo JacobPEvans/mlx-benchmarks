@@ -57,17 +57,21 @@ for the pattern.
 
 ## Installation
 
-Requires macOS (Apple Silicon) with `uv` (from [Astral](https://github.com/astral-sh/uv))
-and a running `vllm-mlx` OpenAI-compatible inference server on the local
-machine.
+Requires macOS (Apple Silicon) and a running `vllm-mlx` OpenAI-compatible
+inference server on the local machine.
+
+**Prerequisites (pick one path):**
+- **Plain uv**: Install [`uv`](https://github.com/astral-sh/uv) (`brew install uv`)
+- **Nix dev shell**: Install [Nix](https://nixos.org/download/) + [direnv](https://direnv.net/) + [nix-direnv](https://github.com/nix-community/nix-direnv)
 
 ```bash
 # Clone this repo
 git clone https://github.com/JacobPEvans/mlx-benchmarks.git
 cd mlx-benchmarks
 
-# Install uv if you don't have it already (otherwise skip)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install dependencies (pick one)
+uv sync                  # plain uv — installs lm_eval into .venv
+direnv allow             # nix dev shell — auto-runs uv sync via devenv
 
 # Export a HuggingFace token with `write` scope on the dataset namespace
 # (create at https://huggingface.co/settings/tokens)
@@ -77,7 +81,8 @@ export HF_TOKEN="hf_..."
 # See https://github.com/blaizzy/mlx-vllm for server setup
 ```
 
-No dependencies beyond what individual upstream tools pull in via `uvx`.
+Dependencies are managed via `uv` (`pyproject.toml`). Run `uv sync` once after
+cloning, or use the included `flake.nix` dev shell via `direnv allow`.
 
 ## Usage
 
@@ -90,11 +95,7 @@ Generic shape (exact form depends on the tool):
 
 ```bash
 # Example: run lm-eval coding suite against a local vllm-mlx endpoint
-uvx --with 'lm-eval[api]==0.4.11' lm_eval \
-    --model local-chat-completions \
-    --model_args "base_url=http://localhost:11434/v1,model=$MODEL" \
-    --tasks humaneval,mbpp \
-    --output_path ./run-output
+lm_eval --model local-chat-completions --model_args "base_url=http://localhost:11434/v1,model=$MODEL" --tasks humaneval,mbpp --output_path ./run-output
 ```
 
 Then convert `./run-output/*.json` to envelope format and push:
