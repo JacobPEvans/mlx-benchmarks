@@ -73,6 +73,22 @@ inference stack. Only include cloud models in a sweep when the word `cloud` or
 `full` is explicitly requested. When cloud models are included, launch them
 as concurrent background processes to avoid serializing on network I/O.
 
+### Standard cloud comparison models (always include in `full` sweeps)
+
+| Bifrost model ID | Resolves to | Notes |
+|---|---|---|
+| `gemini/gemini-3-flash-preview` | Gemini 3 Flash | Fast Google model |
+| `openai/gpt-5.4-mini` | GPT-5.4 Mini | Latest OpenAI quick model — verify name against catalog before use |
+| `openrouter/auto` | Best available | OpenRouter auto-selects optimal model for the prompt |
+| `openrouter/openrouter/free` | Best free model | OpenRouter free-tier routing (double-prefix required through Bifrost) |
+
+**Important**: Always verify model names against the live catalog before use — names change faster
+than documentation. Run `curl -s http://localhost:30080/v1/models | grep -o '"id":"[^"]*"'` to confirm.
+
+OpenAI models via the bare `openai/` prefix use the `OPENAI_API_KEY` from Doppler project
+`ai-ci-automation`. As of 2026-04-19 that key has exhausted quota — use `openrouter/openai/gpt-5.4-mini`
+as the fallback path, which routes through `OPENROUTER_API_KEY` instead.
+
 ## Adding a new config
 
 1. Identify which upstream tool covers the measurement you want.
