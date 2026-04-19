@@ -1,5 +1,7 @@
 # mlx-benchmarks
 
+![Validate Schema](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml/badge.svg)
+
 Benchmark harness for **MLX-quantized** and other **locally-hosted LLMs** on
 Apple Silicon. Orchestration, configs, and schema live here; results are
 published to the companion HuggingFace dataset.
