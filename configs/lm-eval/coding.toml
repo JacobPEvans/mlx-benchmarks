@@ -1,6 +1,6 @@
 # lm_eval coding benchmark
 # Tasks: humaneval_instruct (164 problems, code execution), mbpp_instruct (374 problems, text match)
-# Run with HF_ALLOW_CODE_EVAL=1
+# Run with: HF_ALLOW_CODE_EVAL=1 lm_eval ... --confirm_run_unsafe_code
 model = "local-chat-completions"
 tasks = ["humaneval_instruct", "mbpp_instruct"]
 batch_size = 1
