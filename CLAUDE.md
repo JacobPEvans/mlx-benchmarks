@@ -15,25 +15,25 @@ on HuggingFace.
 configs/        # TOML config per (tool, suite) pair
 harness/        # Inline eval scripts (framework-eval, etc.)
 schema.json     # Envelope v1 spec — authoritative contract
-.github/workflows/validate-schema.yml  # CI: lint schema + sample envelopes
+.github/workflows/validate-schema.yml  # CI: lint schema + parse TOML configs
 ```
 
 ## Key conventions
 
 - **Envelope schema**: every result set is wrapped in the v1 envelope (`schema.json`). Do not break backwards compatibility without bumping `schema_version`.
 - **Minimal glue**: keep orchestration code thin. Prefer wiring upstream tools directly over reimplementing their logic.
-- **Unique filenames**: HF dataset commits use `data/run-<timestamp>-<sha>-<suite>-<model>.parquet` — never overwrite existing shards.
+- **Unique filenames**: HF dataset commits use `data/run-<timestamp>-<sha>-<suite>-<model_slug>.parquet` — use a filesystem-safe slug and never overwrite existing shards.
 - **Dependency management**: `uv` + `pyproject.toml`. Run `uv sync` after pulling.
 
 ## Common tasks
 
 ```bash
-# Validate schema and sample envelopes
+# Validate schema and TOML configs
 gh workflow run validate-schema.yml
 
 # Run lm-eval coding suite (example)
 lm_eval --model local-chat-completions \
-  --model_args "base_url=http://localhost:11434/v1,model=$MODEL" \
+  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL" \
   --tasks humaneval,mbpp --output_path ./run-output
 
 # Sync dependencies

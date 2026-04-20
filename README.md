@@ -1,6 +1,6 @@
 # mlx-benchmarks
 
-![Validate Schema](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml/badge.svg)
+[![Validate Schema](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml/badge.svg?branch=main)](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml)
 
 Benchmark harness for **MLX-quantized** and other **locally-hosted LLMs** on
 Apple Silicon. Orchestration, configs, and schema live here; results are
