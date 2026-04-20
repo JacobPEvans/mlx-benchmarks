@@ -12,14 +12,11 @@ configs/
 ├── LAYOUT.md               # this file
 ├── lm-eval/
 │   ├── coding.toml         # tasks: humaneval, mbpp
-│   ├── reasoning.toml      # tasks: gsm8k, hellaswag, arc_easy, arc_challenge
+│   ├── reasoning.toml      # tasks: gsm8k_cot_zeroshot, arc_challenge
 │   ├── knowledge.toml      # tasks: mmlu, ifeval
 │   └── math-hard.toml      # tasks: minerva_math500
-├── mlxbench/
-│   ├── throughput.toml
-│   └── ttft.toml
 ├── vllm/
-│   └── benchmark_serving.toml
+│   └── benchmark_serving.toml # suite: throughput
 └── lighteval/
     └── broad-coverage.toml
 ```
