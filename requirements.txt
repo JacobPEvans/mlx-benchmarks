@@ -1,5 +1,5 @@
-gradio>=5.0,<6
+gradio>=6.12.0
 pandas>=2.0
-plotly>=5.20
+plotly>=6.7.0
 huggingface-hub>=0.23
 pyarrow>=14
