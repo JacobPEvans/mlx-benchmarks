@@ -31,6 +31,7 @@ apply_chat_template = true
 fewshot_as_multiturn = true
 
 [model_args]
-# base_url and model are injected per-sweep
+base_url = "http://localhost:11434/v1/chat/completions"
+# model is injected per-sweep
 max_length = 32768
 timeout = 3600
