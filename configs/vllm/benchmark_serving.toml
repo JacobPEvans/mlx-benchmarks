@@ -1,0 +1,17 @@
+# Passed to vllm.entrypoints.benchmark_serving for a throughput cross-check.
+#
+# Usage (per model):
+#   python -m vllm.entrypoints.benchmark_serving \
+#     --base-url http://localhost:11434 \
+#     --model $MODEL \
+#     --num-prompts 100 \
+#     --input-len 256 \
+#     --output-len 256
+#
+# The sweep runner may override model, base_url, and input_len per invocation.
+# Local models only — cloud endpoints not measured for throughput.
+
+base_url = "http://localhost:11434"
+input_len = 256
+output_len = 256
+num_prompts = 100

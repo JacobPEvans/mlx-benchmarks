@@ -94,8 +94,16 @@ unique-filename commit.
 Generic shape (exact form depends on the tool):
 
 ```bash
-# Example: run lm-eval coding suite against a local vllm-mlx endpoint
-lm_eval --model local-chat-completions --model_args "base_url=http://localhost:11434/v1,model=$MODEL" --tasks humaneval,mbpp --output_path ./run-output
+# Example: run lm-eval reasoning suite against a local vllm-mlx endpoint
+# NOTE: base_url must be the full chat completions endpoint, not just /v1
+lm_eval --model local-chat-completions \
+  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,max_length=32768,timeout=3600" \
+  --tasks gsm8k_cot_zeroshot,arc_challenge \
+  --batch_size 1 --num_fewshot 0 \
+  --gen_kwargs "max_gen_toks=4096" \
+  --apply_chat_template --fewshot_as_multiturn \
+  --log_samples \
+  --output_path ./run-output
 ```
 
 Then convert `./run-output/*.json` to envelope format and push:

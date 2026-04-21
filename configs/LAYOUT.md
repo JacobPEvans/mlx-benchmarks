@@ -12,14 +12,11 @@ configs/
 ├── LAYOUT.md               # this file
 ├── lm-eval/
 │   ├── coding.toml         # tasks: humaneval, mbpp
-│   ├── reasoning.toml      # tasks: gsm8k, hellaswag, arc_easy, arc_challenge
+│   ├── reasoning.toml      # tasks: gsm8k_cot_zeroshot, arc_challenge
 │   ├── knowledge.toml      # tasks: mmlu, ifeval
 │   └── math-hard.toml      # tasks: minerva_math500
-├── mlxbench/
-│   ├── throughput.toml
-│   └── ttft.toml
 ├── vllm/
-│   └── benchmark_serving.toml
+│   └── benchmark_serving.toml # suite: throughput
 └── lighteval/
     └── broad-coverage.toml
 ```
@@ -51,7 +48,7 @@ apply_chat_template = true
 fewshot_as_multiturn = true
 
 [model_args]
-base_url = "http://localhost:11434/v1"
+base_url = "http://localhost:11434/v1/chat/completions"
 # model is injected per-sweep; leave out here
 max_length = 32768
 timeout = 3600
@@ -60,6 +57,34 @@ timeout = 3600
 The sweep runner is responsible for injecting per-invocation values (`model`,
 run metadata, output paths) and for converting tool output into the envelope
 schema defined in [`schema.json`](../schema.json).
+
+## Local vs cloud execution
+
+**Default: local models only.** Local models share the vllm-mlx inference
+backend via llama-swap and must run sequentially (only one model loaded at a
+time).
+
+**Cloud models can run in parallel** — they go through the Bifrost gateway at
+`http://localhost:30080/v1/chat/completions` and do not touch the local
+inference stack. Only include cloud models in a sweep when the word `cloud` or
+`full` is explicitly requested. When cloud models are included, launch them
+as concurrent background processes to avoid serializing on network I/O.
+
+### Standard cloud comparison models (always include in `full` sweeps)
+
+| Bifrost model ID | Resolves to | Notes |
+|---|---|---|
+| `gemini/gemini-3-flash-preview` | Gemini 3 Flash | Fast Google model |
+| `openai/gpt-5.4-mini` | GPT-5.4 Mini | Latest OpenAI quick model — verify name against catalog before use |
+| `openrouter/auto` | Best available | OpenRouter auto-selects optimal model for the prompt |
+| `openrouter/openrouter/free` | Best free model | OpenRouter free-tier routing (double-prefix required through Bifrost) |
+
+**Important**: Always verify model names against the live catalog before use — names change faster
+than documentation. Run `curl -s http://localhost:30080/v1/models | grep -o '"id":"[^"]*"'` to confirm.
+
+OpenAI models via the bare `openai/` prefix use the `OPENAI_API_KEY` from Doppler project
+`ai-ci-automation`. As of 2026-04-19 that key has exhausted quota — use `openrouter/openai/gpt-5.4-mini`
+as the fallback path, which routes through `OPENROUTER_API_KEY` instead.
 
 ## Adding a new config
 
