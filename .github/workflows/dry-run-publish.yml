@@ -40,14 +40,14 @@ jobs:
 
       - name: Build wheel
         run: |
-          uv venv --python 3.11
-          uv pip install build
-          uv run --no-project python -m build --wheel --outdir dist/
+          uv venv .venv-build --python 3.11
+          uv pip install --python .venv-build/bin/python build
+          .venv-build/bin/python -m build --wheel --outdir dist/
 
-      - name: Install built wheel in a clean venv
+      - name: Install built wheel in a clean venv (pip-free uv venv + uv pip)
         run: |
           uv venv .venv-install --python 3.11
-          .venv-install/bin/pip install dist/*.whl
+          uv pip install --python .venv-install/bin/python dist/*.whl
 
       - name: Dry-run publish against canonical fixture (from built wheel)
         run: |
