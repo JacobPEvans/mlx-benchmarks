@@ -7,6 +7,7 @@
 import json
 import os
 import time
+from pathlib import Path
 
 from smolagents import OpenAIServerModel, ToolCallingAgent, tool
 
@@ -25,7 +26,7 @@ def file_read(path: str) -> str:
     if path != FIXTURE_PATH:
         return f"Error: path not allowed: {path}"
     try:
-        with open(path) as f:
+        with Path(path).open() as f:
             return f.read()
     except FileNotFoundError:
         return f"Error: File not found: {path}"

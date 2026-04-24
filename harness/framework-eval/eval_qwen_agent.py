@@ -7,6 +7,8 @@
 import json
 import os
 import time
+from pathlib import Path
+from typing import ClassVar
 
 from qwen_agent.agents import FnCallAgent
 from qwen_agent.tools.base import BaseTool, register_tool
@@ -19,9 +21,11 @@ FIXTURE_PATH = "/tmp/eval-test.txt"
 @register_tool("file_read")
 class FileReadTool(BaseTool):
     description = "Read the benchmark fixture file and return its contents"
-    parameters = [{"name": "path", "type": "string", "description": "File path to read", "required": True}]
+    parameters: ClassVar[list[dict]] = [
+        {"name": "path", "type": "string", "description": "File path to read", "required": True}
+    ]
 
-    def call(self, params: str, **kwargs) -> str:
+    def call(self, params: str, **_kwargs: object) -> str:
         try:
             args = json.loads(params) if isinstance(params, str) else params
         except json.JSONDecodeError:
@@ -30,7 +34,7 @@ class FileReadTool(BaseTool):
         if path != FIXTURE_PATH:
             return f"Error: path not allowed: {path}"
         try:
-            with open(path) as f:
+            with Path(path).open() as f:
                 return f.read()
         except FileNotFoundError:
             return f"Error: File not found: {path}"
@@ -38,7 +42,9 @@ class FileReadTool(BaseTool):
 
 def run_agent(prompt: str) -> dict:
     llm_cfg = {"model": MODEL, "model_server": API_URL, "api_key": "EMPTY"}
-    agent = FnCallAgent(llm=llm_cfg, function_list=["file_read"], name="eval-agent", description="File reader")
+    agent = FnCallAgent(
+        llm=llm_cfg, function_list=["file_read"], name="eval-agent", description="File reader"
+    )
 
     start = time.time()
     messages = [{"role": "user", "content": prompt}]
@@ -48,7 +54,12 @@ def run_agent(prompt: str) -> dict:
     for response in agent.run(messages):
         for msg in response:
             if hasattr(msg, "function_call") and msg.function_call:
-                tool_calls_made.append({"tool": msg.function_call.get("name", ""), "args": msg.function_call.get("arguments", "")})
+                tool_calls_made.append(
+                    {
+                        "tool": msg.function_call.get("name", ""),
+                        "args": msg.function_call.get("arguments", ""),
+                    }
+                )
             if msg.get("role") == "assistant" and msg.get("content"):
                 answer = msg["content"]
 

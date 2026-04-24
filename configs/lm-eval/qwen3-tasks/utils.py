@@ -24,10 +24,25 @@ Usage:
     --tasks humaneval_instruct_qwen3,mbpp_instruct_qwen3 \
     --include_path /path/to/qwen3-tasks
 """
+
 import re
 
+# Re-exports: these are resolved by lm-eval's YAML !function utils.X syntax.
+# See humaneval_instruct_qwen3.yaml (metric: !function utils.pass_at_k) and
+# mbpp_instruct_qwen3.yaml (metric: !function utils.pass_at_1; samples:
+# !function utils.list_fewshot_samples).
 from lm_eval.tasks.humaneval.utils import pass_at_k
 from lm_eval.tasks.mbpp.utils import list_fewshot_samples, pass_at_1
+
+__all__ = [
+    "extract_python_block",
+    "humaneval_build_predictions_instruct",
+    "list_fewshot_samples",
+    "mbpp_build_predictions",
+    "pass_at_1",
+    "pass_at_k",
+    "strip_think",
+]
 
 _THINK_XML = re.compile(r"<think>.*?</think>", re.DOTALL)
 _THINK_TEXT = re.compile(r"^Thinking Process:.*?(?=```python|```\n|Here is|My solution|$)", re.DOTALL)
@@ -51,9 +66,7 @@ def extract_python_block(text: str) -> str:
     return matches[-1] if matches else ""
 
 
-def humaneval_build_predictions_instruct(
-    resps: list[list[str]], docs: list[dict]
-) -> list[list[str]]:
+def humaneval_build_predictions_instruct(resps: list[list[str]], docs: list[dict]) -> list[list[str]]:
     """
     Filter for humaneval_instruct_qwen3.
 
@@ -65,7 +78,7 @@ def humaneval_build_predictions_instruct(
     a complete code block. This filter handles both cases.
     """
     result = []
-    for resp_list, doc in zip(resps, docs):
+    for resp_list, doc in zip(resps, docs, strict=True):
         filtered = []
         for r in resp_list:
             cleaned = strip_think(r)
@@ -80,23 +93,23 @@ def humaneval_build_predictions_instruct(
             else:
                 # Fallback: original build_predictions_instruct logic
                 filtered.append(
-                    doc["prompt"]
-                    + (cleaned if cleaned.find("```") == -1 else cleaned[: cleaned.find("```")])
+                    doc["prompt"] + (cleaned if cleaned.find("```") == -1 else cleaned[: cleaned.find("```")])
                 )
         result.append(filtered)
     return result
 
 
-def mbpp_build_predictions(
-    resps: list[list[str]], docs: list[dict]
-) -> list[list[str]]:
+def mbpp_build_predictions(resps: list[list[str]], docs: list[dict]) -> list[list[str]]:
     """
     Filter for mbpp_instruct_qwen3.
 
     The pass_at_1 metric expects predictions as the extracted code body. This
     filter extracts the first complete Python code block after stripping think
-    content.
+    content. ``docs`` is required by the lm-eval filter signature and is
+    validated here for length parity even though the per-doc fields are unused.
     """
+    if len(resps) != len(docs):
+        raise ValueError(f"mbpp_build_predictions: len(resps)={len(resps)} != len(docs)={len(docs)}")
     result = []
     for resp_list in resps:
         filtered = []

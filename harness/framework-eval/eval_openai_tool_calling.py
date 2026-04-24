@@ -7,6 +7,7 @@
 import json
 import os
 import time
+from pathlib import Path
 
 from openai import OpenAI
 
@@ -40,7 +41,7 @@ def execute_tool(name: str, arguments: str) -> str:
         if path != FIXTURE_PATH:
             return f"Error: path not allowed: {path}"
         try:
-            with open(path) as f:
+            with Path(path).open() as f:
                 return f.read()
         except FileNotFoundError:
             return f"Error: File not found: {path}"
