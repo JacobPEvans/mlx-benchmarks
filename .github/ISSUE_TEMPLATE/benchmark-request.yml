@@ -1,0 +1,47 @@
+name: Benchmark / converter request
+description: Ask for a new suite, tool integration, or model to be added.
+labels: ["enhancement", "benchmark-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Low-friction requests welcome. If you want to implement it yourself, go for it — see `CONTRIBUTING.md`.
+
+  - type: input
+    id: tool
+    attributes:
+      label: Upstream tool
+      description: e.g. lighteval, MLXBench, a specific lm-eval task.
+    validations:
+      required: true
+
+  - type: input
+    id: suite
+    attributes:
+      label: Proposed suite name
+      description: Must be in the `suite` enum in `schema.json` (or propose a schema bump).
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why this measurement matters
+      description: What signal does this benchmark give that the existing ones don't?
+    validations:
+      required: true
+
+  - type: textarea
+    id: model-list
+    attributes:
+      label: Models to run initially
+      description: HF IDs — copy from `listmodels` or the dataset viewer.
+
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Prerequisites
+      options:
+        - label: The upstream tool runs on Apple Silicon / MLX today
+        - label: An OpenAI-compatible API endpoint is sufficient (no special backend)
+        - label: I've checked the [dataset viewer](https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer) to confirm this isn't already covered

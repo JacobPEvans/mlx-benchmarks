@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussion
+    url: https://github.com/JacobPEvans/mlx-benchmarks/discussions
+    about: Open-ended questions, design ideas, "should I benchmark X?" discussions.
+  - name: 📊 Dataset viewer
+    url: https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer
+    about: Browse existing benchmark results before filing a new-suite request.

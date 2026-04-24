@@ -5,24 +5,30 @@ sweep orchestration (see the top-level [README](../README.md)) and should
 contain **only** the parameters the upstream tool itself takes. No custom
 wrapper logic.
 
-## Layout
+## Layout (as shipped)
 
 ```text
 configs/
-├── LAYOUT.md               # this file
+├── LAYOUT.md                 # this file
 ├── lm-eval/
-│   ├── coding.toml         # tasks: humaneval, mbpp
-│   ├── reasoning.toml      # tasks: gsm8k_cot_zeroshot, arc_challenge
-│   ├── knowledge.toml      # tasks: mmlu, ifeval
-│   └── math-hard.toml      # tasks: minerva_math500
-├── vllm/
-│   └── benchmark_serving.toml # suite: throughput
-└── lighteval/
-    └── broad-coverage.toml
+│   ├── coding.toml           # humaneval_instruct_qwen3, mbpp_instruct_qwen3
+│   ├── reasoning.toml        # gsm8k_cot_zeroshot, arc_challenge
+│   └── qwen3-tasks/          # think-stripping overlay for Qwen3.x models
+└── vllm/
+    └── benchmark_serving.toml # suite: throughput (needs `pip install .[vllm]`)
 ```
 
-Subdirectories are created lazily — add one when you wire up the first suite
-for a given tool.
+Planned but not yet implemented (file a
+[benchmark request](../.github/ISSUE_TEMPLATE/benchmark-request.yml) if you
+want to move any of these forward):
+
+- `lm-eval/knowledge.toml` — mmlu / ifeval
+- `lm-eval/math-hard.toml` — minerva math500
+- `lighteval/*` — broader task coverage
+- `mlxbench/*` — native vllm-mlx throughput harness
+
+Add a subdirectory when you wire up the first suite for a given tool — do
+not pre-create empty dirs.
 
 ## Non-TOML suite: framework-eval
 
