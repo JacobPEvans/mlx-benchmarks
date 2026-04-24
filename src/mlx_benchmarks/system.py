@@ -20,9 +20,13 @@ from typing import Any
 def detect_system() -> dict[str, Any]:
     """Build a ``system`` dict reflecting the machine actually running the benchmark.
 
-    Keys that cannot be determined are omitted rather than set to garbage;
-    downstream consumers should treat anything beyond the schema-required
-    ``os``/``chip``/``memory_gb`` as best-effort.
+    The schema-required fields ``os`` / ``chip`` / ``memory_gb`` are always
+    populated — when a detector fails they fall back to ``"unknown"`` or
+    ``0`` rather than being omitted, because the schema rejects envelopes
+    missing these keys. Optional fields (``python_version``, ``kernel``,
+    and the package versions below) are only added when actually detected.
+    Consumers should treat everything except ``os`` / ``chip`` /
+    ``memory_gb`` as best-effort metadata.
     """
     data: dict[str, Any] = {
         "os": _detect_os(),

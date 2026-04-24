@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 
+# Add the space/ directory to sys.path before resolving app via importlib so
+# ruff's top-of-file import rule (E402) stays satisfied without a suppression.
 SPACE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SPACE_ROOT))
-
-import app  # noqa: E402  — import after sys.path adjustment
+app = importlib.import_module("app")
 
 SAMPLE_ROWS = [
     {

@@ -6,7 +6,7 @@ and biased toward reusing upstream tools over writing new code.
 ## Developer setup
 
 ```sh
-git clone https://github.com/JacobPEvans/meh-benchmarks.git   # substitute real URL
+git clone https://github.com/JacobPEvans/mlx-benchmarks.git
 cd mlx-benchmarks
 
 # Install package + dev deps

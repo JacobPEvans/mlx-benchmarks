@@ -40,8 +40,11 @@ docs/                  architecture.md, schema.md, journal/ (session notes)
   Never overwrite. Use `target_path(envelope)` to compute.
 - **System detection**: always use `detect_system()`. Never hardcode system
   metadata.
-- **No `uv run` / `uvx`**: use the venv directly (`.venv/bin/lm_eval`,
-  `.venv/bin/mlx-bench-publish`).
+- **Main workflow uses the venv directly**: for the publisher and primary
+  evaluation commands, use `.venv/bin/lm_eval`, `.venv/bin/mlx-bench-publish`,
+  etc. rather than `uv run` / `uvx`. Exception: `harness/framework-eval/`
+  uses `uv run --with ...` because each per-framework script declares its
+  own dependencies via PEP 723 inline metadata.
 - **Conventional commits**: `release-please` consumes them. `feat:` minor,
   `fix:` patch. Never manually edit `CHANGELOG.md`.
 - **Pre-commit must pass**: `.venv/bin/pre-commit run --all-files`. CI
