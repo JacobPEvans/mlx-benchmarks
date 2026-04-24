@@ -1,6 +1,6 @@
 [project]
 name = "mlx-benchmarks"
-version = "0.2.0"
+version = "0.2.0"  # x-release-please-version
 description = "Benchmark harness for MLX-quantized LLMs on Apple Silicon — envelope v1 + HF dataset publisher"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -18,7 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "huggingface-hub>=0.23",
-    "jsonschema>=4.23.0",
+    "jsonschema[format]>=4.23.0",
     "psutil>=5.9",
     "pyarrow>=14",
     "lm-eval[api]==0.4.11",
@@ -56,8 +56,25 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/mlx_benchmarks"]
 
-[tool.hatch.build.targets.wheel.shared-data]
+# Ship schema.json inside the installed package dir (NOT a shared-data path),
+# so `mlx_benchmarks.envelope._find_schema_path()` resolves it via
+# `importlib.resources.files("mlx_benchmarks") / "schema.json"` after pip install.
+[tool.hatch.build.targets.wheel.force-include]
 "schema.json" = "mlx_benchmarks/schema.json"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/mlx_benchmarks/**",
+    "schema.json",
+    "examples/**",
+    "tests/**",
+    "scripts/**",
+    "configs/**",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "pyproject.toml",
+]
 
 [dependency-groups]
 dev = [

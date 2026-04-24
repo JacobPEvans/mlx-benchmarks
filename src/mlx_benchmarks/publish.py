@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import logging
 import os
@@ -12,6 +13,7 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 from huggingface_hub import CommitOperationAdd, HfApi
+from huggingface_hub.errors import HfHubHTTPError
 
 from mlx_benchmarks.envelope import Envelope, validate_envelope
 
@@ -19,6 +21,10 @@ log = logging.getLogger(__name__)
 
 DEFAULT_REPO_ID = "JacobPEvans/mlx-benchmarks"
 DEFAULT_REPO_TYPE = "dataset"
+
+
+class PublishError(RuntimeError):
+    """Raised for publisher-layer failures (auth, upload, empty results, ...)."""
 
 
 def slugify(model: str) -> str:
@@ -76,23 +82,34 @@ def envelope_to_rows(envelope: Envelope) -> list[dict[str, Any]]:
 
 def rows_to_parquet(rows: list[dict[str, Any]]) -> bytes:
     if not rows:
-        raise ValueError("No result rows to serialize — envelope has empty results[]")
+        raise PublishError("No result rows to serialize — envelope has empty results[]")
     table = pa.Table.from_pylist(rows)
     buf = io.BytesIO()
     pq.write_table(table, buf)  # type: ignore[no-untyped-call]
     return buf.getvalue()
 
 
-def target_path(envelope: Envelope) -> str:
+def target_path(envelope: Envelope, payload: bytes | None = None) -> str:
     """Deterministic HF-dataset path for this envelope.
 
-    Includes timestamp + git_sha + suite + model_slug so historical shards
-    are never overwritten, matching the policy documented in CLAUDE.md.
+    Format: ``data/run-<ts_slug>-<git_sha>-<suite>-<model_slug>-<payload_hash>.parquet``.
+
+    ``payload_hash`` is an 8-char SHA-256 prefix of the serialized parquet,
+    which (a) guarantees that two runs producing different metrics in the same
+    second cannot collide even if every other dimension matches, and (b)
+    content-addresses the shard so a deterministic re-publish is a no-op
+    instead of silently overwriting. Pass ``payload=None`` to get the
+    legacy-compatible pre-hash prefix (useful only for tests inspecting the
+    slug composition).
     """
-    timestamp = envelope["timestamp"]
+    timestamp: str = envelope["timestamp"]
     ts_slug = timestamp.replace(":", "-").rstrip("Z")
     model_slug = slugify(envelope["model"])[:50]
-    return f"data/run-{ts_slug}-{envelope['git_sha']}-{envelope['suite']}-{model_slug}.parquet"
+    prefix = f"data/run-{ts_slug}-{envelope['git_sha']}-{envelope['suite']}-{model_slug}"
+    if payload is None:
+        return f"{prefix}.parquet"
+    digest = hashlib.sha256(payload).hexdigest()[:8]
+    return f"{prefix}-{digest}.parquet"
 
 
 def publish(
@@ -107,14 +124,16 @@ def publish(
     """Validate, serialize and optionally upload ``envelope`` to the HF dataset.
 
     Returns the target path. When ``dry_run`` is True no network I/O happens;
-    otherwise ``HF_TOKEN`` (or an explicit ``token`` arg) is required.
+    otherwise ``HF_TOKEN`` (or an explicit ``token`` arg) is required. HF API
+    errors propagate as :class:`PublishError` so callers get a single type to
+    catch for the full "publish failed for non-local reason" class.
     """
     if validate:
         validate_envelope(envelope)
 
     rows = envelope_to_rows(envelope)
     parquet_bytes = rows_to_parquet(rows)
-    path = target_path(envelope)
+    path = target_path(envelope, payload=parquet_bytes)
 
     if dry_run:
         log.info("dry-run: would publish %d bytes to %s in %s", len(parquet_bytes), path, repo_id)
@@ -122,14 +141,17 @@ def publish(
 
     effective_token = token or os.environ.get("HF_TOKEN")
     if not effective_token:
-        raise RuntimeError("HF_TOKEN not set — export HF_TOKEN before publishing, or pass token=...")
+        raise PublishError("HF_TOKEN not set — export HF_TOKEN before publishing, or pass token=...")
 
     api = HfApi(token=effective_token)
-    api.create_commit(
-        repo_id=repo_id,
-        repo_type=repo_type,
-        operations=[CommitOperationAdd(path_in_repo=path, path_or_fileobj=parquet_bytes)],
-        commit_message=f"feat: add {envelope['suite']} run for {envelope['model']}",
-    )
+    try:
+        api.create_commit(
+            repo_id=repo_id,
+            repo_type=repo_type,
+            operations=[CommitOperationAdd(path_in_repo=path, path_or_fileobj=parquet_bytes)],
+            commit_message=f"feat: add {envelope['suite']} run for {envelope['model']}",
+        )
+    except HfHubHTTPError as exc:
+        raise PublishError(f"HF upload failed for {path}: {exc}") from exc
     log.info("published %d-byte parquet to %s", len(parquet_bytes), path)
     return path

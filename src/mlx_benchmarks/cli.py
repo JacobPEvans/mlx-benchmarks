@@ -22,7 +22,7 @@ from mlx_benchmarks.converters import get_converter
 from mlx_benchmarks.converters.base import ConverterContext
 from mlx_benchmarks.envelope import EnvelopeValidationError
 from mlx_benchmarks.logging_config import configure_logging
-from mlx_benchmarks.publish import current_git_sha, publish
+from mlx_benchmarks.publish import PublishError, current_git_sha, publish
 from mlx_benchmarks.system import detect_system
 
 log = logging.getLogger("mlx_benchmarks.cli")
@@ -63,7 +63,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run", action="store_true", help="Validate + plan only; do not upload")
     parser.add_argument("--no-validate", action="store_true", help="Skip schema validation (not recommended)")
     parser.add_argument("--log-format", default="text", choices=["text", "json"])
-    parser.add_argument("--log-level", default="INFO")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+    )
     parser.add_argument(
         "--repo-id", default=None, help="Override HF dataset repo (default: JacobPEvans/mlx-benchmarks)"
     )
@@ -119,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     except EnvelopeValidationError as exc:
         log.error("%s", exc)
         return 3
-    except RuntimeError as exc:
+    except PublishError as exc:
         log.error("publish failed: %s", exc)
         return 4
 
@@ -128,11 +132,9 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _extract_model(raw: dict[str, Any]) -> str:
-    for candidate in (
-        raw.get("model_name"),
-        raw.get("config", {}).get("model_args", {}).get("model"),
-        raw.get("model"),
-    ):
+    cfg = raw.get("config") or {}
+    model_args = cfg.get("model_args") or {}
+    for candidate in (raw.get("model_name"), model_args.get("model"), raw.get("model")):
         if isinstance(candidate, str) and candidate:
             return candidate
     return "unknown"

@@ -75,10 +75,15 @@ pushes that touch `space/`.
 | `test.yml` | PR, push to main | ruff + mypy + pytest (3.11 + 3.12 matrix) |
 | `validate-schema.yml` | PR touching schema/configs | schema Draft-07 check + TOML parse |
 | `dry-run-publish.yml` | PR | end-to-end publisher round-trip on fixture |
-| `codeql.yml` | PR, weekly | Python SAST |
 | `dependency-review.yml` | PR | Block PRs introducing high-severity advisories |
 | `deploy-space.yml` | main push to `space/**` | Sync viewer to HF Space |
 | `release-please.yml` | main push | Conventional-commits-driven releases |
+
+CodeQL Python + Actions scanning is provided by GitHub's
+**default CodeQL setup** (repo Security settings), not by a workflow file in
+this repo. A previous attempt to add a custom `codeql.yml` workflow conflicted
+with the default setup ("CodeQL analyses from advanced configurations cannot
+be processed when the default setup is enabled") and was removed.
 
 ## Reproducibility contract
 

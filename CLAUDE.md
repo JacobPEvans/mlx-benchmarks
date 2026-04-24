@@ -26,8 +26,9 @@ examples/              Canonical valid + invalid envelope fixtures
 tests/                 Pytest suite with fixtures
 space/                 Gradio viewer (deployed to HF Space)
 docs/                  architecture.md, schema.md, journal/ (session notes)
-.github/workflows/     test, validate-schema, dry-run-publish, codeql,
+.github/workflows/     test, validate-schema, dry-run-publish,
                        dependency-review, deploy-space, release-please
+                       (CodeQL is via GitHub's default setup, not a workflow)
 ```
 
 ## Key conventions (non-negotiable)

@@ -6,6 +6,7 @@ import pytest
 
 from mlx_benchmarks.envelope import EnvelopeValidationError
 from mlx_benchmarks.publish import (
+    PublishError,
     envelope_to_rows,
     publish,
     rows_to_parquet,
@@ -28,6 +29,18 @@ def test_target_path_format(valid_envelope: dict) -> None:
     # Contains git_sha and suite
     assert valid_envelope["git_sha"] in path
     assert valid_envelope["suite"] in path
+
+
+def test_target_path_includes_payload_hash(valid_envelope: dict) -> None:
+    bare = target_path(valid_envelope)
+    stamped_a = target_path(valid_envelope, payload=b"alpha")
+    stamped_b = target_path(valid_envelope, payload=b"beta")
+    # Same prefix, distinct suffixes: re-runs producing different bytes in the
+    # same second MUST NOT collide.
+    assert stamped_a != stamped_b
+    assert stamped_a != bare
+    assert stamped_b != bare
+    assert stamped_a.startswith(bare.removesuffix(".parquet"))
 
 
 def test_envelope_to_rows_explodes_results(valid_envelope: dict) -> None:
@@ -55,9 +68,15 @@ def test_rows_to_parquet_roundtrip(valid_envelope: dict) -> None:
     assert table.num_rows == len(rows)
 
 
+def test_rows_to_parquet_rejects_empty() -> None:
+    with pytest.raises(PublishError, match="No result rows"):
+        rows_to_parquet([])
+
+
 def test_publish_dry_run_returns_path(valid_envelope: dict) -> None:
     path = publish(valid_envelope, dry_run=True)
-    assert path == target_path(valid_envelope)
+    # The returned path carries a content-addressed suffix when payload is real.
+    assert path.startswith(target_path(valid_envelope).removesuffix(".parquet"))
 
 
 def test_publish_refuses_invalid_envelope(invalid_envelope: dict) -> None:
@@ -65,7 +84,8 @@ def test_publish_refuses_invalid_envelope(invalid_envelope: dict) -> None:
         publish(invalid_envelope, dry_run=True)
 
 
-def test_publish_can_skip_validation(invalid_envelope: dict) -> None:
-    # --no-validate is escape hatch; still rejects empty results downstream in rows_to_parquet.
-    with pytest.raises(ValueError, match="No result rows"):
+def test_publish_skipping_validation_still_rejects_empty(invalid_envelope: dict) -> None:
+    # --no-validate is the escape hatch; rows_to_parquet still raises PublishError
+    # (not plain ValueError) so the CLI can catch it via a single exception type.
+    with pytest.raises(PublishError, match="No result rows"):
         publish(invalid_envelope, dry_run=True, validate=False)

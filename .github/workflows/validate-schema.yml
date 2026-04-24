@@ -11,7 +11,9 @@ on:
     branches: [main]
     paths:
       - schema.json
+      - configs/**
       - scripts/validate_schema.py
+      - .github/workflows/validate-schema.yml
   workflow_dispatch:
 
 permissions:
@@ -31,7 +33,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install validator deps
-        run: python -m pip install --no-cache-dir "jsonschema>=4.23.0"
+        run: python -m pip install --no-cache-dir "jsonschema[format]>=4.23.0"
 
       - name: Validate schema + TOML configs
         run: python scripts/validate_schema.py

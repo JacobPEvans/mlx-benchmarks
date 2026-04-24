@@ -19,7 +19,7 @@ from pathlib import Path
 
 from huggingface_hub import CommitOperationAdd, HfApi
 
-SKIP_PARTS = {".venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"}
+SKIP_PARTS = {".venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "tests"}
 
 
 def main() -> int:

@@ -12,7 +12,8 @@
       "draft": false,
       "prerelease": false,
       "extra-files": [
-        "src/mlx_benchmarks/__init__.py"
+        {"type": "generic", "path": "src/mlx_benchmarks/__init__.py"},
+        {"type": "generic", "path": "pyproject.toml"}
       ]
     }
   },

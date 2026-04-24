@@ -80,19 +80,21 @@ class EnvelopeValidationError(ValueError):
 
 
 def _find_schema_path() -> Path:
-    """Resolve schema.json whether running from source tree or installed package.
+    """Resolve schema.json whether running from source tree or installed wheel.
 
-    The schema lives at the repo root, not inside the package, so we search
-    upward from the package __file__ and also try the CWD for editable installs.
+    Two supported layouts:
+
+    1. **Installed wheel** (``pip install mlx-benchmarks``): the build copies
+       ``schema.json`` into the package directory via
+       ``[tool.hatch.build.targets.wheel.force-include]``. ``importlib.resources``
+       locates it reliably inside site-packages.
+    2. **Source tree** (editable install or running from the repo directly):
+       the schema lives at the repo root; walk upward from this file.
+
+    We try (1) first so installed-package behavior is the fast path; fall back
+    to (2) for development. Failure is noisy — a missing schema means the
+    publisher cannot validate envelopes.
     """
-    # Source tree: src/mlx_benchmarks/envelope.py -> <repo>/schema.json
-    here = Path(__file__).resolve()
-    for parent in (here.parent, *here.parents):
-        candidate = parent / "schema.json"
-        if candidate.is_file():
-            return candidate
-
-    # Installed via `pip install .`: schema is packaged as data file.
     try:
         pkg_file = resources.files("mlx_benchmarks") / "schema.json"
         if pkg_file.is_file():
@@ -100,8 +102,15 @@ def _find_schema_path() -> Path:
     except (ModuleNotFoundError, FileNotFoundError):
         pass
 
+    here = Path(__file__).resolve()
+    for parent in (here.parent, *here.parents):
+        candidate = parent / "schema.json"
+        if candidate.is_file():
+            return candidate
+
     raise FileNotFoundError(
-        "Could not locate schema.json — expected at repository root or packaged alongside mlx_benchmarks."
+        "Could not locate schema.json — expected alongside the installed "
+        "mlx_benchmarks package (force-include) or at repository root."
     )
 
 
@@ -115,9 +124,16 @@ def load_schema() -> dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def _validator() -> Draft7Validator:
+    """Cached validator with format checking enabled.
+
+    Without ``format_checker=``, jsonschema silently accepts any string for
+    ``format: date-time`` / URI / regex / etc. The envelope schema relies on
+    ISO-8601 timestamps; downstream consumers (the viewer's
+    ``pd.to_datetime`` call) assume that contract holds.
+    """
     schema = load_schema()
     Draft7Validator.check_schema(schema)
-    return Draft7Validator(schema)
+    return Draft7Validator(schema, format_checker=Draft7Validator.FORMAT_CHECKER)
 
 
 def validate_envelope(envelope: Envelope | dict[str, Any]) -> None:
