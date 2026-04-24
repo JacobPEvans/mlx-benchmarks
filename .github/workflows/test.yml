@@ -1,0 +1,58 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - name: Install project + dev dependencies
+        run: |
+          uv venv --python ${{ matrix.python-version }}
+          uv pip install -e ".[viewer]"
+          uv pip install mypy pytest pytest-cov ruff types-jsonschema types-psutil
+
+      - name: Ruff lint
+        run: .venv/bin/ruff check .
+
+      - name: Ruff format check
+        run: .venv/bin/ruff format --check .
+
+      - name: Mypy strict
+        run: .venv/bin/mypy src/mlx_benchmarks
+
+      - name: Pytest (package)
+        run: .venv/bin/pytest tests --cov=mlx_benchmarks --cov-report=term
+
+      - name: Pytest (space viewer)
+        run: .venv/bin/pytest space/tests

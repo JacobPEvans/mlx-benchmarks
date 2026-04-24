@@ -1,0 +1,49 @@
+name: dry-run-publish
+
+on:
+  pull_request:
+    paths:
+      - src/mlx_benchmarks/**
+      - scripts/publish_run.py
+      - schema.json
+      - tests/fixtures/**
+      - pyproject.toml
+      - .github/workflows/dry-run-publish.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          enable-cache: true
+
+      - name: Install package
+        run: |
+          uv venv --python 3.11
+          uv pip install -e .
+
+      - name: Dry-run publish against canonical fixture
+        run: |
+          .venv/bin/mlx-bench-publish \
+            tests/fixtures/lm_eval_results_sample.json \
+            --kind lm-eval \
+            --suite reasoning \
+            --git-sha "${COMMIT_SHA:0:7}" \
+            --dry-run
