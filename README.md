@@ -1,7 +1,6 @@
 # mlx-benchmarks
 
-[![test](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/test.yml)
-[![validate-schema](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml/badge.svg?branch=main)](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml)
+[![Release Please](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml/badge.svg?branch=main)](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 [![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20dataset-JacobPEvans%2Fmlx--benchmarks-yellow)](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks)
@@ -75,9 +74,9 @@ implemented vs aspirational.
 │   ├── architecture.md
 │   ├── schema.md
 │   └── journal/
-└── .github/workflows/        <- test, validate-schema, dry-run-publish,
-                                  deploy-space, codeql, dependency-review,
-                                  release-please
+└── .github/workflows/        <- ci-gate (test + lint + scan + dry-run-publish
+                                  + schema-validate via paths-filter),
+                                  release-please, deploy-space
 ```
 
 ## Installation

@@ -26,8 +26,9 @@ examples/              Canonical valid + invalid envelope fixtures
 tests/                 Pytest suite with fixtures
 space/                 Gradio viewer (deployed to HF Space)
 docs/                  architecture.md, schema.md, journal/ (session notes)
-.github/workflows/     test, validate-schema, dry-run-publish,
-                       dependency-review, deploy-space, release-please
+.github/workflows/     ci-gate (test + lint + scan + dry-run-publish +
+                       schema-validate via paths-filter), release-please
+                       (wraps JacobPEvans/.github reusable), deploy-space
                        (CodeQL is via GitHub's default setup, not a workflow)
 ```
 

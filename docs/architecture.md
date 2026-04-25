@@ -72,12 +72,9 @@ pushes that touch `space/`.
 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
-| `test.yml` | PR, push to main | ruff + mypy + pytest (3.11 + 3.12 matrix) |
-| `validate-schema.yml` | PR touching schema/configs | schema Draft-07 check + TOML parse |
-| `dry-run-publish.yml` | PR | end-to-end publisher round-trip on fixture |
-| `dependency-review.yml` | PR | Block PRs introducing high-severity advisories |
+| `ci-gate.yml` | PR | Single merge gate. Detects file changes and conditionally runs `python-test` (ruff + mypy + pytest matrix), `schema-validate` (Draft-07 + TOML), `dry-run-publish` (publisher round-trip on fixture), and the central reusables `_python-security.yml` (pip-audit), `_osv-scan.yml` (OSV lockfile scan), `_markdown-lint.yml`, `_file-size.yml`. Final `Merge Gate` step (`re-actors/alls-green`) is the only required check in branch protection. |
 | `deploy-space.yml` | main push to `space/**` | Sync viewer to HF Space |
-| `release-please.yml` | main push | Conventional-commits-driven releases |
+| `release-please.yml` | main push | Conventional-commits-driven releases — thin wrapper around `JacobPEvans/.github/.github/workflows/_release-please.yml@main` |
 
 CodeQL Python + Actions scanning is provided by GitHub's
 **default CodeQL setup** (repo Security settings), not by a workflow file in

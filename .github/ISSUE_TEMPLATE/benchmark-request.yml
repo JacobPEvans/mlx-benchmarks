@@ -1,6 +1,6 @@
 name: Benchmark / converter request
 description: Ask for a new suite, tool integration, or model to be added.
-labels: ["enhancement", "benchmark-request"]
+labels: ["type:feature"]
 body:
   - type: markdown
     attributes:
@@ -45,3 +45,30 @@ body:
         - label: The upstream tool runs on Apple Silicon / MLX today
         - label: An OpenAI-compatible API endpoint is sufficient (no special backend)
         - label: I've checked the [dataset viewer](https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer) to confirm this isn't already covered
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this request?
+      options:
+        - "priority:low - Address when time permits"
+        - "priority:medium - Normal workflow"
+        - "priority:high - Should be addressed soon"
+        - "priority:critical - Requires immediate attention"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Estimated Size
+      description: How much effort do you think this will take?
+      options:
+        - "size:xs - Trivial change, <1 hour"
+        - "size:s - Simple change, 1-4 hours"
+        - "size:m - Moderate effort, 1-2 days"
+        - "size:l - Significant work, 3-5 days"
+        - "size:xl - Major effort, 1+ weeks"
+    validations:
+      required: true

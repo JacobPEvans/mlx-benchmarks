@@ -3,6 +3,10 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-yaml
+        # lm-eval task configs (configs/lm-eval/qwen3-tasks/*.yaml) use
+        # custom !function tags. --unsafe runs a syntax-only check that
+        # accepts custom tags while still validating YAML structure.
+        args: [--unsafe]
       - id: check-toml
       - id: check-json
       - id: check-added-large-files
