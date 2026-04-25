@@ -1,0 +1,30 @@
+# OSV Scanner config — local override for JacobPEvans/mlx-benchmarks.
+#
+# The reusable workflow at JacobPEvans/.github/.github/workflows/_osv-scan.yml
+# auto-applies this file when present (otherwise it falls back to the org-wide
+# default at JacobPEvans/.github/osv-scanner.toml).
+#
+# Each ignored vulnerability MUST:
+#   1. Link to a tracking issue in this repo.
+#   2. Set ignoreUntil (max ~6 months) — forces a quarterly review.
+#   3. Document the reason and the actual exploitability surface.
+#
+# This is per-CVE acknowledgement, not a blanket disable. New findings still
+# fail the build.
+
+[[IgnoredVulns]]
+id = "GHSA-g4r7-86gm-pgqc"
+ignoreUntil = 2026-10-25
+reason = """
+sqlitedict 2.1.0 (CVE-2024-35515) — insecure deserialization of binary-
+encoded data in .sqlite files. Pulled in transitively by
+lm-eval[api]==0.4.11 (lm-eval's required dep, not optional). The project
+is dormant; no fix released and none expected on the 2.x line.
+
+Exploitability in our usage: the dep is loaded only by lm-eval's local
+caching layer for benchmark runs against models we control on
+hardware we control. There is no untrusted input path.
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/18
+Re-evaluate before 2026-10-25 (or sooner if lm-eval drops sqlitedict).
+"""
