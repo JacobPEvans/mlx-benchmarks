@@ -87,6 +87,33 @@ converter and call `validate_envelope(envelope)` to confirm schema compliance.
 - Hardcoded system metadata — use `detect_system()`.
 - Runtime tooling that bypasses the pre-commit hooks or the CI quality gates.
 
+## CI secrets and external sync
+
+Two GitHub Actions workflows in this repo depend on repository secrets that
+are **not** set directly here — they're distributed by the
+[`secrets-sync`](https://github.com/JacobPEvans/secrets-sync) repo from
+Doppler:
+
+| Secret / Variable | Used by | Source (Doppler) |
+| --- | --- | --- |
+| `GH_APP_PRIVATE_KEY` | `release-please.yml` | `gh-workflow-tokens/prd` |
+| `GH_ACTION_JACOBPEVANS_APP_ID` | `release-please.yml` | `gh-workflow-tokens/prd` |
+| `HF_TOKEN` | `deploy-space.yml` | `gh-workflow-tokens/prd` |
+
+If you fork this repo and want CI to work end-to-end, you need to provide your
+own equivalents:
+
+- `release-please.yml` requires a GitHub App with write access to **contents**
+  and **pull-requests** on your fork. See
+  [the release-please-action docs](https://github.com/googleapis/release-please-action#authentication).
+- `deploy-space.yml` requires a Hugging Face token with **write** scope on the
+  Space namespace you target. Set the `SPACE_REPO_ID` environment variable in
+  the workflow to point at your Space.
+
+For maintainers: secret distribution is owned by `secrets-sync`. Don't set
+these secrets directly in this repo — edit `secrets-config.yml` upstream so
+they round-trip through the canonical Doppler → secrets-sync → repo flow.
+
 ## Questions
 
 Open an issue at
