@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "timestamp": "2026-04-24T18:30:00Z",
+  "git_sha": "aaa3ff3",
+  "trigger": "local",
+  "suite": "reasoning",
+  "model": "mlx-community/Qwen3.5-9B-MLX-4bit",
+  "gen_kwargs": {
+    "max_gen_toks": 4096,
+    "temperature": 0.0
+  },
+  "system": {
+    "os": "macOS 26.4.1",
+    "chip": "Apple M4 Max",
+    "memory_gb": 128,
+    "python_version": "3.11.9",
+    "lm_eval_version": "0.4.11",
+    "kernel": "25.4.0"
+  },
+  "results": [
+    {
+      "name": "gsm8k_cot_zeroshot",
+      "metric": "exact_match_flexible",
+      "value": 0.8,
+      "unit": "ratio",
+      "duration_seconds": 123.4,
+      "tags": {
+        "lm_eval_key": "exact_match,flexible-extract",
+        "n_limit": "10"
+      }
+    }
+  ],
+  "errors": []
+}

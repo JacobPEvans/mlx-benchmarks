@@ -1,0 +1,37 @@
+{
+  "results": {
+    "gsm8k_cot_zeroshot": {
+      "alias": "gsm8k_cot_zeroshot",
+      "exact_match,flexible-extract": 0.7,
+      "exact_match_stderr,flexible-extract": 0.145,
+      "exact_match,strict-match": 0.5,
+      "exact_match_stderr,strict-match": 0.158
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "gsm8k_cot_zeroshot": {
+      "task": "gsm8k_cot_zeroshot",
+      "num_fewshot": 0
+    }
+  },
+  "config": {
+    "model": "local-chat-completions",
+    "model_args": {
+      "base_url": "http://localhost:11434/v1/chat/completions",
+      "model": "mlx-community/Qwen3.5-9B-MLX-4bit",
+      "max_length": 32768
+    },
+    "limit": 10,
+    "batch_size": 1,
+    "num_fewshot": 0,
+    "gen_kwargs": {
+      "max_gen_toks": 4096,
+      "temperature": 0.0
+    },
+    "seed": [1234, 1234, 1234, 1234]
+  },
+  "model_name": "mlx-community/Qwen3.5-9B-MLX-4bit",
+  "date": 1766640000.0,
+  "total_evaluation_time_seconds": "123.45"
+}

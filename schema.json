@@ -1,7 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/JacobPEvans/mlx-benchmarks/schema/v1.json",
   "title": "MLX Benchmark Result",
-  "description": "Structured result envelope for a single benchmark suite run",
+  "description": "Structured result envelope for a single benchmark suite run. Backwards-compatible v1 — optional fields may be added without bumping schema_version; breaking changes bump the version and change $id.",
   "type": "object",
   "required": [
     "schema_version",
@@ -61,9 +62,32 @@
       "type": "string",
       "description": "Model name/ID used for inference (e.g. Qwen3.5-122B-A10B-4bit)"
     },
+    "model_revision": {
+      "type": "string",
+      "description": "HuggingFace revision (tag or commit SHA) pinned at inference time"
+    },
+    "quantization": {
+      "type": "string",
+      "description": "Quantization scheme as reported by the runtime (e.g. mlx-4bit, mxfp4, mxfp8)"
+    },
     "skipped": {
       "type": "boolean",
       "description": "True when the suite was skipped (e.g. MLX server unavailable on standard runner)"
+    },
+    "seed": {
+      "type": "integer",
+      "description": "RNG seed used for generation (when applicable)"
+    },
+    "gen_kwargs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Generation hyperparameters as passed to the inference API",
+      "properties": {
+        "max_gen_toks": { "type": "integer" },
+        "temperature": { "type": "number" },
+        "top_p": { "type": "number" },
+        "top_k": { "type": "integer" }
+      }
     },
     "system": {
       "type": "object",
@@ -89,6 +113,26 @@
         "runner": {
           "type": "string",
           "description": "GitHub Actions runner label (e.g. macos-latest, self-hosted)"
+        },
+        "python_version": {
+          "type": "string",
+          "description": "Python interpreter version (e.g. 3.11.9)"
+        },
+        "mlx_version": {
+          "type": "string",
+          "description": "mlx package version"
+        },
+        "mlx_lm_version": {
+          "type": "string",
+          "description": "mlx-lm package version"
+        },
+        "lm_eval_version": {
+          "type": "string",
+          "description": "lm-eval package version"
+        },
+        "kernel": {
+          "type": "string",
+          "description": "OS kernel release (uname -r)"
         }
       }
     },
@@ -115,6 +159,10 @@
           "unit": {
             "type": "string",
             "description": "Unit of measurement (e.g. 'seconds', 'tok/s', 'ratio', 'bool')"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "description": "Wall-clock duration attributed to this result (first-class, replacing tags.total_eval_time_s for new runs)"
           },
           "tags": {
             "type": "object",
@@ -167,5 +215,41 @@
         "type": "string"
       }
     }
-  }
+  },
+  "examples": [
+    {
+      "schema_version": "1",
+      "timestamp": "2026-04-24T18:30:00Z",
+      "git_sha": "aaa3ff3",
+      "trigger": "local",
+      "suite": "reasoning",
+      "model": "mlx-community/Qwen3.5-9B-MLX-4bit",
+      "gen_kwargs": {
+        "max_gen_toks": 4096,
+        "temperature": 0.0
+      },
+      "system": {
+        "os": "macOS 26.4.1",
+        "chip": "Apple M4 Max",
+        "memory_gb": 128,
+        "python_version": "3.11.9",
+        "lm_eval_version": "0.4.11",
+        "kernel": "25.4.0"
+      },
+      "results": [
+        {
+          "name": "gsm8k_cot_zeroshot",
+          "metric": "exact_match_flexible",
+          "value": 0.8,
+          "unit": "ratio",
+          "duration_seconds": 123.4,
+          "tags": {
+            "lm_eval_key": "exact_match,flexible-extract",
+            "n_limit": "10"
+          }
+        }
+      ],
+      "errors": []
+    }
+  ]
 }

@@ -63,10 +63,10 @@ and `steps`. See each script's `__main__` block for the exact output shape.
 
 ## API
 
-Current status: **scripts print; they do not yet serialize to the envelope
-schema**. Integrating framework-eval into the automated sweep pipeline
-(turning stdout output into envelope JSON → Parquet → `HfApi.create_commit`)
-is tracked as a follow-up PR.
+Current status: **scripts print JSON to stdout**. A framework-eval
+converter that maps that output onto envelope v1 is planned but not yet
+implemented — follow-up work is tracked as a
+[benchmark request](../../.github/ISSUE_TEMPLATE/benchmark-request.yml).
 
 The target envelope schema lives at [`../../schema.json`](../../schema.json).
 A framework-eval row maps to the envelope shape as follows:

@@ -1,162 +1,197 @@
 # mlx-benchmarks
 
-[![Validate Schema](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml/badge.svg?branch=main)](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/validate-schema.yml)
+[![Release Please](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml/badge.svg?branch=main)](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
+[![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20dataset-JacobPEvans%2Fmlx--benchmarks-yellow)](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks)
+[![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20space-viewer-yellow)](https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer)
 
-Benchmark harness for **MLX-quantized** and other **locally-hosted LLMs** on
-Apple Silicon. Orchestration, configs, and schema live here; results are
-published to the companion HuggingFace dataset.
+A reproducible benchmark harness for **MLX-quantized** and **locally-hosted**
+LLMs on Apple Silicon. One envelope schema, one HuggingFace dataset, one
+interactive viewer — across every upstream evaluation tool.
 
-- **Results**: [huggingface.co/datasets/JacobPEvans/mlx-benchmarks](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks)
-- **Schema**: [`schema.json`](schema.json) (envelope v1)
+**Why not just use lm-eval directly?** You can. This repo wraps lm-eval (and
+other harnesses) with:
 
-## Philosophy
+- A **single versioned result contract** (`schema.json`) so every shard is
+  comparable across tools, models, and dates.
+- A **publish pipeline** (`mlx-bench-publish`) that validates envelopes
+  against the schema and uploads to the
+  [HF dataset](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks)
+  with content-addressed filenames.
+- A **Gradio viewer** (in [`space/`](space/)) auto-deployed to an
+  [HF Space](https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer)
+  on every `main` push.
 
-Wire upstream evaluation tools directly. No custom benchmark harness code
-beyond the thinnest possible orchestration layer and result-envelope
-conversion. If an upstream tool covers a measurement, use it.
+Read results as a pandas DataFrame with no tooling beyond `huggingface_hub` +
+`pyarrow`.
 
-Upstream tools integrated:
+## Upstream tools wired in
 
-| Tool | Suites | Purpose |
+| Tool | Suite(s) | Purpose |
 | --- | --- | --- |
-| [EleutherAI/lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) | `coding`, `reasoning`, `knowledge`, `math-hard` | Standard LLM evals (humaneval, mbpp, gsm8k, hellaswag, arc, mmlu, ifeval, minerva math) |
-| [linusvwe/MLXBench](https://github.com/linusvwe/MLXBench) | `throughput`, `ttft` | Native vllm-mlx throughput and time-to-first-token |
-| [vllm `benchmark_serving`](https://docs.vllm.ai/en/latest/performance/benchmarks.html) | `throughput` (second opinion) | Cross-check against vllm-upstream's own harness |
-| [huggingface/lighteval](https://github.com/huggingface/lighteval) | `coding` (livecodebench), extended tasks | Broader task coverage where lm-eval lags |
-| OpenAI tool-calling (baseline), [Qwen-Agent](https://github.com/QwenLM/Qwen-Agent), [smolagents](https://github.com/huggingface/smolagents), [Google ADK](https://github.com/google/adk-python) | `framework-eval` | Per-framework agent evaluation with shared fixture; inline Python scripts under [`harness/framework-eval/`](harness/framework-eval/) |
+| [EleutherAI/lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) | `coding`, `reasoning` | Standard LLM evals (humaneval, mbpp, gsm8k, arc, ...) |
+| [vllm `benchmark_serving`](https://docs.vllm.ai/en/latest/performance/benchmarks.html) | `throughput` | Cross-check throughput against vllm upstream (install with `[vllm]` extra) |
+| OpenAI tool-calling baseline, [Qwen-Agent](https://github.com/QwenLM/Qwen-Agent), [smolagents](https://github.com/huggingface/smolagents), [Google ADK](https://github.com/google/adk-python) | `framework-eval` | Per-framework agent harness (`harness/framework-eval/`) |
+
+Planned but not wired yet: lighteval (broader tasks), MLXBench (native throughput).
+The `configs/LAYOUT.md` is the single source of truth for what is currently
+implemented vs aspirational.
 
 ## Repository layout
 
 ```text
 .
-├── README.md                 # this file
-├── LICENSE                   # Apache 2.0
-├── schema.json               # envelope v1 spec (authoritative)
-├── cspell.json               # project domain dictionary
-├── .gitignore
-├── configs/                  # one TOML per (tool, suite) pair
+├── README.md                 <- this file
+├── CLAUDE.md                 <- agent-facing project notes
+├── CONTRIBUTING.md           <- dev workflow
+├── SECURITY.md               <- HF token handling, unsafe-code warning
+├── LICENSE                   <- Apache-2.0
+├── schema.json               <- envelope v1 (authoritative)
+├── examples/                 <- known-good + known-bad envelope fixtures
+├── pyproject.toml            <- package + lint/type/test config
+├── src/mlx_benchmarks/       <- Python package (publisher, converters)
+│   ├── cli.py                <-   mlx-bench-publish entry point
+│   ├── envelope.py           <-   typed envelope + jsonschema validator
+│   ├── publish.py            <-   parquet + HF upload (unique filenames)
+│   ├── system.py             <-   runtime detection of os/chip/memory/versions
+│   ├── logging_config.py     <-   text + JSON-lines logging
+│   └── converters/lm_eval.py <-   lm-eval results.json -> envelope
+├── tests/                    <- package tests + fixtures
+├── configs/                  <- one TOML per (tool, suite) pair
 │   ├── LAYOUT.md
-│   ├── lm-eval/
-│   ├── mlxbench/
-│   ├── vllm/
-│   └── lighteval/
-├── harness/                  # inline-code suites (non-TOML)
-│   └── framework-eval/       # OpenAI baseline / Qwen-Agent / smolagents / Google ADK
-│       ├── README.md
-│       ├── eval_google_adk.py
-│       ├── eval_openai_tool_calling.py
-│       ├── eval_qwen_agent.py
-│       ├── eval_smolagents.py
-│       └── run_all.sh
-└── .github/
-    └── workflows/
-        └── validate-schema.yml   # lint schema.json + sample envelopes
+│   ├── lm-eval/{coding.toml, reasoning.toml, qwen3-tasks/}
+│   └── vllm/benchmark_serving.toml
+├── harness/                  <- inline-Python suites (non-TOML)
+│   └── framework-eval/       <-   agent framework evaluations
+├── scripts/                  <- one-shot tooling (validator, space deploy, legacy shim)
+├── space/                    <- Gradio viewer (deployed to HF Space)
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── README.md             <-   HF Spaces front-matter
+│   └── tests/
+├── docs/                     <- architecture notes + run journals
+│   ├── architecture.md
+│   ├── schema.md
+│   └── journal/
+└── .github/workflows/        <- ci-gate (test + lint + scan + dry-run-publish
+                                  + schema-validate via paths-filter),
+                                  release-please, deploy-space
 ```
-
-Configs are added incrementally as each upstream tool is wired up. Start with
-whichever suite you want to measure first; see [`configs/LAYOUT.md`](configs/LAYOUT.md)
-for the pattern.
 
 ## Installation
 
-Requires macOS (Apple Silicon) and a running `vllm-mlx` OpenAI-compatible
-inference server on the local machine.
+Requires macOS on Apple Silicon (for inference) and Python 3.11+. A running
+`vllm-mlx` OpenAI-compatible inference server on `http://localhost:11434/v1`
+is assumed by the lm-eval configs.
 
-**Prerequisites (pick one path):**
-- **Plain uv**: Install [`uv`](https://github.com/astral-sh/uv) (`brew install uv`)
-- **Nix dev shell**: Install [Nix](https://nixos.org/download/) + [direnv](https://direnv.net/) + [nix-direnv](https://github.com/nix-community/nix-direnv)
-
-```bash
-# Clone this repo
+```sh
 git clone https://github.com/JacobPEvans/mlx-benchmarks.git
 cd mlx-benchmarks
 
-# Install dependencies (pick one)
-uv sync                  # plain uv — installs lm_eval into .venv
-direnv allow             # nix dev shell — auto-runs uv sync via devenv
+# Plain uv (recommended)
+uv sync
+# ...or plain pip into a venv
+python -m venv .venv && source .venv/bin/activate && pip install -e ".[viewer]"
 
-# Export a HuggingFace token with `write` scope on the dataset namespace
-# (create at https://huggingface.co/settings/tokens)
+# Token with write scope on the HF dataset, required for publishing
 export HF_TOKEN="hf_..."
 
-# Start a local vllm-mlx server in a separate shell
-# See https://github.com/blaizzy/mlx-vllm for server setup
+# Install pre-commit hooks (optional but encouraged)
+.venv/bin/pre-commit install
 ```
 
-Dependencies are managed via `uv` (`pyproject.toml`). Run `uv sync` once after
-cloning, or use the included `flake.nix` dev shell via `direnv allow`.
+For Nix users: `direnv allow` activates the included `flake.nix` dev shell.
 
 ## Usage
 
-A "sweep" is: for each selected `(suite, model)` pair, run the matching
-upstream tool with its config, capture the output, map it to the envelope
-schema, serialize to a single-run Parquet, and append to the HF dataset via
-unique-filename commit.
+### Run a benchmark and publish
 
-Generic shape (exact form depends on the tool):
-
-```bash
-# Example: run lm-eval reasoning suite against a local vllm-mlx endpoint
-# NOTE: base_url must be the full chat completions endpoint, not just /v1
-lm_eval --model local-chat-completions \
-  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,max_length=32768,timeout=3600" \
-  --tasks gsm8k_cot_zeroshot,arc_challenge \
-  --batch_size 1 --num_fewshot 0 \
+```sh
+# 1. Run lm-eval against your local vllm-mlx endpoint
+.venv/bin/lm_eval --model local-chat-completions \
+  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=mlx-community/Qwen3.5-9B-MLX-4bit,max_length=32768,timeout=3600" \
+  --tasks gsm8k_cot_zeroshot \
+  --batch_size 1 --num_fewshot 0 --limit 10 \
   --gen_kwargs "max_gen_toks=4096" \
-  --apply_chat_template --fewshot_as_multiturn \
-  --log_samples \
+  --apply_chat_template --fewshot_as_multiturn --log_samples \
   --output_path ./run-output
+
+# 2. Dry-run conversion (validates envelope against schema, no upload)
+.venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
+  --kind lm-eval --suite reasoning --dry-run
+
+# 3. Publish to the HF dataset
+.venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
+  --kind lm-eval --suite reasoning
 ```
 
-Then convert `./run-output/*.json` to envelope format and push:
+Filenames are deterministic — `data/run-<timestamp>-<git_sha>-<suite>-<model_slug>.parquet` —
+so historical shards are never overwritten.
 
-```python
-from huggingface_hub import HfApi, CommitOperationAdd
-import io, pyarrow.parquet as pq
-# ... construct a pyarrow.Table from the flattened envelope rows ...
-buf = io.BytesIO()
-pq.write_table(table, buf)
-HfApi().create_commit(
-    repo_id="JacobPEvans/mlx-benchmarks",
-    repo_type="dataset",
-    operations=[CommitOperationAdd(
-        path_in_repo=f"data/run-{timestamp}-{git_sha}-{suite}-{model_slug}.parquet",
-        path_or_fileobj=buf.getvalue(),
-    )],
-    commit_message=f"feat: add {suite} run for {model}",
-)
+### View results
+
+Open the live HF Space:
+<https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer>
+
+Or run the viewer locally:
+
+```sh
+cd space
+pip install -r requirements.txt
+python app.py
 ```
-
-Each `create_commit` writes a **unique filename**, so historical shards are
-never overwritten. `load_dataset()` on the HF side concatenates all
-`data/*.parquet` files into the `train` split automatically.
 
 ## API
 
-The **envelope** is the contract between generators and the HF dataset. See
-[`schema.json`](schema.json) for the authoritative v1 definition. High-level
-shape:
+### The envelope
+
+See [`schema.json`](schema.json) — it is the authoritative, versioned contract
+backing every published shard. A minimal valid envelope:
 
 ```json
 {
   "schema_version": "1",
-  "timestamp": "2026-04-11T20:25:06Z",
-  "git_sha": "abc1234",
+  "timestamp": "2026-04-24T18:30:00Z",
+  "git_sha": "aaa3ff3",
   "trigger": "local",
-  "suite": "throughput",
-  "model": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit",
-  "system": {"os": "macOS 26.4", "chip": "Apple M4 Max", "memory_gb": 128},
+  "suite": "reasoning",
+  "model": "mlx-community/Qwen3.5-9B-MLX-4bit",
+  "system": {"os": "macOS 26.4.1", "chip": "Apple M4 Max", "memory_gb": 128},
   "results": [
-    {"name": "short-50", "metric": "throughput", "value": 38.4, "unit": "tok/s"}
-  ],
-  "errors": []
+    {"name": "gsm8k_cot_zeroshot", "metric": "exact_match_flexible",
+     "value": 0.8, "unit": "ratio"}
+  ]
 }
 ```
 
-On the HF dataset side, envelopes are exploded into flat scalar rows (one per
-`results[]` entry). See the
-[dataset card](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks) for
-the full column reference. Reading example:
+Optional v1 fields (non-breaking additions): `seed`, `gen_kwargs`,
+`model_revision`, `quantization`, and on the `system` object:
+`python_version`, `mlx_version`, `mlx_lm_version`, `lm_eval_version`,
+`kernel`. The CLI auto-detects all of these at publish time —
+no hand-curation required.
+
+See [`docs/schema.md`](docs/schema.md) for a prose walk-through of every field.
+
+### The publisher
+
+```python
+from mlx_benchmarks.converters import get_converter
+from mlx_benchmarks.converters.base import ConverterContext
+from mlx_benchmarks.publish import publish
+from mlx_benchmarks.system import detect_system
+
+ctx = ConverterContext(
+    suite="reasoning",
+    model="mlx-community/Qwen3.5-9B-MLX-4bit",
+    git_sha="aaa3ff3",
+    system=detect_system(),
+)
+envelope = get_converter("lm-eval").build_envelope(raw_results, ctx)
+publish(envelope, dry_run=False)  # validates + uploads
+```
+
+### Reading the dataset
 
 ```python
 from datasets import load_dataset
@@ -166,10 +201,14 @@ print(ds["train"][0])
 
 ## Contributing
 
-One PR per incremental improvement. Keep custom code minimal — if you find
-yourself writing more than ~50 lines of orchestration glue to integrate a new
-upstream tool, step back and see whether the tool already handles what
-you're trying to add.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full developer workflow.
+Keep orchestration glue thin — if integrating a new upstream tool requires
+more than ~50 lines of Python, re-read the tool's docs before writing code.
+
+## Security
+
+HF tokens, the `--confirm_run_unsafe_code` lm-eval flag, and the disclosure
+policy are covered in [`SECURITY.md`](SECURITY.md).
 
 ## License
 

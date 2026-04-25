@@ -8,8 +8,8 @@ Deploy to HF Spaces (SDK: gradio, Python 3.11+).
 """
 
 import re
-from threading import Lock
 import time
+from threading import Lock
 
 import gradio as gr
 import pandas as pd
@@ -33,7 +33,7 @@ _cache_lock = Lock()
 
 
 def empty_data() -> pd.DataFrame:
-    return pd.DataFrame(columns=EXPECTED_COLUMNS + ["model_short"])
+    return pd.DataFrame(columns=[*EXPECTED_COLUMNS, "model_short"])
 
 
 def load_data() -> pd.DataFrame:
@@ -69,15 +69,21 @@ def short_model(name: str) -> str:
 
 # ── Chart builders ────────────────────────────────────────────────────────────
 
+
 def bar_chart(df: pd.DataFrame, suite: str, task: str, metric: str) -> go.Figure:
     """Latest-run bar chart: one bar per model, sorted by score."""
-    sub = df[
-        (df["suite"] == suite) & (df["name"] == task) & (df["metric"] == metric)
-    ].copy()
+    sub = df[(df["suite"] == suite) & (df["name"] == task) & (df["metric"] == metric)].copy()
     if sub.empty:
         fig = go.Figure()
-        fig.add_annotation(text="No data for this selection", xref="paper",
-                           yref="paper", x=0.5, y=0.5, showarrow=False, font_size=18)
+        fig.add_annotation(
+            text="No data for this selection",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font_size=18,
+        )
         return fig
 
     # Keep only the latest run per model
@@ -102,7 +108,7 @@ def bar_chart(df: pd.DataFrame, suite: str, task: str, metric: str) -> go.Figure
     fig.update_coloraxes(showscale=False)
     fig.update_layout(
         height=max(350, len(sub) * 44),
-        margin=dict(l=220, r=60, t=60, b=40),
+        margin={"l": 220, "r": 60, "t": 60, "b": 40},
         yaxis_title="",
         xaxis_range=[0, axis_max],
         font_size=13,
@@ -110,8 +116,7 @@ def bar_chart(df: pd.DataFrame, suite: str, task: str, metric: str) -> go.Figure
     return fig
 
 
-def trend_chart(df: pd.DataFrame, suite: str, task: str, metric: str,
-                models: list[str]) -> go.Figure:
+def trend_chart(df: pd.DataFrame, suite: str, task: str, metric: str, models: list[str]) -> go.Figure:
     """Score-over-time line chart for selected models."""
     sub = df[
         (df["suite"] == suite)
@@ -121,8 +126,15 @@ def trend_chart(df: pd.DataFrame, suite: str, task: str, metric: str,
     ].copy()
     if sub.empty:
         fig = go.Figure()
-        fig.add_annotation(text="No data for this selection", xref="paper",
-                           yref="paper", x=0.5, y=0.5, showarrow=False, font_size=18)
+        fig.add_annotation(
+            text="No data for this selection",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font_size=18,
+        )
         return fig
 
     fig = px.line(
@@ -139,7 +151,7 @@ def trend_chart(df: pd.DataFrame, suite: str, task: str, metric: str,
 
 
 def summary_table(df: pd.DataFrame, suite: str, metric: str) -> pd.DataFrame:
-    """Pivot table: models × tasks, latest run only."""
+    """Pivot table: models x tasks, latest run only."""
     sub = df[(df["suite"] == suite) & (df["metric"] == metric)].copy()
     if sub.empty:
         return pd.DataFrame({"(no data)": []})
@@ -152,17 +164,20 @@ def summary_table(df: pd.DataFrame, suite: str, metric: str) -> pd.DataFrame:
 
 # ── Gradio UI ─────────────────────────────────────────────────────────────────
 
+
 def build_ui():
     df = load_data()
 
-    suites   = sorted(df["suite"].dropna().unique().tolist()) if not df.empty else ["reasoning"]
-    tasks    = sorted(df["name"].dropna().unique().tolist())  if not df.empty else []
-    metrics  = sorted(df["metric"].dropna().unique().tolist()) if not df.empty else []
-    models   = sorted(df["model"].dropna().unique().tolist())  if not df.empty else []
+    suites = sorted(df["suite"].dropna().unique().tolist()) if not df.empty else ["reasoning"]
+    tasks = sorted(df["name"].dropna().unique().tolist()) if not df.empty else []
+    metrics = sorted(df["metric"].dropna().unique().tolist()) if not df.empty else []
+    models = sorted(df["model"].dropna().unique().tolist()) if not df.empty else []
     model_labels = [short_model(m) for m in models]
 
-    default_suite  = "reasoning" if "reasoning" in suites else (suites[0] if suites else "reasoning")
-    default_metric = "exact_match_flexible" if "exact_match_flexible" in metrics else (metrics[0] if metrics else None)
+    default_suite = "reasoning" if "reasoning" in suites else (suites[0] if suites else "reasoning")
+    default_metric = (
+        "exact_match_flexible" if "exact_match_flexible" in metrics else (metrics[0] if metrics else None)
+    )
 
     def filtered_tasks(suite):
         d = load_data()
@@ -172,7 +187,9 @@ def build_ui():
     def filtered_metrics(suite):
         d = load_data()
         m = sorted(d[d["suite"] == suite]["metric"].dropna().unique().tolist()) if not d.empty else []
-        return gr.Dropdown(choices=m, value="exact_match_flexible" if "exact_match_flexible" in m else (m[0] if m else None))
+        return gr.Dropdown(
+            choices=m, value="exact_match_flexible" if "exact_match_flexible" in m else (m[0] if m else None)
+        )
 
     def update_bar(suite, task, metric):
         return bar_chart(load_data(), suite, task, metric)
@@ -188,10 +205,10 @@ def build_ui():
         with _cache_lock:
             _cache = None
         d = load_data()
-        new_suites  = sorted(d["suite"].dropna().unique().tolist()) if not d.empty else ["reasoning"]
-        new_tasks   = sorted(d["name"].dropna().unique().tolist()) if not d.empty else []
+        new_suites = sorted(d["suite"].dropna().unique().tolist()) if not d.empty else ["reasoning"]
+        new_tasks = sorted(d["name"].dropna().unique().tolist()) if not d.empty else []
         new_metrics = sorted(d["metric"].dropna().unique().tolist()) if not d.empty else []
-        new_models  = sorted(d["model"].dropna().unique().tolist()) if not d.empty else []
+        new_models = sorted(d["model"].dropna().unique().tolist()) if not d.empty else []
         new_model_labels = [short_model(m) for m in new_models]
         return (
             gr.Dropdown(choices=new_suites, value=new_suites[0] if new_suites else None),
@@ -210,16 +227,20 @@ def build_ui():
         )
 
         with gr.Row():
-            suite_dd  = gr.Dropdown(choices=suites,  value=default_suite,  label="Suite")
-            task_dd   = gr.Dropdown(choices=tasks,   value=tasks[0] if tasks else None, label="Task")
+            suite_dd = gr.Dropdown(choices=suites, value=default_suite, label="Suite")
+            task_dd = gr.Dropdown(choices=tasks, value=tasks[0] if tasks else None, label="Task")
             metric_dd = gr.Dropdown(choices=metrics, value=default_metric, label="Metric")
             refresh_btn = gr.Button("↻ Refresh data", scale=0)
 
-        status = gr.Markdown(f"Loaded {len(df)} rows from {df['model'].nunique() if not df.empty else 0} models.")
+        status = gr.Markdown(
+            f"Loaded {len(df)} rows from {df['model'].nunique() if not df.empty else 0} models."
+        )
 
         with gr.Tabs():
             with gr.Tab("Bar chart — latest run"):
-                bar_plot = gr.Plot(value=bar_chart(df, default_suite, tasks[0] if tasks else "", default_metric))
+                bar_plot = gr.Plot(
+                    value=bar_chart(df, default_suite, tasks[0] if tasks else "", default_metric)
+                )
 
             with gr.Tab("Trend — over time"):
                 model_select = gr.CheckboxGroup(
@@ -236,11 +257,11 @@ def build_ui():
                 )
 
         # Wire up events
-        suite_dd.change(filtered_tasks,   [suite_dd], [task_dd])
+        suite_dd.change(filtered_tasks, [suite_dd], [task_dd])
         suite_dd.change(filtered_metrics, [suite_dd], [metric_dd])
 
         for inp in [suite_dd, task_dd, metric_dd]:
-            inp.change(update_bar,   [suite_dd, task_dd, metric_dd], [bar_plot])
+            inp.change(update_bar, [suite_dd, task_dd, metric_dd], [bar_plot])
             inp.change(update_table, [suite_dd, metric_dd], [table_out])
 
         for inp in [suite_dd, task_dd, metric_dd, model_select]:
