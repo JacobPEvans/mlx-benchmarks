@@ -1,6 +1,10 @@
 # Qwen3.6 vs Qwen3.5 — First Real Benchmark Sweep
 
-**Date:** 2026-04-18 to 2026-04-19 · **PR:** [#10](https://github.com/JacobPEvans/mlx-benchmarks/pull/10) · **Umbrella:** [Local LLM](https://github.com/users/JacobPEvans/projects/4)
+**Date:** 2026-04-18 to 2026-04-19
+
+**PR:** [#10](https://github.com/JacobPEvans/mlx-benchmarks/pull/10)
+
+**Umbrella:** [Local LLM](https://github.com/users/JacobPEvans/projects/4)
 
 First production benchmark sweep for the mlx-benchmarks repo. Goal: compare
 `Qwen3.6-35B-A3B-mxfp8` (newly registered) against `Qwen3.5-35B-A3B-4bit`
@@ -10,7 +14,7 @@ First production benchmark sweep for the mlx-benchmarks repo. Goal: compare
 ## Setup
 
 | Component | Value |
-|---|---|
+| --- | --- |
 | Machine | MacBook Pro Mac16,5, Apple M4 Max, 128 GB unified memory |
 | Inference backend | vllm-mlx via llama-swap |
 | lm-eval version | 0.4.11 (from `pyproject.toml` via uv dev shell) |
@@ -34,7 +38,7 @@ established the benchmark toolchain used throughout this session.
 Two new models registered from `/Volumes/HuggingFace`:
 
 | Model | Quantization | Disk size |
-|---|---|---|
+| --- | --- | --- |
 | `mlx-community/Qwen3.6-35B-A3B-mxfp8` | mxfp8 | 34 GB |
 | `mlx-community/Qwen3.6-35B-A3B-mxfp4` | mxfp4 | 18 GB |
 
@@ -52,7 +56,7 @@ llama-swap model pool for on-demand loading.
 ### Completed
 
 | Model | Quant | Total time | Sec/example | GSM8K flexible-extract | GSM8K strict-match | Status |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | `mlx-community/Qwen3.5-35B-A3B-4bit` | 4bit | 5046 s (84 min) | 50.5 s | **0.83** | 0.03 | Valid |
 | `mlx-community/Qwen3.6-35B-A3B-mxfp8` | mxfp8 | 16716 s (278 min) | 167 s | 0.00 | 0.00 | INVALID (see below) |
 | `mlx-community/Qwen3.6-35B-A3B-mxfp4` | mxfp4 | 4799 s (80 min) | 48 s | **0.82** | 0.00 | Valid |
@@ -60,7 +64,7 @@ llama-swap model pool for on-demand loading.
 ### In progress / pending
 
 | Model | Status |
-|---|---|
+| --- | --- |
 | `mlx-community/Qwen3.5-27B-4bit` | In progress (started 07:28 AM) |
 | `mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit` | Pending |
 | `gemini/gemini-3-flash-preview` | Pending |
@@ -88,7 +92,7 @@ thinking chain enough headroom to complete and reach the answer.
 
 ## Findings
 
-### Finding #1 — lm-eval `local-chat-completions` requires the full endpoint path
+### Finding #1 — `local-chat-completions` needs the full endpoint path
 
 lm-eval's `local-chat-completions` model type POSTs directly to the value
 of `base_url`. It does **not** append `/chat/completions`. The `base_url`
@@ -152,7 +156,7 @@ control available until vllm-mlx exposes a stable no-think API surface.
 ## Incidents
 
 | Time | Incident | Resolution |
-|---|---|---|
+| --- | --- | --- |
 | Session start | lm-eval 404 on every request | Fixed `base_url` to full `/v1/chat/completions` path |
 | Mid-session | vllm-mlx crash from `chat_template_kwargs` | Forced model swap via llama-swap to restart backend |
 | mxfp8 run | 278-minute run, score 0.00 | Identified token-budget truncation; re-run queued with `max_gen_toks=6000` |

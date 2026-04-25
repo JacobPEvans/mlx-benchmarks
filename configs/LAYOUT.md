@@ -79,7 +79,7 @@ as concurrent background processes to avoid serializing on network I/O.
 ### Standard cloud comparison models (always include in `full` sweeps)
 
 | Bifrost model ID | Resolves to | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `gemini/gemini-3-flash-preview` | Gemini 3 Flash | Fast Google model |
 | `openai/gpt-5.4-mini` | GPT-5.4 Mini | Latest OpenAI quick model — verify name against catalog before use |
 | `openrouter/auto` | Best available | OpenRouter auto-selects optimal model for the prompt |

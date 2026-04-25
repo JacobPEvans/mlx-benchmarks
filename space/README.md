@@ -22,8 +22,6 @@ datasets:
   - JacobPEvans/mlx-benchmarks
 ---
 
-# MLX Benchmarks Viewer
-
 Interactive Gradio viewer for the
 [`JacobPEvans/mlx-benchmarks`](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks)
 dataset — a collection of benchmark runs of MLX-quantized and locally-hosted

@@ -16,9 +16,9 @@ HF Space.
 
 ## Repository shape (short)
 
-```
+```text
 src/mlx_benchmarks/    Python package (envelope, publish, converters, CLI)
-scripts/               Small one-shot tools (validator, space deploy, legacy shim)
+scripts/               Small one-shot tools (validator, space deploy, shim)
 configs/               TOML per (tool, suite) pair — see configs/LAYOUT.md
 harness/framework-eval/ Inline Python suites (agent frameworks)
 schema.json            Envelope v1 authoritative contract
@@ -69,8 +69,9 @@ docs/                  architecture.md, schema.md, journal/ (session notes)
   --kind lm-eval --suite reasoning
 
 # Run lm-eval smoke (adjust model + task)
+BASE="http://localhost:11434/v1/chat/completions"
 .venv/bin/lm_eval --model local-chat-completions \
-  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,max_length=32768,timeout=3600" \
+  --model_args "base_url=$BASE,model=$MODEL,max_length=32768,timeout=3600" \
   --tasks gsm8k_cot_zeroshot --batch_size 1 --num_fewshot 0 --limit 10 \
   --gen_kwargs "max_gen_toks=4096" \
   --apply_chat_template --fewshot_as_multiturn --log_samples \

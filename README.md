@@ -1,10 +1,20 @@
 # mlx-benchmarks
 
-[![Release Please](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml/badge.svg?branch=main)](https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-[![HF Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20dataset-JacobPEvans%2Fmlx--benchmarks-yellow)](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks)
-[![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20space-viewer-yellow)](https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer)
+[![Release Please][badge-rp]][workflow-rp]
+[![Python 3.11+][badge-py]][python-downloads]
+[![License: Apache 2.0][badge-license]](LICENSE)
+[![HF Dataset][badge-hfds]][hf-dataset]
+[![HF Space][badge-hfsp]][hf-space]
+
+[badge-rp]: https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml/badge.svg?branch=main
+[workflow-rp]: https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml
+[badge-py]: https://img.shields.io/badge/python-3.11%2B-blue
+[python-downloads]: https://www.python.org/downloads/
+[badge-license]: https://img.shields.io/badge/license-Apache--2.0-green.svg
+[badge-hfds]: https://img.shields.io/badge/%F0%9F%A4%97%20dataset-JacobPEvans%2Fmlx--benchmarks-yellow
+[hf-dataset]: https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks
+[badge-hfsp]: https://img.shields.io/badge/%F0%9F%A4%97%20space-viewer-yellow
+[hf-space]: https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer
 
 A reproducible benchmark harness for **MLX-quantized** and **locally-hosted**
 LLMs on Apple Silicon. One envelope schema, one HuggingFace dataset, one
@@ -30,9 +40,15 @@ Read results as a pandas DataFrame with no tooling beyond `huggingface_hub` +
 
 | Tool | Suite(s) | Purpose |
 | --- | --- | --- |
-| [EleutherAI/lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) | `coding`, `reasoning` | Standard LLM evals (humaneval, mbpp, gsm8k, arc, ...) |
-| [vllm `benchmark_serving`](https://docs.vllm.ai/en/latest/performance/benchmarks.html) | `throughput` | Cross-check throughput against vllm upstream (install with `[vllm]` extra) |
-| OpenAI tool-calling baseline, [Qwen-Agent](https://github.com/QwenLM/Qwen-Agent), [smolagents](https://github.com/huggingface/smolagents), [Google ADK](https://github.com/google/adk-python) | `framework-eval` | Per-framework agent harness (`harness/framework-eval/`) |
+| [lm-evaluation-harness][lm-eval] | `coding`, `reasoning` | Standard LLM evals (humaneval, mbpp, gsm8k, arc, ...) |
+| [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check throughput against vllm upstream (install with `[vllm]` extra) |
+| OpenAI + [Qwen-Agent][qwen-agent] + [smolagents][smolagents] + [ADK][adk] | `framework-eval` | Per-framework agent harness in `harness/framework-eval/` |
+
+[lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
+[vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
+[qwen-agent]: https://github.com/QwenLM/Qwen-Agent
+[smolagents]: https://github.com/huggingface/smolagents
+[adk]: https://github.com/google/adk-python
 
 Planned but not wired yet: lighteval (broader tasks), MLXBench (native throughput).
 The `configs/LAYOUT.md` is the single source of truth for what is currently
@@ -64,7 +80,7 @@ implemented vs aspirational.
 │   └── vllm/benchmark_serving.toml
 ├── harness/                  <- inline-Python suites (non-TOML)
 │   └── framework-eval/       <-   agent framework evaluations
-├── scripts/                  <- one-shot tooling (validator, space deploy, legacy shim)
+├── scripts/                  <- one-shot tooling (validator, space deploy)
 ├── space/                    <- Gradio viewer (deployed to HF Space)
 │   ├── app.py
 │   ├── requirements.txt
@@ -109,8 +125,10 @@ For Nix users: `direnv allow` activates the included `flake.nix` dev shell.
 
 ```sh
 # 1. Run lm-eval against your local vllm-mlx endpoint
+BASE="http://localhost:11434/v1/chat/completions"
+MODEL="mlx-community/Qwen3.5-9B-MLX-4bit"
 .venv/bin/lm_eval --model local-chat-completions \
-  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=mlx-community/Qwen3.5-9B-MLX-4bit,max_length=32768,timeout=3600" \
+  --model_args "base_url=$BASE,model=$MODEL,max_length=32768,timeout=3600" \
   --tasks gsm8k_cot_zeroshot \
   --batch_size 1 --num_fewshot 0 --limit 10 \
   --gen_kwargs "max_gen_toks=4096" \
