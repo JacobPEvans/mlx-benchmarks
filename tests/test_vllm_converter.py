@@ -52,9 +52,11 @@ def test_vllm_extra_tags(vllm_sample: dict) -> None:
         suite="throughput",
         model="mlx-community/Qwen3.5-9B-MLX-4bit",
         git_sha="deadbeef",
+        system=detect_system(),
         extra_tags={"input_len": "256", "output_len": "256"},
     )
     envelope = converter.build_envelope(vllm_sample, ctx)
+    validate_envelope(envelope)
     for result in envelope["results"]:
         tags = result.get("tags", {})
         assert tags.get("input_len") == "256"

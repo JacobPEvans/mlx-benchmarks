@@ -44,7 +44,7 @@ class VllmConverter:
             "suite": ctx.suite,
             "model": ctx.model,
             "system": system,
-            "results": list(self._iter_results(raw, ctx)),
+            "results": self._iter_results(raw, ctx),
             "errors": [],
         }
 
@@ -60,7 +60,7 @@ class VllmConverter:
         num_input = raw.get("total_input_tokens")
         num_output = raw.get("total_output_tokens")
 
-        tags: dict[str, str] = {**{k: str(v) for k, v in ctx.extra_tags.items()}}
+        tags: dict[str, str] = {k: str(v) for k, v in ctx.extra_tags.items()}
         if isinstance(completed, int | float):
             tags["completed_requests"] = str(int(completed))
         if isinstance(num_input, int | float):
