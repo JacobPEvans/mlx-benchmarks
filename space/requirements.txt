@@ -3,8 +3,11 @@ pandas>=2.0
 plotly>=6.7.0
 huggingface-hub>=0.23
 pyarrow>=14
-# Pin transitive deps from gradio that have CVEs in older versions
-# pillow 9.5.0 → 3 CVEs fixed in 10.4.0 (CVE-2024-28219, CVE-2023-50447, CVE-2024-44537)
-# orjson 3.9.9 → GHSA-hx9q-6w63-j58v fixed in 3.11.6
+# Minimum-version requirements for transitive deps from gradio that
+# have CVEs in older versions. Lower-bound only — HF Spaces resolves the
+# actual installed version. Tighten to exact pins if reproducibility
+# becomes a concern.
+#   pillow  9.5.0  → 3 CVEs fixed in 10.4.0 (CVE-2024-28219, CVE-2023-50447, CVE-2024-44537)
+#   orjson  3.9.9  → GHSA-hx9q-6w63-j58v fixed in 3.11.6
 pillow>=10.4.0
 orjson>=3.11.6
