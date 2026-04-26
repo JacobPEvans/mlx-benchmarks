@@ -15,7 +15,7 @@ configs/
 │   ├── reasoning.toml        # gsm8k_cot_zeroshot, arc_challenge
 │   └── qwen3-tasks/          # think-stripping overlay for Qwen3.x models
 └── vllm/
-    └── benchmark_serving.toml # suite: throughput (needs `pip install .[vllm]`)
+    └── benchmark_serving.toml # suite: throughput (vllm runs on an external host; no local install)
 ```
 
 Planned but not yet implemented (file a
