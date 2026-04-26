@@ -2,8 +2,9 @@
 
 from mlx_benchmarks.converters.base import Converter, ConverterContext
 from mlx_benchmarks.converters.lm_eval import LmEvalConverter
+from mlx_benchmarks.converters.vllm import VllmConverter
 
-__all__ = ["Converter", "ConverterContext", "LmEvalConverter", "get_converter"]
+__all__ = ["Converter", "ConverterContext", "LmEvalConverter", "VllmConverter", "get_converter"]
 
 
 def get_converter(kind: str) -> Converter:
@@ -14,6 +15,7 @@ def get_converter(kind: str) -> Converter:
     """
     registry: dict[str, type[Converter]] = {
         "lm-eval": LmEvalConverter,
+        "vllm": VllmConverter,
     }
     try:
         cls = registry[kind]
