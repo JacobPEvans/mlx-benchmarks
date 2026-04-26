@@ -18,6 +18,11 @@ def lm_eval_sample() -> dict[str, Any]:
 
 
 @pytest.fixture
+def framework_eval_sample() -> dict[str, Any]:
+    return json.loads((FIXTURES / "framework_eval_sample.json").read_text())
+
+
+@pytest.fixture
 def valid_envelope() -> dict[str, Any]:
     return json.loads((EXAMPLES / "envelope.valid.json").read_text())
 

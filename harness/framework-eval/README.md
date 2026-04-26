@@ -63,12 +63,18 @@ and `steps`. See each script's `__main__` block for the exact output shape.
 
 ## API
 
-Current status: **scripts print JSON to stdout**. A framework-eval
-converter that maps that output onto envelope v1 is planned but not yet
-implemented — follow-up work is tracked as a
-[benchmark request](../../.github/ISSUE_TEMPLATE/benchmark-request.yml).
+Each script prints a JSON object to stdout. Pass that output to
+`mlx-bench-publish --kind framework-eval` to convert it to envelope v1
+and publish to the HF dataset:
 
-The target envelope schema lives at [`../../schema.json`](../../schema.json).
+```sh
+uv run eval_openai_tool_calling.py > result.json
+mlx-bench-publish result.json \
+    --kind framework-eval --suite framework-eval \
+    --model "$MLX_DEFAULT_MODEL"
+```
+
+The envelope schema lives at [`../../schema.json`](../../schema.json).
 A framework-eval row maps to the envelope shape as follows:
 
 ```json

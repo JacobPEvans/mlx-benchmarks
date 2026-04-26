@@ -1,9 +1,16 @@
 """Converters transform raw tool output into envelope v1."""
 
 from mlx_benchmarks.converters.base import Converter, ConverterContext
+from mlx_benchmarks.converters.framework_eval import FrameworkEvalConverter
 from mlx_benchmarks.converters.lm_eval import LmEvalConverter
 
-__all__ = ["Converter", "ConverterContext", "LmEvalConverter", "get_converter"]
+__all__ = [
+    "Converter",
+    "ConverterContext",
+    "FrameworkEvalConverter",
+    "LmEvalConverter",
+    "get_converter",
+]
 
 
 def get_converter(kind: str) -> Converter:
@@ -13,6 +20,7 @@ def get_converter(kind: str) -> Converter:
     instead of silently defaulting.
     """
     registry: dict[str, type[Converter]] = {
+        "framework-eval": FrameworkEvalConverter,
         "lm-eval": LmEvalConverter,
     }
     try:

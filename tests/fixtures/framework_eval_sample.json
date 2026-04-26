@@ -1,0 +1,10 @@
+{
+  "framework": "OpenAI tool-calling (baseline)",
+  "answer": "The quick brown fox jumps over the lazy dog, a sentence commonly used as a typing exercise that contains every letter of the English alphabet.",
+  "tool_calls": [
+    {"tool": "file_read", "args": "{\"path\": \"/tmp/eval-test.txt\"}"}
+  ],
+  "tokens": 148,
+  "latency": 8.43,
+  "steps": 1
+}

@@ -39,8 +39,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--kind",
         default="lm-eval",
-        choices=["lm-eval"],
-        help="Source format of results_json (only lm-eval is currently supported)",
+        choices=["framework-eval", "lm-eval"],
+        help="Source format of results_json",
     )
     parser.add_argument("--suite", required=True, help="Envelope suite (must be in schema enum)")
     parser.add_argument("--model", help="Override model ID (default: extract from results_json)")
