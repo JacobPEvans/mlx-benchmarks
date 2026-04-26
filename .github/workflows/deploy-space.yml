@@ -37,7 +37,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GIT_SHA: ${{ github.sha }}
         run: |
-          huggingface-cli upload JacobPEvans/mlx-benchmarks-viewer ./space . \
+          hf upload JacobPEvans/mlx-benchmarks-viewer ./space . \
             --repo-type=space \
             --commit-message="Deploy from ${GIT_SHA}" \
             --exclude=".venv/**" \
