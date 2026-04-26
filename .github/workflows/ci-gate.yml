@@ -119,6 +119,13 @@ jobs:
     uses: JacobPEvans/.github/.github/workflows/_python-security.yml@main
     with:
       python-dirs: "."
+      # Acknowledged transitive vulnerabilities with no upstream fix.
+      # Each ID MUST link to a tracking issue and be reviewed quarterly.
+      #   GHSA-g4r7-86gm-pgqc — sqlitedict 2.1.0 (CVE-2024-35515),
+      #     pulled in transitively by lm-eval[api]==0.4.11. Tracked in #18.
+      #     Risk: insecure deserialization of local pickle data; only
+      #     loaded by lm-eval's caching layer for files we control.
+      ignore-vulns: "GHSA-g4r7-86gm-pgqc"
 
   osv-scan:
     name: OSV Scan

@@ -27,15 +27,22 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
+    rev: v1.20.2
     hooks:
       - id: mypy
         files: ^src/mlx_benchmarks/
+        # NOTE: pyarrow is intentionally NOT in additional_dependencies.
+        # pyarrow ships no type stubs (no py.typed marker), so when it's
+        # installed the only way to silence no-untyped-call on pq.write_table
+        # is via a per-line `# type: ignore`, which then trips
+        # warn_unused_ignores against the local venv's typed-ish read of
+        # pyarrow. Leaving it out lets mypy treat pyarrow as a missing
+        # import and the [tool.mypy.overrides] ignore_missing_imports=true
+        # rule applies cleanly to both pre-commit and local runs.
         additional_dependencies:
           - jsonschema>=4.23.0
           - types-jsonschema
           - types-psutil
-          - pyarrow>=14
 
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.4

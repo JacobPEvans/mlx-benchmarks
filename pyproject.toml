@@ -1,6 +1,6 @@
 [project]
 name = "mlx-benchmarks"
-version = "0.2.0"  # x-release-please-version
+version = "0.4.0"  # x-release-please-version
 description = "Benchmark harness for MLX-quantized LLMs on Apple Silicon — envelope v1 + HF dataset publisher"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -37,9 +37,10 @@ viewer = [
     "plotly>=6.7.0",
     "pandas>=2.0",
 ]
-vllm = [
-    "vllm",
-]
+# Note: vllm benchmarking targets an external vllm server. The vllm Python
+# package itself is Linux/CUDA-only, isn't installable on the Apple-Silicon
+# dev platform, and isn't needed by the converter (which only parses JSON
+# output). To run vllm `benchmark_serving`, install vllm in your own env.
 
 [project.scripts]
 mlx-bench-publish = "mlx_benchmarks.cli:main"

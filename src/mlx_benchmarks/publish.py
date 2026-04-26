@@ -85,7 +85,7 @@ def rows_to_parquet(rows: list[dict[str, Any]]) -> bytes:
         raise PublishError("No result rows to serialize — envelope has empty results[]")
     table = pa.Table.from_pylist(rows)
     buf = io.BytesIO()
-    pq.write_table(table, buf)  # type: ignore[no-untyped-call]
+    pq.write_table(table, buf)  # type: ignore[unused-ignore,no-untyped-call]
     return buf.getvalue()
 
 

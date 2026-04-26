@@ -39,7 +39,7 @@ already running — a real production-class stress test, not an idle run.
 ## Setup
 
 | Component | Value |
-|---|---|
+| --- | --- |
 | Machine | MacBook Pro Mac16,5, Apple M4 Max, 128 GB, 16 cores |
 | OS | macOS 26.4 (Tahoe) |
 | vllm-mlx / llama-swap | 0.2.6 / v165 (`exclusive: true` + `swap: true`) |
@@ -53,7 +53,7 @@ No concurrent model loads, no OOM risk.
 ## HuggingFace popularity (queried live this session)
 
 | Model | Downloads | Likes |
-|---|---|---|
+| --- | --- | --- |
 | `Qwen/Qwen3-Coder-30B-A3B-Instruct` | 1,177,329 | 1,002 |
 | `Qwen/Qwen3-Next-80B-A3B-Instruct` | 504,794 | 958 |
 | `meta-llama/Llama-4-Scout-17B-16E-Instruct` | 319,662 | 1,264 |
@@ -85,7 +85,7 @@ continued lm-eval load, not Bifrost overhead.
 ### Bench B — MLX latency ladder (3 samples via Bifrost, under load)
 
 | Sample | Direct | Via Bifrost |
-|---|---|---|
+| --- | --- | --- |
 | 1 | 59.92 s | 51.58 s |
 | 2 | 44.07 s | 35.25 s |
 | 3 | 65.74 s | 85.13 s |
@@ -107,7 +107,7 @@ model, each asking for a different arithmetic answer. This ran on top of
 the 4-way concurrent lm-eval → **9 concurrent streams** on vllm-mlx.
 
 | Job | Prompt | Wall | Answer |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | 1+1 | 72.17 s | (parse error, likely `2`) |
 | 2 | 2+2 | 72.49 s | `4` ✓ |
 | 3 | 3+3 | 73.21 s | `6` ✓ |
@@ -122,7 +122,7 @@ gateway-level serialization.
 ### Bench E — Streaming (MLX SSE via Bifrost)
 
 | Metric | Value |
-|---|---|
+| --- | --- |
 | SSE chunks | 21 |
 | Time to first chunk | 54.30 s (all queue wait under load) |
 | Total stream | 55.07 s |
@@ -133,7 +133,7 @@ Bifrost streaming passthrough works cleanly; chunked SSE delivered intact.
 ### Bench F — Long context (Gemini via Bifrost)
 
 | Metric | Value |
-|---|---|
+| --- | --- |
 | Prompt tokens | 5,901 |
 | Output tokens | 196 |
 | Wall | 1.575 s |
@@ -148,7 +148,7 @@ Prompt: fix a classic `factorial` bug (`return 0` for base case instead
 of `return 1`). `max_tokens=150`, under concurrent load.
 
 | Metric | Value |
-|---|---|
+| --- | --- |
 | Wall clock | 44.30 s |
 | Output extraction | `jq` failed on unescaped control chars (see below) |
 
@@ -267,7 +267,7 @@ with zero throttling.
 ## Outcomes
 
 | Goal | Outcome |
-|---|---|
+| --- | --- |
 | Bifrost routing to local MLX | PASS |
 | Bifrost routing to cloud (Gemini) | PASS |
 | Bifrost gateway overhead | ~30 ms cloud, ~0.7 s median MLX-under-load |

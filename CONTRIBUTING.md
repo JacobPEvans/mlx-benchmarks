@@ -87,6 +87,18 @@ converter and call `validate_envelope(envelope)` to confirm schema compliance.
 - Hardcoded system metadata — use `detect_system()`.
 - Runtime tooling that bypasses the pre-commit hooks or the CI quality gates.
 
+## CI secrets (for forks)
+
+Two workflows depend on repository secrets that you'll need to provide on a
+fork for CI to be fully functional:
+
+- `release-please.yml` — needs a GitHub App with write access to **contents**
+  and **pull-requests**. See
+  [the release-please-action docs](https://github.com/googleapis/release-please-action#authentication)
+  for the App ID and private key setup.
+- `deploy-space.yml` — needs a Hugging Face token with **write** scope on the
+  target Space namespace, and `SPACE_REPO_ID` pointed at your Space.
+
 ## Questions
 
 Open an issue at

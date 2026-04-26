@@ -78,7 +78,7 @@ A framework-eval row maps to the envelope shape as follows:
   "model": "$MLX_DEFAULT_MODEL",
   "results": [
     {"name": "langgraph",  "metric": "score",   "value": 1.0,  "unit": "bool"},
-    {"name": "langgraph",  "metric": "latency", "value": 12.3, "unit": "seconds"},
+    {"name": "langgraph",  "metric": "latency", "value": 12.3, "unit": "sec"},
     {"name": "qwen-agent", "metric": "score",   "value": 1.0,  "unit": "bool"}
   ],
   "errors": []

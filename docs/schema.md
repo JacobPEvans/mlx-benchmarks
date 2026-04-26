@@ -65,7 +65,9 @@ Locally:
 
 ```python
 from mlx_benchmarks.envelope import validate_envelope
-validate_envelope(my_envelope)   # raises EnvelopeValidationError with every problem
+
+# Raises EnvelopeValidationError with every problem
+validate_envelope(my_envelope)
 ```
 
 ## Versioning
