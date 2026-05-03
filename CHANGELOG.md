@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/JacobPEvans/mlx-benchmarks/compare/v0.6.0...v0.6.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* **ci:** remove deprecated app-id secret passthrough ([435846d](https://github.com/JacobPEvans/mlx-benchmarks/commit/435846da8063f148d8608cf1292d862abb25a0f8))
+
 ## [0.6.0](https://github.com/JacobPEvans/mlx-benchmarks/compare/v0.5.0...v0.6.0) (2026-04-29)
 
 
