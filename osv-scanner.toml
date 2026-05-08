@@ -13,6 +13,44 @@
 # fail the build.
 
 [[IgnoredVulns]]
+id = "GHSA-q9r5-6hrr-9ph7"
+ignoreUntil = 2026-08-07
+reason = """
+smolagents 1.22.0 (CVSS 10.0). The fix shipped in 1.24.0, but smolagents 1.23.0+
+added huggingface-hub<1.0.0 as a hard upper-bound, which is incompatible with
+the project's huggingface-hub>=0.23 dependency (currently resolved to 1.14.0).
+Upgrading smolagents would force a major huggingface-hub downgrade, regressing a
+core library. Blocked until smolagents adds support for huggingface-hub v1.x.
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/35
+Re-evaluate before 2026-08-07 (or sooner if smolagents adds hub v1.x support).
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-54fq-v6x8-244g"
+ignoreUntil = 2026-08-07
+reason = """
+smolagents 1.22.0 (CVSS 6.3). No stable fix version as of 2026-05-07
+(last_affected: 1.25.0.dev0 in OSV database). Additionally, smolagents 1.23.0+
+requires huggingface-hub<1.0.0, blocking upgrade (see GHSA-q9r5-6hrr-9ph7 entry).
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/35
+Re-evaluate before 2026-08-07.
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-jxgv-6j54-wwc7"
+ignoreUntil = 2026-08-07
+reason = """
+smolagents 1.22.0 (CVSS 6.3). Fixed in version after 1.24.0 (last_affected: 1.24.0),
+but smolagents 1.23.0+ requires huggingface-hub<1.0.0, blocking upgrade
+(see GHSA-q9r5-6hrr-9ph7 entry).
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/35
+Re-evaluate before 2026-08-07.
+"""
+
+[[IgnoredVulns]]
 id = "GHSA-g4r7-86gm-pgqc"
 ignoreUntil = 2026-10-25
 reason = """
