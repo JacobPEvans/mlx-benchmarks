@@ -1,4 +1,3 @@
-<!-- cspell:words mistralai ttft jsonc decom lighteval -->
 # Bifrost AI Gateway — Live Benchmark Session
 
 **Date:** 2026-04-10 · **Umbrella:** [JacobPEvans/nix-ai#450](https://github.com/JacobPEvans/nix-ai/issues/450)
