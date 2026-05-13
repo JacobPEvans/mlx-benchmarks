@@ -106,6 +106,11 @@ class LmEvalConverter:
         task_durations = raw.get("total_evaluation_time_seconds_per_task") or {}
         cfg = raw.get("config") or {}
         cfg_gen_kwargs = cfg.get("gen_kwargs") or {}
+        # lm-eval tasks emit several metrics each (acc / acc_norm / exact_match /
+        # stderr-pairs / etc.). All of them share the same duration and would
+        # produce identical tok/s, so we tokenize each samples file at most once
+        # per task and reuse the result across this task's metric rows.
+        task_throughput_cache: dict[str, dict[str, float] | None] = {}
 
         for task_name, task_metrics in raw_results.items():
             for metric_key, metric_val in task_metrics.items():
@@ -144,44 +149,56 @@ class LmEvalConverter:
                 duration = task_durations.get(task_name)
                 if isinstance(duration, int | float):
                     result["duration_seconds"] = float(duration)
-                    self._populate_throughput(result, task_name, float(duration), ctx)
+                    throughput = self._throughput_for_task(
+                        task_name, float(duration), ctx, task_throughput_cache
+                    )
+                    if throughput is not None:
+                        for key, value in throughput.items():
+                            result[key] = value  # type: ignore[literal-required]
 
                 yield result
 
-    def _populate_throughput(
+    def _throughput_for_task(
         self,
-        result: Result,
         task_name: str,
         duration_s: float,
         ctx: ConverterContext,
-    ) -> None:
-        """Compute aggregate tok/s for ``task_name`` and write them into ``result``.
+        cache: dict[str, dict[str, float] | None],
+    ) -> dict[str, float] | None:
+        """Compute the aggregate tok/s dict for ``task_name`` once and cache it.
 
-        Best-effort: requires (a) a positive duration, (b) ``ctx.source_path``
-        so we can locate the matching ``samples_*.jsonl`` next to it, and
-        (c) a loadable tokenizer for ``ctx.model``. Any missing piece quietly
-        leaves the tok/s fields unset on the result.
+        Returns a dict keyed by the optional Result field name (``prompt_tokens_per_second``,
+        ``decode_tokens_per_second``, ``total_tokens_per_second``) or ``None`` when
+        the throughput cannot be computed. A cached ``None`` is a real negative
+        answer — do not retry.
         """
+        if task_name in cache:
+            return cache[task_name]
+        cache[task_name] = None  # negative cache; overwritten if compute succeeds
         if duration_s <= 0 or ctx.source_path is None:
-            return
+            return None
         samples_file = _find_samples_file(ctx.source_path, task_name)
         if samples_file is None:
-            return
+            return None
         tokenizer = self._get_tokenizer(ctx.model)
         if tokenizer is None:
-            return
+            return None
 
         try:
             prompt_total, response_total, sample_count = _sum_tokens(samples_file, tokenizer)
         except OSError as exc:
             log.warning("could not read %s: %s — tok/s fields unset", samples_file, exc)
-            return
+            return None
         if sample_count == 0:
-            return
+            return None
 
-        result["prompt_tokens_per_second"] = prompt_total / duration_s
-        result["decode_tokens_per_second"] = response_total / duration_s
-        result["total_tokens_per_second"] = (prompt_total + response_total) / duration_s
+        throughput = {
+            "prompt_tokens_per_second": prompt_total / duration_s,
+            "decode_tokens_per_second": response_total / duration_s,
+            "total_tokens_per_second": (prompt_total + response_total) / duration_s,
+        }
+        cache[task_name] = throughput
+        return throughput
 
     def _get_tokenizer(self, model: str) -> _TokenizerLike | None:
         if model not in self._tokenizer_cache:

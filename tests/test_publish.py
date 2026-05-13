@@ -102,9 +102,8 @@ def test_envelope_to_rows_promotes_tok_per_sec_fields(valid_envelope: dict) -> N
 
 
 def test_envelope_to_rows_omits_absent_tok_per_sec(valid_envelope: dict) -> None:
-    """Backwards-compat: when a result lacks throughput fields they must not
-    appear as null columns. This guarantees parquet schemas stay stable for
-    historical runs that never recorded tok/s."""
+    """When no result records throughput, the parquet columns must be absent
+    entirely so historical schemas stay stable."""
     no_throughput = {
         **valid_envelope,
         "results": [
@@ -120,3 +119,36 @@ def test_envelope_to_rows_omits_absent_tok_per_sec(valid_envelope: dict) -> None
     assert "decode_tokens_per_second" not in row
     assert "prompt_tokens_per_second" not in row
     assert "total_tokens_per_second" not in row
+
+
+def test_envelope_to_rows_normalizes_columns_across_mixed_rows(valid_envelope: dict) -> None:
+    """When SOME results carry throughput but others don't, every row must
+    still have the throughput columns (with None where absent). Otherwise
+    PyArrow's first-row schema inference would silently drop the column when
+    the first row happens to lack it."""
+    mixed = {
+        **valid_envelope,
+        "results": [
+            {  # no throughput
+                "name": "a",
+                "metric": "exact_match_flexible",
+                "value": 0.5,
+                "unit": "ratio",
+            },
+            {  # throughput present
+                "name": "b",
+                "metric": "exact_match_flexible",
+                "value": 0.6,
+                "unit": "ratio",
+                "duration_seconds": 10.0,
+                "decode_tokens_per_second": 42.0,
+            },
+        ],
+    }
+    rows = envelope_to_rows(mixed)
+    assert len(rows) == 2
+    for row in rows:
+        assert "decode_tokens_per_second" in row
+        assert "duration_seconds" in row
+    assert rows[0]["decode_tokens_per_second"] is None
+    assert rows[1]["decode_tokens_per_second"] == 42.0

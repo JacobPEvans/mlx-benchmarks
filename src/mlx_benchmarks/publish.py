@@ -42,8 +42,25 @@ def current_git_sha(fallback: str = "unknown") -> str:
         return fallback
 
 
+_OPTIONAL_RESULT_COLUMNS: tuple[str, ...] = (
+    "duration_seconds",
+    "prompt_tokens_per_second",
+    "decode_tokens_per_second",
+    "total_tokens_per_second",
+    "first_token_latency_ms",
+    "peak_rss_mb",
+)
+
+
 def envelope_to_rows(envelope: Envelope) -> list[dict[str, Any]]:
-    """Explode ``envelope['results']`` into one flat row per measurement."""
+    """Explode ``envelope['results']`` into one flat row per measurement.
+
+    Optional result fields (``duration_seconds``, the ``*_tokens_per_second``
+    set, etc.) and tag-derived columns are normalized across rows so PyArrow's
+    schema inference sees a consistent column set. Without this, a parquet
+    written from a mixed envelope where the *first* row lacks a field but a
+    later row has it would silently drop the column.
+    """
     system = dict(envelope.get("system") or {})
     base: dict[str, Any] = {
         "schema_version": envelope.get("schema_version"),
@@ -63,8 +80,12 @@ def envelope_to_rows(envelope: Envelope) -> list[dict[str, Any]]:
     if "seed" in envelope:
         base["seed"] = envelope["seed"]
 
+    results = envelope.get("results", [])
+    present_optionals = {col for col in _OPTIONAL_RESULT_COLUMNS if any(col in r for r in results)}
+    present_tags = {f"tag_{k}" for r in results for k in (r.get("tags") or {})}
+
     rows: list[dict[str, Any]] = []
-    for r in envelope.get("results", []):
+    for r in results:
         row: dict[str, Any] = {
             **base,
             "name": r.get("name"),
@@ -72,19 +93,11 @@ def envelope_to_rows(envelope: Envelope) -> list[dict[str, Any]]:
             "value": r.get("value"),
             "unit": r.get("unit"),
         }
-        if "duration_seconds" in r:
-            row["duration_seconds"] = r["duration_seconds"]
-        for throughput_key in (
-            "prompt_tokens_per_second",
-            "decode_tokens_per_second",
-            "total_tokens_per_second",
-            "first_token_latency_ms",
-            "peak_rss_mb",
-        ):
-            if throughput_key in r:
-                row[throughput_key] = r[throughput_key]
-        for k, v in (r.get("tags") or {}).items():
-            row[f"tag_{k}"] = v
+        for col in present_optionals:
+            row[col] = r.get(col)
+        tags = r.get("tags") or {}
+        for tag_col in present_tags:
+            row[tag_col] = tags.get(tag_col.removeprefix("tag_"))
         rows.append(row)
     return rows
 

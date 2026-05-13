@@ -31,6 +31,7 @@ import argparse
 import io
 import logging
 import os
+import re
 import sys
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -45,6 +46,7 @@ from huggingface_hub.errors import HfHubHTTPError
 from mlx_benchmarks.converters.lm_eval import (
     _default_tokenizer_loader,
     _sum_tokens,
+    _TokenizerLike,
 )
 
 log = logging.getLogger("backfill_tok_per_sec")
@@ -76,12 +78,26 @@ def main(argv: list[str] | None = None) -> int:
     parquet_paths = list(_iter_dataset_parquet_paths(args.repo_id))
     log.info("found %d parquet files in %s", len(parquet_paths), args.repo_id)
 
+    samples_root = Path(args.samples_root)
+    samples_index = _build_samples_index(samples_root)
+    log.info(
+        "indexed %d samples_*.jsonl file(s) across %d task(s) under %s",
+        sum(len(v) for v in samples_index.values()),
+        len(samples_index),
+        samples_root,
+    )
+
+    # Tokenizer cache spans the whole run so a single model that loads slowly
+    # (or fails to load) is hit at most once across every parquet file.
+    # ``False`` is the sentinel for "we tried and failed" so we don't retry.
+    tokenizer_cache: dict[str, _TokenizerLike | None] = {}
+
     stats = BackfillStats()
     operations: list[CommitOperationAdd] = []
 
     for path in parquet_paths:
         stats.files_total += 1
-        new_bytes = _process_one_parquet(api, args, path, stats)
+        new_bytes = _process_one_parquet(api, args, path, stats, samples_index, tokenizer_cache)
         if new_bytes is None:
             log.debug("no change for %s", path)
             continue
@@ -130,8 +146,15 @@ def _process_one_parquet(
     args: argparse.Namespace,
     repo_path: str,
     stats: BackfillStats,
+    samples_index: dict[str, list[Path]],
+    tokenizer_cache: dict[str, _TokenizerLike | None],
 ) -> bytes | None:
-    """Download, rewrite, and return new parquet bytes (or None if unchanged)."""
+    """Download, rewrite, and return new parquet bytes (or None if unchanged).
+
+    ``samples_index`` and ``tokenizer_cache`` are owned by ``main`` so they
+    span every parquet processed in a single run. Failed tokenizer loads sit
+    in ``tokenizer_cache`` as ``None`` and are not retried.
+    """
     local_file = hf_hub_download(
         repo_id=args.repo_id,
         repo_type=DEFAULT_REPO_TYPE,
@@ -141,7 +164,6 @@ def _process_one_parquet(
     table = pq.read_table(local_file)  # type: ignore[no-untyped-call]
     rows: list[dict[str, Any]] = table.to_pylist()
     changed = False
-    tokenizer_cache: dict[str, Any] = {}
 
     for row in rows:
         stats.rows_total += 1
@@ -152,7 +174,7 @@ def _process_one_parquet(
         if not isinstance(duration, int | float) or duration <= 0:
             stats.rows_skipped_no_duration += 1
             continue
-        samples_path = _locate_samples_file(Path(args.samples_root), row)
+        samples_path = _locate_samples_file(samples_index, row)
         if samples_path is None:
             stats.rows_skipped_no_samples += 1
             continue
@@ -160,10 +182,9 @@ def _process_one_parquet(
         if not isinstance(model, str):
             stats.rows_skipped_no_tokenizer += 1
             continue
-        tokenizer = tokenizer_cache.get(model)
-        if tokenizer is None:
-            tokenizer = _default_tokenizer_loader(model)
-            tokenizer_cache[model] = tokenizer
+        if model not in tokenizer_cache:
+            tokenizer_cache[model] = _default_tokenizer_loader(model)
+        tokenizer = tokenizer_cache[model]
         if tokenizer is None:
             stats.rows_skipped_no_tokenizer += 1
             continue
@@ -186,38 +207,47 @@ def _process_one_parquet(
     return buf.getvalue()
 
 
-def _locate_samples_file(samples_root: Path, row: dict[str, Any]) -> Path | None:
-    """Reconstruct the ``samples_<task>_<ts>.jsonl`` path for a parquet row.
+def _build_samples_index(samples_root: Path) -> dict[str, list[Path]]:
+    """Walk ``samples_root`` once and index every samples file by task name.
 
-    Two-step search:
+    Returns ``{task_name: [Path, Path, ...]}`` so per-row lookups become a
+    plain dict access instead of a recursive glob. With N rows across M
+    parquet files, this reduces filesystem traversal from O(N*M) to O(1)
+    plus the single startup walk.
+    """
+    index: dict[str, list[Path]] = {}
+    if not samples_root.is_dir():
+        return index
+    for path in samples_root.rglob("samples_*.jsonl"):
+        # Filename shape: samples_<task>_<ts>.jsonl. The task name can contain
+        # underscores, so split off the trailing timestamp by locating the
+        # date prefix (YYYY-MM-DDTHH-MM-SS).
+        stem = path.stem.removeprefix("samples_")
+        ts_match = re.search(r"_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}", stem)
+        task_name = stem[: ts_match.start()] if ts_match else stem
+        index.setdefault(task_name, []).append(path)
+    return index
 
-    1. Build the run-output directory the publisher would have used by
-       walking the conventional layout
-       ``<root>/<run-tag>/<task-name>/<model-slug>/<model-id>/``. We don't
-       know the exact ``<run-tag>``, so walk subdirectories and look for any
-       ``samples_<name>_*.jsonl`` whose timestamp slug matches the row's
-       ``timestamp`` field.
 
-    2. Fall back to any ``samples_<name>_*.jsonl`` matching just the task
-       name. Returns None if nothing is found.
+def _locate_samples_file(samples_index: dict[str, list[Path]], row: dict[str, Any]) -> Path | None:
+    """Look up the ``samples_<task>_<ts>.jsonl`` matching a parquet row.
+
+    Picks the file whose timestamp slug matches ``row['timestamp']`` when one
+    exists, otherwise the most recently modified candidate for the task.
     """
     task_name = row.get("name")
-    timestamp = row.get("timestamp")
-    if not isinstance(task_name, str) or not samples_root.is_dir():
+    if not isinstance(task_name, str):
         return None
-    ts_slug = None
+    candidates = samples_index.get(task_name)
+    if not candidates:
+        return None
+    timestamp = row.get("timestamp")
     if isinstance(timestamp, str):
         ts_slug = timestamp.replace(":", "-").rstrip("Z")
-
-    matches = list(samples_root.rglob(f"samples_{task_name}_*.jsonl"))
-    if not matches:
-        return None
-    if ts_slug is not None:
-        for candidate in matches:
+        for candidate in candidates:
             if ts_slug in candidate.name:
                 return candidate
-    matches.sort(key=lambda p: p.stat().st_mtime)
-    return matches[-1]
+    return max(candidates, key=lambda p: p.stat().st_mtime)
 
 
 def _iter_dataset_parquet_paths(repo_id: str) -> Iterator[str]:

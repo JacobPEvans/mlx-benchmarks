@@ -122,6 +122,70 @@ def test_lm_eval_skips_throughput_without_source_path() -> None:
     assert "decode_tokens_per_second" not in result
 
 
+def test_lm_eval_tokenizes_samples_once_per_task_across_metrics(tmp_path: Path) -> None:
+    """A task emitting multiple metric rows must tokenize the samples file
+    only once. Tokenizing per metric would re-read large JSONL files several
+    times for the same data and inflate publish time on real lm-eval runs."""
+    source = tmp_path / "results_2026-05-13T00-00-00.000000.json"
+    source.write_text(
+        json.dumps(
+            {
+                "results": {
+                    "gsm8k_cot_zeroshot": {
+                        "alias": "gsm8k_cot_zeroshot",
+                        "exact_match,flexible-extract": 0.6,
+                        "exact_match_stderr,flexible-extract": 0.155,
+                        "exact_match,strict-match": 0.5,
+                        "exact_match_stderr,strict-match": 0.158,
+                        "acc,none": 0.55,
+                    }
+                },
+                "config": {"model": "local-chat-completions", "model_args": {"model": "test-model"}},
+                "model_name": "test-model",
+                "date": 1778686200.0,
+                "total_evaluation_time_seconds": "100.0",
+                "total_evaluation_time_seconds_per_task": {"gsm8k_cot_zeroshot": 100.0},
+            }
+        )
+    )
+    samples = tmp_path / "samples_gsm8k_cot_zeroshot_2026-05-13T00-00-00.000000.jsonl"
+    samples.write_text(
+        '{"doc_id": 0, "arguments": [["q1", {}]], "filtered_resps": ["a1"]}\n'
+        '{"doc_id": 1, "arguments": [["q2", {}]], "filtered_resps": ["a2"]}\n'
+    )
+
+    encode_calls = 0
+
+    class _CountingTokenizer:
+        def encode(self, text: str) -> _FakeEncoding:
+            nonlocal encode_calls
+            encode_calls += 1
+            return _FakeEncoding(ids=text.split())  # type: ignore[arg-type]
+
+    counting_tokenizer = _CountingTokenizer()
+    converter = LmEvalConverter(tokenizer_loader=lambda _model: counting_tokenizer)
+    ctx = ConverterContext(
+        suite="reasoning",
+        model="test-model",
+        git_sha="deadbeef",
+        system=detect_system(),
+        source_path=source,
+    )
+
+    envelope = converter.build_envelope(json.loads(source.read_text()), ctx)
+    results = envelope["results"]
+
+    # Three metric rows on the same task (acc + two exact_match variants)
+    assert len(results) == 3
+    # Each sample has one prompt + one response = 2 encode() calls per sample.
+    # 2 samples * 2 = 4 encodes -- and we must do that count exactly once,
+    # not once per metric row.
+    assert encode_calls == 4, f"expected 4 encode calls (one pass), got {encode_calls}"
+    # All three rows must carry the same computed throughput value
+    decode_values = {r["decode_tokens_per_second"] for r in results}
+    assert len(decode_values) == 1
+
+
 def test_lm_eval_skips_throughput_when_tokenizer_unavailable() -> None:
     """When the tokenizer loader returns None (HF offline, missing repo, etc.)
     the converter degrades gracefully — duration still set, tok/s fields not."""
