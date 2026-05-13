@@ -53,7 +53,7 @@ def _default_tokenizer_loader(model: str) -> _TokenizerLike | None:
         log.debug("tokenizers package not available; tok/s fields will be unset")
         return None
     try:
-        return Tokenizer.from_pretrained(model)  # type: ignore[no-any-return]
+        return Tokenizer.from_pretrained(model)
     except Exception as exc:
         log.warning("could not load tokenizer for %s: %s — tok/s fields will be unset", model, exc)
         return None
