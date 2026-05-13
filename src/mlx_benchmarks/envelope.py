@@ -40,6 +40,11 @@ class Result(TypedDict, total=False):
     tags: dict[str, str]
     raw: Any
     duration_seconds: float
+    prompt_tokens_per_second: float
+    decode_tokens_per_second: float
+    total_tokens_per_second: float
+    first_token_latency_ms: float
+    peak_rss_mb: float
 
 
 class GenKwargs(TypedDict, total=False):

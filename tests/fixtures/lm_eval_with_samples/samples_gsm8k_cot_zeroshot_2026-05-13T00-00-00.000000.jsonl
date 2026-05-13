@@ -1,0 +1,3 @@
+{"doc_id": 0, "doc": {"question": "What is 2 + 2?"}, "arguments": [["What is 2 + 2?", {"max_gen_toks": 256}]], "resps": [["The answer is 4."]], "filtered_resps": ["The answer is 4."], "exact_match": 1.0}
+{"doc_id": 1, "doc": {"question": "What is 3 + 5?"}, "arguments": [["What is 3 + 5?", {"max_gen_toks": 256}]], "resps": [["The answer is 8."]], "filtered_resps": ["The answer is 8."], "exact_match": 1.0}
+{"doc_id": 2, "doc": {"question": "What is 7 - 4?"}, "arguments": [["What is 7 - 4?", {"max_gen_toks": 256}]], "resps": [["The answer is 3."]], "filtered_resps": ["The answer is 3."], "exact_match": 1.0}

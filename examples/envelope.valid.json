@@ -24,6 +24,9 @@
       "value": 0.8,
       "unit": "ratio",
       "duration_seconds": 123.4,
+      "prompt_tokens_per_second": 1850.0,
+      "decode_tokens_per_second": 52.3,
+      "total_tokens_per_second": 1902.3,
       "tags": {
         "lm_eval_key": "exact_match,flexible-extract",
         "n_limit": "10"

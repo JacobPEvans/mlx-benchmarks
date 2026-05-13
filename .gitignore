@@ -22,6 +22,8 @@ run-output/
 runs/
 *.parquet
 *.jsonl
+# ...except test fixtures, which must travel with the repo
+!tests/fixtures/**/*.jsonl
 
 # IDE
 .idea/

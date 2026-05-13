@@ -89,3 +89,34 @@ def test_publish_skipping_validation_still_rejects_empty(invalid_envelope: dict)
     # (not plain ValueError) so the CLI can catch it via a single exception type.
     with pytest.raises(PublishError, match="No result rows"):
         publish(invalid_envelope, dry_run=True, validate=False)
+
+
+def test_envelope_to_rows_promotes_tok_per_sec_fields(valid_envelope: dict) -> None:
+    """The new optional throughput fields land as top-level parquet columns next
+    to ``duration_seconds`` so dashboards can graph tok/s without crawling tags."""
+    rows = envelope_to_rows(valid_envelope)
+    row = rows[0]
+    assert row["prompt_tokens_per_second"] == 1850.0
+    assert row["decode_tokens_per_second"] == 52.3
+    assert row["total_tokens_per_second"] == 1902.3
+
+
+def test_envelope_to_rows_omits_absent_tok_per_sec(valid_envelope: dict) -> None:
+    """Backwards-compat: when a result lacks throughput fields they must not
+    appear as null columns. This guarantees parquet schemas stay stable for
+    historical runs that never recorded tok/s."""
+    no_throughput = {
+        **valid_envelope,
+        "results": [
+            {
+                "name": "lol",
+                "metric": "exact_match_flexible",
+                "value": 0.5,
+                "unit": "ratio",
+            }
+        ],
+    }
+    [row] = envelope_to_rows(no_throughput)
+    assert "decode_tokens_per_second" not in row
+    assert "prompt_tokens_per_second" not in row
+    assert "total_tokens_per_second" not in row

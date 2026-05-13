@@ -101,6 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         timestamp_override=args.timestamp,
         system=system,
         extra_tags=extra_tags,
+        source_path=args.results_json,
     )
 
     converter = get_converter(args.kind)

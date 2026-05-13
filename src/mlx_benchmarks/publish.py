@@ -74,6 +74,15 @@ def envelope_to_rows(envelope: Envelope) -> list[dict[str, Any]]:
         }
         if "duration_seconds" in r:
             row["duration_seconds"] = r["duration_seconds"]
+        for throughput_key in (
+            "prompt_tokens_per_second",
+            "decode_tokens_per_second",
+            "total_tokens_per_second",
+            "first_token_latency_ms",
+            "peak_rss_mb",
+        ):
+            if throughput_key in r:
+                row[throughput_key] = r[throughput_key]
         for k, v in (r.get("tags") or {}).items():
             row[f"tag_{k}"] = v
         rows.append(row)
