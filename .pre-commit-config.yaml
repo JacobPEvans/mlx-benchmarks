@@ -43,6 +43,11 @@ repos:
           - jsonschema>=4.23.0
           - types-jsonschema
           - types-psutil
+          # tokenizers ships its own .pyi so we just need the package present
+          # for mypy to resolve it. Keeps the hook env aligned with CI's full
+          # project install so warn_unused_ignores never fires on the
+          # Tokenizer.from_pretrained call.
+          - tokenizers>=0.20
 
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.4

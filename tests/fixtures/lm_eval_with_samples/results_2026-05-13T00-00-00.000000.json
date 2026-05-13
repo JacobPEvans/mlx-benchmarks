@@ -1,0 +1,28 @@
+{
+  "results": {
+    "gsm8k_cot_zeroshot": {
+      "alias": "gsm8k_cot_zeroshot",
+      "exact_match,flexible-extract": 0.6,
+      "exact_match_stderr,flexible-extract": 0.155
+    }
+  },
+  "group_subtasks": {},
+  "config": {
+    "model": "local-chat-completions",
+    "model_args": {
+      "base_url": "http://localhost:11434/v1/chat/completions",
+      "model": "mlx-community/Qwen3.5-9B-MLX-4bit"
+    },
+    "limit": 5,
+    "gen_kwargs": {
+      "max_gen_toks": 256,
+      "temperature": 0.0
+    }
+  },
+  "model_name": "mlx-community/Qwen3.5-9B-MLX-4bit",
+  "date": 1778686200.0,
+  "total_evaluation_time_seconds": "100.0",
+  "total_evaluation_time_seconds_per_task": {
+    "gsm8k_cot_zeroshot": 100.0
+  }
+}

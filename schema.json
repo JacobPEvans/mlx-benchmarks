@@ -164,6 +164,31 @@
             "type": "number",
             "description": "Wall-clock duration attributed to this result (first-class, replacing tags.total_eval_time_s for new runs)"
           },
+          "prompt_tokens_per_second": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Aggregate prompt (prefill) throughput for this result: sum of prompt tokens across all samples divided by duration_seconds. Optional — populated when sample-level token counts are recoverable (e.g. lm-eval --log_samples + tokenizer)."
+          },
+          "decode_tokens_per_second": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Aggregate decode (completion) throughput: sum of response tokens divided by duration_seconds. This is the headline tok/s number end users care about."
+          },
+          "total_tokens_per_second": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Aggregate end-to-end throughput: (prompt + response) tokens divided by duration_seconds."
+          },
+          "first_token_latency_ms": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Time to first token in milliseconds for this result (when measurable — typically populated by streaming-aware harnesses, left unset for lm-eval runs)."
+          },
+          "peak_rss_mb": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Peak resident set size observed during this result, in megabytes. Complements memory_snapshots when per-result granularity is available."
+          },
           "tags": {
             "type": "object",
             "description": "Arbitrary string key-value metadata (e.g. framework, output_tokens)",

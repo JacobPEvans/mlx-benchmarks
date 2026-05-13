@@ -22,6 +22,11 @@ dependencies = [
     "psutil>=5.9",
     "pyarrow>=17.0.0",
     "lm-eval[api]==0.4.11",
+    # tokenizers powers the lm-eval converter's tok/s computation. The library
+    # is also a transitive dep of transformers (and therefore lm-eval), but
+    # declaring it explicitly keeps mypy happy across Python minor versions and
+    # documents the direct usage.
+    "tokenizers>=0.20",
 ]
 
 [project.optional-dependencies]
