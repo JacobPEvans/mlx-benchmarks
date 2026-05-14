@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0](https://github.com/JacobPEvans/mlx-benchmarks/compare/v0.6.1...v0.7.0) (2026-05-14)
+
+
+### Features
+
+* **envelope:** add tokens-per-second metrics ([#38](https://github.com/JacobPEvans/mlx-benchmarks/issues/38)) ([6d65d81](https://github.com/JacobPEvans/mlx-benchmarks/commit/6d65d817d6bd45e897f44d53224cfd7a9a913fd3))
+
+
+### Bug Fixes
+
+* **deps:** update dependency lm-eval to v0.4.12 ([#41](https://github.com/JacobPEvans/mlx-benchmarks/issues/41)) ([1698c37](https://github.com/JacobPEvans/mlx-benchmarks/commit/1698c373ba0ae25aaf448349c5819d2d05006acd))
+
+
+### Documentation
+
+* add quick-reset guide for local LLM memory refresh ([#42](https://github.com/JacobPEvans/mlx-benchmarks/issues/42)) ([8e7f348](https://github.com/JacobPEvans/mlx-benchmarks/commit/8e7f34807c52b586a4b891edd32cf8322ffb7f34))
+
 ## [0.6.1](https://github.com/JacobPEvans/mlx-benchmarks/compare/v0.6.0...v0.6.1) (2026-05-03)
 
 
