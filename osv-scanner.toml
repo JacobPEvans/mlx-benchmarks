@@ -66,3 +66,59 @@ hardware we control. There is no untrusted input path.
 Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/18
 Re-evaluate before 2026-10-25 (or sooner if lm-eval drops sqlitedict).
 """
+
+[[IgnoredVulns]]
+id = "PYSEC-2024-274"
+ignoreUntil = 2026-11-20
+reason = """
+gradio 6.14.0 (CVSS 9.8) — CVE-2024-39236 / GHSA-9v2f-6vcg-3hgv. Code
+injection in /gradio/component_meta.py via crafted input. The upstream
+supplier formally DISPUTES the advisory: "the report is about a user
+attacking himself" — the attack surface is the user crafting input for
+their own Space.
+
+We use gradio only as the Space frontend for benchmark visualisation.
+The Space accepts no user-controlled metadata input that reaches
+component_meta.py. Already on latest published (6.14.0); no fix
+expected since upstream considers this non-issue.
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/43
+Re-evaluate before 2026-11-20 (or sooner if OSV withdraws the advisory).
+"""
+
+# ============================================================================
+# PyPI advisories updated 2026-05-20 to "all versions affected"
+# ============================================================================
+# joblib, nltk, and pyjwt are all on their latest published versions.
+# OSV.dev broadened these advisories on 2026-05-20 to introduced=0 / no fix —
+# meaning every version is flagged. Same situation as JacobPEvans/nix-ai#812.
+
+[[IgnoredVulns]]
+id = "PYSEC-2024-277"
+ignoreUntil = 2026-08-20
+reason = """
+joblib 1.5.3 (CVSS 7.5) — deserialization in Memory.cache results.
+Already on latest. Transitive via lm-eval / smolagents — Local AV
+through benchmark runs against models we control.
+Tracked in JacobPEvans/mlx-benchmarks#44 (cross-ref nix-ai#812).
+"""
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-97"
+ignoreUntil = 2026-08-20
+reason = """
+nltk 3.9.4 (CVSS 7.5) — local file load issue. Local AV.
+Already on latest. Transitive via lm-eval.
+Tracked in JacobPEvans/mlx-benchmarks#44 (cross-ref nix-ai#812).
+"""
+
+[[IgnoredVulns]]
+id = "PYSEC-2025-183"
+ignoreUntil = 2026-08-20
+reason = """
+pyjwt 2.12.1 (CVSS 7.0) — CVE-2025-45768 / weak encryption.
+Already on latest. **Upstream disputes**: "the key length is chosen by
+the application that uses the library". We don't generate JWTs; transitive
+consumer only.
+Tracked in JacobPEvans/mlx-benchmarks#44.
+"""
