@@ -100,7 +100,9 @@ reason = """
 joblib 1.5.3 (CVSS 7.5) — deserialization in Memory.cache results.
 Already on latest. Transitive via lm-eval / smolagents — Local AV
 through benchmark runs against models we control.
-Tracked in JacobPEvans/mlx-benchmarks#44 (cross-ref nix-ai#812).
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/44
+Re-evaluate before 2026-08-20 (or sooner if upstream publishes a fix).
 """
 
 [[IgnoredVulns]]
@@ -109,7 +111,9 @@ ignoreUntil = 2026-08-20
 reason = """
 nltk 3.9.4 (CVSS 7.5) — local file load issue. Local AV.
 Already on latest. Transitive via lm-eval.
-Tracked in JacobPEvans/mlx-benchmarks#44 (cross-ref nix-ai#812).
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/44
+Re-evaluate before 2026-08-20 (or sooner if upstream publishes a fix).
 """
 
 [[IgnoredVulns]]
@@ -120,5 +124,7 @@ pyjwt 2.12.1 (CVSS 7.0) — CVE-2025-45768 / weak encryption.
 Already on latest. **Upstream disputes**: "the key length is chosen by
 the application that uses the library". We don't generate JWTs; transitive
 consumer only.
-Tracked in JacobPEvans/mlx-benchmarks#44.
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/44
+Re-evaluate before 2026-08-20 (or sooner if OSV withdraws the disputed advisory).
 """
