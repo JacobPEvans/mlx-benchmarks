@@ -130,7 +130,10 @@ jobs:
   osv-scan:
     name: OSV Scan
     needs: changes
-    if: needs.changes.outputs.lockfile == 'true'
+    # Always run — vulnerabilities can be introduced by any change, and
+    # osv-scanner.toml edits need to be validated against current advisories
+    # even when no lockfile changes accompany them.
+    if: always()
     uses: JacobPEvans/.github/.github/workflows/_osv-scan.yml@main
 
   markdown-lint:
