@@ -10,6 +10,8 @@ huggingface-hub>=0.23
 #   pillow  10.4.0  → GHSA-cfh3-3jmp-rvhc + GHSA-whj4-6x5x-4v2j fixed in 12.2.0
 #   pyarrow 14      → PYSEC-2023-238 + PYSEC-2024-161 fixed in 17.0.0
 #   orjson  3.9.9   → GHSA-hx9q-6w63-j58v fixed in 3.11.6
+#   idna    3.9.0   → GHSA-65pc-fj4g-8rjx fixed in 3.15 (CVSS 6.9, transitive via requests/httpx)
 pyarrow>=17.0.0
 pillow>=12.2.0
 orjson>=3.11.6
+idna>=3.15
