@@ -125,7 +125,13 @@ jobs:
       #     pulled in transitively by lm-eval[api]==0.4.11. Tracked in #18.
       #     Risk: insecure deserialization of local pickle data; only
       #     loaded by lm-eval's caching layer for files we control.
-      ignore-vulns: "GHSA-g4r7-86gm-pgqc"
+      #   PYSEC-2024-277 — joblib 1.5.3 NumpyArrayWrapper deserialization.
+      #     Disputed by supplier (only used during caching of trusted content).
+      #     Pulled in transitively by scikit-learn -> lm-eval.
+      #   PYSEC-2026-97 — nltk 3.9.4 filestring() arbitrary file read.
+      #     Requires user-controlled path input; not exposed by our usage
+      #     (lm-eval doesn't pass user input to nltk.util.filestring).
+      ignore-vulns: "GHSA-g4r7-86gm-pgqc PYSEC-2024-277 PYSEC-2026-97"
 
   osv-scan:
     name: OSV Scan
