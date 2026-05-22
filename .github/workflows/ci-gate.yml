@@ -119,19 +119,20 @@ jobs:
     uses: JacobPEvans/.github/.github/workflows/_python-security.yml@main
     with:
       python-dirs: "."
-      # Acknowledged transitive vulnerabilities with no upstream fix.
-      # Each ID MUST link to a tracking issue and be reviewed quarterly.
-      #   GHSA-g4r7-86gm-pgqc — sqlitedict 2.1.0 (CVE-2024-35515),
-      #     pulled in transitively by lm-eval[api]==0.4.11. Tracked in #18.
-      #     Risk: insecure deserialization of local pickle data; only
-      #     loaded by lm-eval's caching layer for files we control.
-      #   PYSEC-2024-277 — joblib 1.5.3 NumpyArrayWrapper deserialization.
-      #     Disputed by supplier (only used during caching of trusted content).
-      #     Pulled in transitively by scikit-learn -> lm-eval.
-      #   PYSEC-2026-97 — nltk 3.9.4 filestring() arbitrary file read.
-      #     Requires user-controlled path input; not exposed by our usage
-      #     (lm-eval doesn't pass user input to nltk.util.filestring).
-      ignore-vulns: "GHSA-g4r7-86gm-pgqc PYSEC-2024-277 PYSEC-2026-97"
+      # MUST mirror osv-scanner.toml `[[IgnoredVulns]]`. Each ID is documented
+      # there with rationale, tracking issue, and `ignoreUntil` review date.
+      # New advisories must be added to BOTH files in lockstep.
+      #   GHSA-q9r5-6hrr-9ph7 / GHSA-54fq-v6x8-244g / GHSA-jxgv-6j54-wwc7 —
+      #     smolagents 1.22.0 chain; hub<1.0.0 conflict blocks upgrade. #35.
+      #   GHSA-g4r7-86gm-pgqc — sqlitedict 2.1.0 via lm-eval[api]. #18.
+      #   PYSEC-2024-274 — gradio 6.14.0 component_meta.py (disputed). #43.
+      #   PYSEC-2024-277 — joblib 1.5.3 Memory.cache deserialization. #44.
+      #   PYSEC-2025-183 — pyjwt 2.12.1 weak encryption (disputed). #44.
+      #   PYSEC-2026-97  — nltk 3.9.4 local file load. #44.
+      ignore-vulns: >-
+        GHSA-q9r5-6hrr-9ph7 GHSA-54fq-v6x8-244g GHSA-jxgv-6j54-wwc7
+        GHSA-g4r7-86gm-pgqc PYSEC-2024-274 PYSEC-2024-277 PYSEC-2025-183
+        PYSEC-2026-97
 
   osv-scan:
     name: OSV Scan
