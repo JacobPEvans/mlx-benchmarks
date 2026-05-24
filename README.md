@@ -1,13 +1,19 @@
 # mlx-benchmarks
 
+[![ci-gate][badge-ci]][workflow-ci]
 [![Release Please][badge-rp]][workflow-rp]
+[![Schema v1][badge-schema]][schema-file]
 [![Python 3.11+][badge-py]][python-downloads]
 [![License: Apache 2.0][badge-license]](LICENSE)
 [![HF Dataset][badge-hfds]][hf-dataset]
 [![HF Space][badge-hfsp]][hf-space]
 
+[badge-ci]: https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/ci-gate.yml/badge.svg?branch=main
+[workflow-ci]: https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/ci-gate.yml
 [badge-rp]: https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml/badge.svg?branch=main
 [workflow-rp]: https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml
+[badge-schema]: https://img.shields.io/badge/schema-v1-4FB3A9
+[schema-file]: schema.json
 [badge-py]: https://img.shields.io/badge/python-3.11%2B-blue
 [python-downloads]: https://www.python.org/downloads/
 [badge-license]: https://img.shields.io/badge/license-Apache--2.0-green.svg
@@ -35,6 +41,79 @@ other harnesses) with:
 
 Read results as a pandas DataFrame with no tooling beyond `huggingface_hub` +
 `pyarrow`.
+
+## Architecture
+
+```mermaid
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
+flowchart LR
+  NixAI([nix-ai env])
+  Serve([vllm-mlx + llama-swap])
+  Eval([lm-eval · vllm · framework-eval])
+  Bench([mlx-benchmarks])
+  Dataset[("HF dataset")]
+  Viewer([HF Space viewer])
+
+  NixAI --> Serve
+  Serve -->|":11434/v1"| Eval
+  Eval -->|"results_*.json"| Bench
+  Bench -->|"validate + publish"| Dataset
+  Dataset --> Viewer
+
+  classDef source fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
+  classDef stack  fill:#102937,stroke:#4FB3A9,stroke-width:2px,color:#F4EFE6;
+  classDef core   fill:#102937,stroke:#4FB3A9,stroke-width:3px,color:#F4EFE6;
+  classDef sink   fill:#102937,stroke:#F4EFE6,stroke-width:2.5px,color:#F4EFE6;
+
+  class NixAI source
+  class Serve,Eval stack
+  class Bench core
+  class Dataset,Viewer sink
+
+  linkStyle 0,1,2,3,4 stroke:#4FB3A9,stroke-width:2px;
+```
+
+The repo lives at the **mlx-benchmarks** node: it owns the envelope contract
+(`schema.json`), the publisher (`mlx-bench-publish`), and the converters that
+fan in from each upstream evaluation tool. Everything to the left of it
+(model serving, evaluation drivers) and to the right (storage, viewer) is
+delegated. See [`docs/architecture.md`](docs/architecture.md) for the
+detailed component breakdown, data-flow, and CI diagrams.
+
+## Ecosystem
+
+`mlx-benchmarks` is the instrumentation layer of a larger Apple-Silicon
+homelab AI stack. The full stack is documented at
+[**docs.jacobpevans.com**](https://docs.jacobpevans.com/tools/mlx-benchmarks).
+
+| Layer | Repo | Provides |
+| --- | --- | --- |
+| Declarative env | [`nix-ai`](https://github.com/JacobPEvans/nix-ai) | `vllm-mlx` LaunchAgent, `llama-swap`, MLX module derivations |
+| macOS host | [`nix-darwin`](https://github.com/JacobPEvans/nix-darwin) | Composes `nix-ai` + `nix-home` into the system flake |
+| Multi-provider gateway | [`orbstack-kubernetes`](https://github.com/JacobPEvans/orbstack-kubernetes) | Bifrost AI gateway, OTEL collection on local K8s |
+| AI tool policy | [`ai-assistant-instructions`](https://github.com/JacobPEvans/ai-assistant-instructions) | Model routing, permissions, MCP server canon |
+
+User-visible workflow: `darwin-rebuild switch` brings up the inference
+stack via `nix-ai` → `vllm-mlx` serves models on `:11434` → benchmark
+drivers in this repo hit that endpoint → `mlx-bench-publish` validates
+and uploads results → the HF Space viewer renders them. Nothing in this
+repo assumes a specific model registry or routing layer; it talks to any
+OpenAI-compatible endpoint.
 
 ## Upstream tools wired in
 
@@ -144,7 +223,8 @@ MODEL="mlx-community/Qwen3.5-9B-MLX-4bit"
   --kind lm-eval --suite reasoning
 ```
 
-Filenames are deterministic — `data/run-<timestamp>-<git_sha>-<suite>-<model_slug>.parquet` —
+Filenames are deterministic
+(`data/run-<timestamp>-<git_sha>-<suite>-<model_slug>.parquet`)
 so historical shards are never overwritten.
 
 ### View results

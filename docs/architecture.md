@@ -2,32 +2,68 @@
 
 High-level data flow, from "I kick off a benchmark" to "I see a chart".
 
-```text
- ┌───────────────────────────┐      ┌─────────────────────────────┐
- │  Local Apple-Silicon box  │      │        GitHub Actions       │
- │                           │      │                             │
- │  vllm-mlx (llama-swap)    │      │  test / lint / mypy / CodeQL│
- │     ↑ /v1/chat/...        │      │  dry-run-publish (fixture)  │
- │     │                     │      │  deploy-space (on main)     │
- │  lm_eval / vllm / ...     │      │  release-please (on main)   │
- │     │ results_*.json      │      └──────────────┬──────────────┘
- │     ▼                     │                     │ HF_TOKEN
- │  mlx-bench-publish        │                     ▼
- │   ├─ detect_system()      │      ┌─────────────────────────────┐
- │   ├─ Converter→Envelope   │      │     HuggingFace Hub          │
- │   ├─ validate_envelope()  │      │                             │
- │   ├─ rows_to_parquet()    │─────►│  dataset: mlx-benchmarks    │
- │   └─ HfApi.create_commit()│      │     data/run-*.parquet      │
- │                           │      │                             │
- └───────────────────────────┘      │  space:  mlx-benchmarks-    │
-                                    │          viewer  (Gradio)   │
-                                    └──────────────┬──────────────┘
-                                                   │ read-only
-                                                   ▼
-                                           ┌───────────────┐
-                                           │ Viewer users  │
-                                           │   (browser)   │
-                                           └───────────────┘
+## System topology
+
+```mermaid
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
+flowchart LR
+  subgraph Local["Apple-Silicon box"]
+    Serve([vllm-mlx + llama-swap])
+    Eval([lm-eval · vllm · framework-eval])
+    CLI([mlx-bench-publish])
+  end
+
+  subgraph CI["GitHub Actions"]
+    Gate([ci-gate])
+    RP([release-please])
+    Deploy([deploy-space])
+  end
+
+  subgraph HF["HuggingFace Hub"]
+    Dataset[("dataset: mlx-benchmarks")]
+    Space([Space: viewer])
+  end
+
+  Users((Viewer users))
+
+  Serve -->|":11434/v1"| Eval
+  Eval -->|"results_*.json"| CLI
+  CLI -->|"validate + create_commit"| Dataset
+  Deploy -->|"sync space/"| Space
+  Dataset --> Space
+  Space -->|"read-only"| Users
+  Gate -.-> CLI
+  RP -.-> Deploy
+
+  classDef stack  fill:#102937,stroke:#4FB3A9,stroke-width:2px,color:#F4EFE6;
+  classDef core   fill:#102937,stroke:#4FB3A9,stroke-width:3px,color:#F4EFE6;
+  classDef gate   fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
+  classDef store  fill:#102937,stroke:#F4EFE6,stroke-width:2.5px,color:#F4EFE6;
+  classDef actor  fill:#102937,stroke:#E6B35A,stroke-width:2px,color:#F4EFE6;
+
+  class Serve,Eval,Deploy stack
+  class CLI core
+  class Gate,RP gate
+  class Dataset,Space store
+  class Users actor
+
+  linkStyle 0,1,2,3,4,5 stroke:#4FB3A9,stroke-width:2px;
+  linkStyle 6,7 stroke:#E6B35A,stroke-width:1.5px,stroke-dasharray:2 4;
 ```
 
 ## Components
@@ -61,6 +97,69 @@ This guarantees idempotent re-publishes and no overwrites. The envelope
 validator is invoked inside `publish()` — you cannot accidentally ship a
 non-compliant shard.
 
+#### Data flow: results.json → published shard
+
+```mermaid
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
+flowchart TD
+  Run([lm-eval / vllm / framework-eval])
+  Raw[("results_*.json")]
+  CLI([mlx-bench-publish])
+  Detect([detect_system])
+  Convert([get_converter.build_envelope])
+  Validate{validate_envelope}
+  Target([target_path])
+  Parquet[("data/run-*.parquet")]
+  HF[(HF dataset)]
+  Fail([raise SchemaValidationError])
+
+  Run -->|"emit"| Raw
+  Raw --> CLI
+  Detect --> CLI
+  CLI --> Convert
+  Convert -->|"envelope v1"| Validate
+  Validate -->|"OK"| Target
+  Validate -. "schema fail" .-> Fail
+  Target -->|"deterministic name"| Parquet
+  Parquet -->|"HfApi.create_commit"| HF
+
+  classDef source fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
+  classDef stack  fill:#102937,stroke:#4FB3A9,stroke-width:2px,color:#F4EFE6;
+  classDef gate   fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
+  classDef store  fill:#102937,stroke:#F4EFE6,stroke-width:2.5px,color:#F4EFE6;
+  classDef err fill:#102937,stroke:#E06B4A,stroke-dasharray:4 3,color:#F4EFE6;
+
+  class Run source
+  class CLI,Convert,Detect,Target stack
+  class Validate gate
+  class Raw,Parquet,HF store
+  class Fail err
+
+  linkStyle 0,1,2,3,4,5,7,8 stroke:#4FB3A9,stroke-width:2px;
+  linkStyle 6 stroke:#E06B4A,stroke-width:1.5px,stroke-dasharray:2 4;
+```
+
+The gate-shaped `validate_envelope` step is the default: every shard
+that reaches `target_path()` in a normal run has passed `schema.json`
+validation. A `--no-validate` CLI flag (and `validate=False` library
+arg) exist for local debugging, but real runs and the CI
+`dry-run-publish` job leave them off.
+
 ### Viewer (`space/`)
 
 Gradio app that reads every `data/*.parquet` shard via `HfFileSystem`,
@@ -74,7 +173,7 @@ pushes that touch `space/`.
 | --- | --- | --- |
 | `ci-gate.yml` | PR | Single merge gate (see below). |
 | `deploy-space.yml` | main push to `space/**` | Sync viewer to HF Space. |
-| `release-please.yml` | main push | Conventional-commits releases via the `JacobPEvans/.github` reusable workflow. |
+| `release-please.yml` | main push | Conventional-commit releases. |
 
 `ci-gate.yml` detects file changes and conditionally runs:
 
@@ -86,6 +185,68 @@ pushes that touch `space/`.
 
 The final `Merge Gate` step (`re-actors/alls-green`) is the only required
 check in branch protection.
+
+```mermaid
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
+flowchart LR
+  PR((PR opened))
+  Paths{paths-filter}
+  PyTest([python-test])
+  Schema([schema-validate])
+  Dry([dry-run-publish])
+  Audit([pip-audit])
+  OSV([osv-scan])
+  MD([markdown-lint])
+  Gate{alls-green Merge Gate}
+  Ready([Mergeable])
+
+  PR --> Paths
+  Paths --> PyTest
+  Paths --> Schema
+  Paths --> Dry
+  Paths --> Audit
+  Paths --> OSV
+  Paths --> MD
+  PyTest --> Gate
+  Schema --> Gate
+  Dry --> Gate
+  Audit --> Gate
+  OSV --> Gate
+  MD --> Gate
+  Gate --> Ready
+
+  classDef source fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
+  classDef stack  fill:#102937,stroke:#4FB3A9,stroke-width:2px,color:#F4EFE6;
+  classDef gate   fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
+  classDef sink   fill:#102937,stroke:#F4EFE6,stroke-width:2.5px,color:#F4EFE6;
+
+  class PR source
+  class Paths,PyTest,Schema,Dry,Audit,OSV,MD stack
+  class Gate gate
+  class Ready sink
+
+  linkStyle 0,1,2,3,4,5,6,7,8,9,10,11,12,13 stroke:#4FB3A9,stroke-width:2px;
+```
+
+Each job is skipped when paths-filter detects no relevant file changes,
+but the Merge Gate still requires every job's status to be `success` or
+`skipped` — it cannot pass on `failure`. This is what lets the polish
+PR ship with only `markdown-lint` actually executing.
 
 CodeQL Python + Actions scanning is provided by GitHub's
 **default CodeQL setup** (repo Security settings), not by a workflow file in
