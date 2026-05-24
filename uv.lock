@@ -2577,7 +2577,7 @@ requires-dist = [
     { name = "pandas", marker = "extra == 'viewer'", specifier = ">=2.0" },
     { name = "plotly", marker = "extra == 'viewer'", specifier = ">=6.7.0" },
     { name = "psutil", specifier = ">=5.9" },
-    { name = "pyarrow", specifier = ">=17.0.0" },
+    { name = "pyarrow", specifier = ">=23.0.1" },
     { name = "qwen-agent", marker = "extra == 'framework-eval'", specifier = ">=0.0.14" },
     { name = "smolagents", marker = "extra == 'framework-eval'", specifier = ">=1.0.0" },
     { name = "soundfile", marker = "extra == 'framework-eval'", specifier = ">=0.13.0" },
