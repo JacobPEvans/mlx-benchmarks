@@ -1870,7 +1870,7 @@ requires-dist = [
     { name = "jsonschema", extras = ["format"], specifier = ">=4.23.0" },
     { name = "lm-eval", extras = ["api"], specifier = "==0.4.12" },
     { name = "openai", marker = "extra == 'framework-eval'", specifier = ">=1.0.0" },
-    { name = "pandas", marker = "extra == 'viewer'", specifier = ">=2.0" },
+    { name = "pandas", marker = "extra == 'viewer'", specifier = ">=3.0.3" },
     { name = "plotly", marker = "extra == 'viewer'", specifier = ">=6.7.0" },
     { name = "psutil", specifier = ">=5.9" },
     { name = "pyarrow", specifier = ">=23.0.1" },

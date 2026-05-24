@@ -40,7 +40,7 @@ framework-eval = [
 viewer = [
     "gradio>=6.12.0",
     "plotly>=6.7.0",
-    "pandas>=2.0",
+    "pandas>=3.0.3",
 ]
 # Note: vllm benchmarking targets an external vllm server. The vllm Python
 # package itself is Linux/CUDA-only, isn't installable on the Apple-Silicon
