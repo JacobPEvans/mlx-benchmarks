@@ -154,9 +154,11 @@ flowchart TD
   linkStyle 6 stroke:#E06B4A,stroke-width:1.5px,stroke-dasharray:2 4;
 ```
 
-The gate-shaped `validate_envelope` step is mandatory: every shard that
-reaches `target_path()` has passed `schema.json` validation. There is no
-`validate=False` bypass in real runs.
+The gate-shaped `validate_envelope` step is the default: every shard
+that reaches `target_path()` in a normal run has passed `schema.json`
+validation. A `--no-validate` CLI flag (and `validate=False` library
+arg) exist for local debugging, but real runs and the CI
+`dry-run-publish` job leave them off.
 
 ### Viewer (`space/`)
 
