@@ -45,7 +45,22 @@ Read results as a pandas DataFrame with no tooling beyond `huggingface_hub` +
 ## Architecture
 
 ```mermaid
-%%{init: {'theme':'base','look':'handDrawn','themeVariables':{'fontFamily':'Geist','fontSize':'14px','primaryColor':'#102937','primaryTextColor':'#F4EFE6','primaryBorderColor':'#4FB3A9','lineColor':'#4FB3A9','secondaryColor':'#0B1D2A','tertiaryColor':'#1A2A38','clusterBkg':'rgba(79,179,169,0.08)','clusterBorder':'#4FB3A9'}}}%%
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
 flowchart LR
   NixAI([nix-ai env])
   Serve([vllm-mlx + llama-swap])
@@ -208,7 +223,8 @@ MODEL="mlx-community/Qwen3.5-9B-MLX-4bit"
   --kind lm-eval --suite reasoning
 ```
 
-Filenames are deterministic — `data/run-<timestamp>-<git_sha>-<suite>-<model_slug>.parquet` —
+Filenames are deterministic
+(`data/run-<timestamp>-<git_sha>-<suite>-<model_slug>.parquet`)
 so historical shards are never overwritten.
 
 ### View results

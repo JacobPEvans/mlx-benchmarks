@@ -5,7 +5,22 @@ High-level data flow, from "I kick off a benchmark" to "I see a chart".
 ## System topology
 
 ```mermaid
-%%{init: {'theme':'base','look':'handDrawn','themeVariables':{'fontFamily':'Geist','fontSize':'14px','primaryColor':'#102937','primaryTextColor':'#F4EFE6','primaryBorderColor':'#4FB3A9','lineColor':'#4FB3A9','secondaryColor':'#0B1D2A','tertiaryColor':'#1A2A38','clusterBkg':'rgba(79,179,169,0.08)','clusterBorder':'#4FB3A9'}}}%%
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
 flowchart LR
   subgraph Local["Apple-Silicon box"]
     Serve([vllm-mlx + llama-swap])
@@ -85,7 +100,22 @@ non-compliant shard.
 #### Data flow: results.json → published shard
 
 ```mermaid
-%%{init: {'theme':'base','look':'handDrawn','themeVariables':{'fontFamily':'Geist','fontSize':'14px','primaryColor':'#102937','primaryTextColor':'#F4EFE6','primaryBorderColor':'#4FB3A9','lineColor':'#4FB3A9','secondaryColor':'#0B1D2A','tertiaryColor':'#1A2A38','clusterBkg':'rgba(79,179,169,0.08)','clusterBorder':'#4FB3A9'}}}%%
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
 flowchart TD
   Run([lm-eval / vllm / framework-eval])
   Raw[("results_*.json")]
@@ -112,7 +142,7 @@ flowchart TD
   classDef stack  fill:#102937,stroke:#4FB3A9,stroke-width:2px,color:#F4EFE6;
   classDef gate   fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
   classDef store  fill:#102937,stroke:#F4EFE6,stroke-width:2.5px,color:#F4EFE6;
-  classDef err    fill:#102937,stroke:#E06B4A,stroke-width:2px,color:#F4EFE6,stroke-dasharray:4 3;
+  classDef err fill:#102937,stroke:#E06B4A,stroke-dasharray:4 3,color:#F4EFE6;
 
   class Run source
   class CLI,Convert,Detect,Target stack
@@ -141,7 +171,7 @@ pushes that touch `space/`.
 | --- | --- | --- |
 | `ci-gate.yml` | PR | Single merge gate (see below). |
 | `deploy-space.yml` | main push to `space/**` | Sync viewer to HF Space. |
-| `release-please.yml` | main push | Conventional-commits releases via the `JacobPEvans/.github` reusable workflow. |
+| `release-please.yml` | main push | Conventional-commit releases. |
 
 `ci-gate.yml` detects file changes and conditionally runs:
 
@@ -155,7 +185,22 @@ The final `Merge Gate` step (`re-actors/alls-green`) is the only required
 check in branch protection.
 
 ```mermaid
-%%{init: {'theme':'base','look':'handDrawn','themeVariables':{'fontFamily':'Geist','fontSize':'14px','primaryColor':'#102937','primaryTextColor':'#F4EFE6','primaryBorderColor':'#4FB3A9','lineColor':'#4FB3A9','secondaryColor':'#0B1D2A','tertiaryColor':'#1A2A38','clusterBkg':'rgba(79,179,169,0.08)','clusterBorder':'#4FB3A9'}}}%%
+%%{init: {
+  'theme':'base',
+  'look':'handDrawn',
+  'themeVariables':{
+    'fontFamily':'Geist',
+    'fontSize':'14px',
+    'primaryColor':'#102937',
+    'primaryTextColor':'#F4EFE6',
+    'primaryBorderColor':'#4FB3A9',
+    'lineColor':'#4FB3A9',
+    'secondaryColor':'#0B1D2A',
+    'tertiaryColor':'#1A2A38',
+    'clusterBkg':'rgba(79,179,169,0.08)',
+    'clusterBorder':'#4FB3A9'
+  }
+}}%%
 flowchart LR
   PR((PR opened))
   Paths{paths-filter}
