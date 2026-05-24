@@ -1,7 +1,7 @@
 gradio>=6.12.0
 pandas>=2.0
 plotly>=6.7.0
-huggingface-hub>=0.23
+huggingface-hub>=1.16.1
 # Minimum-version pins for direct + transitive deps that have CVEs in
 # older versions. Lower-bound only — HF Spaces resolves the actual
 # installed version. Tighten to exact pins if reproducibility becomes
