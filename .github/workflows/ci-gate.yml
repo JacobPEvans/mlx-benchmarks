@@ -125,14 +125,10 @@ jobs:
       #   GHSA-q9r5-6hrr-9ph7 / GHSA-54fq-v6x8-244g / GHSA-jxgv-6j54-wwc7 —
       #     smolagents 1.22.0 chain; hub<1.0.0 conflict blocks upgrade. #35.
       #   GHSA-g4r7-86gm-pgqc — sqlitedict 2.1.0 via lm-eval[api]. #18.
-      #   PYSEC-2024-274 — gradio 6.14.0 component_meta.py (disputed). #43.
-      #   PYSEC-2024-277 — joblib 1.5.3 Memory.cache deserialization. #44.
-      #   PYSEC-2025-183 — pyjwt 2.12.1 weak encryption (disputed). #44.
-      #   PYSEC-2026-97  — nltk 3.9.4 local file load. #44.
+      #   PYSEC-2026-161 — starlette 0.52.1 via google-adk<1 cap. #44.
       ignore-vulns: >-
         GHSA-q9r5-6hrr-9ph7 GHSA-54fq-v6x8-244g GHSA-jxgv-6j54-wwc7
-        GHSA-g4r7-86gm-pgqc PYSEC-2024-274 PYSEC-2024-277 PYSEC-2025-183
-        PYSEC-2026-97
+        GHSA-g4r7-86gm-pgqc PYSEC-2026-161
 
   osv-scan:
     name: OSV Scan
