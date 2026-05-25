@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.1](https://github.com/JacobPEvans/mlx-benchmarks/compare/v0.7.0...v0.7.1) (2026-05-25)
+
+
+### Bug Fixes
+
+* **ci-gate:** sync pip-audit ignore-vulns with osv-scanner.toml ([#48](https://github.com/JacobPEvans/mlx-benchmarks/issues/48)) ([43c0478](https://github.com/JacobPEvans/mlx-benchmarks/commit/43c04786e5a24cc8d9a8d25dc928b86626dd83b7))
+* **deps:** floor huggingface-hub at major-only (&gt;=1.0.0) ([#60](https://github.com/JacobPEvans/mlx-benchmarks/issues/60)) ([750da34](https://github.com/JacobPEvans/mlx-benchmarks/commit/750da340ee3ad7c14049e1c9b256ac700a0e9a50))
+* **deps:** update dependency google-adk to &gt;=2.0.0 ([#57](https://github.com/JacobPEvans/mlx-benchmarks/issues/57)) ([9528615](https://github.com/JacobPEvans/mlx-benchmarks/commit/95286158d932666ed9a85c84121c27f8edd480a1))
+* **deps:** update dependency pyarrow to v24.0.0 ([#59](https://github.com/JacobPEvans/mlx-benchmarks/issues/59)) ([b10c91b](https://github.com/JacobPEvans/mlx-benchmarks/commit/b10c91bc087a1a381e46597c6789c91a38709ab5))
+* **security:** bump pyarrow &gt;=23.0.1 for PYSEC-2026-113 ([#55](https://github.com/JacobPEvans/mlx-benchmarks/issues/55)) ([0c9a047](https://github.com/JacobPEvans/mlx-benchmarks/commit/0c9a0477c7a5f4045fa09d1e320305c3250898f9))
+* **security:** ignore unfixable PyPI advisories + bump idna 3.15 ([#45](https://github.com/JacobPEvans/mlx-benchmarks/issues/45)) ([21b1502](https://github.com/JacobPEvans/mlx-benchmarks/commit/21b1502a15b643322f3e050ae92de68d388c21fe))
+
+
+### Documentation
+
+* add themed architecture diagrams and ecosystem section ([#49](https://github.com/JacobPEvans/mlx-benchmarks/issues/49)) ([7c861cb](https://github.com/JacobPEvans/mlx-benchmarks/commit/7c861cb5e07d9de6a736373bf8480e764512a7c3))
+
 ## [0.7.0](https://github.com/JacobPEvans/mlx-benchmarks/compare/v0.6.1...v0.7.0) (2026-05-14)
 
 
