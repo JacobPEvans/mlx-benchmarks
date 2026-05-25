@@ -1866,7 +1866,7 @@ dev = [
 requires-dist = [
     { name = "google-adk", marker = "extra == 'framework-eval'", specifier = ">=2.0.0" },
     { name = "gradio", marker = "extra == 'viewer'", specifier = ">=6.12.0" },
-    { name = "huggingface-hub", specifier = ">=0.23" },
+    { name = "huggingface-hub", specifier = ">=1.0.0" },
     { name = "jsonschema", extras = ["format"], specifier = ">=4.23.0" },
     { name = "lm-eval", extras = ["api"], specifier = "==0.4.12" },
     { name = "openai", marker = "extra == 'framework-eval'", specifier = ">=1.0.0" },
