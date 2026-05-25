@@ -270,6 +270,7 @@ Optional v1 fields (non-breaking additions): `seed`, `gen_kwargs`,
 no hand-curation required.
 
 See [`docs/schema.md`](docs/schema.md) for a prose walk-through of every field.
+For version upgrade procedures, see [`docs/schema-migration.md`](docs/schema-migration.md).
 
 ### The publisher
 
