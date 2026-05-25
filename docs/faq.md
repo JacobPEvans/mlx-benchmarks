@@ -76,13 +76,15 @@ Confirm the shard landed by checking the HF dataset repo directly.
 **A:** Add an ignore rule to [`osv-scanner.toml`](../osv-scanner.toml):
 
 ```toml
-[[osv.ignore]]
+[[IgnoredVulns]]
 id = "GHSA-xxxx-xxxx-xxxx"
+ignoreUntil = 2026-12-31
 reason = "<justification>"
-expires = "2026-12-31"
 ```
 
-Include an expiration date so the ignore rule is revisited when the advisory changes.
+`ignoreUntil` (an unquoted TOML date literal) forces the entry back through
+review when the date passes — see [`osv-scanner.toml`](../osv-scanner.toml)
+for live examples.
 
 ---
 
