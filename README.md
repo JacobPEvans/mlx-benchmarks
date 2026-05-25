@@ -165,10 +165,7 @@ implemented vs aspirational.
 │   ├── requirements.txt
 │   ├── README.md             <-   HF Spaces front-matter
 │   └── tests/
-├── docs/                     <- architecture notes + run journals
-│   ├── architecture.md
-│   ├── schema.md
-│   └── journal/
+├── docs/                     <- architecture.md, schema.md, faq.md, journal/
 └── .github/workflows/        <- ci-gate (test + lint + scan + dry-run-publish
                                   + schema-validate via paths-filter),
                                   release-please, deploy-space
@@ -269,8 +266,9 @@ Optional v1 fields (non-breaking additions): `seed`, `gen_kwargs`,
 `kernel`. The CLI auto-detects all of these at publish time —
 no hand-curation required.
 
-See [`docs/schema.md`](docs/schema.md) for fields and
-[`docs/schema-migration.md`](docs/schema-migration.md) for version upgrades.
+See [`docs/schema.md`](docs/schema.md) for fields,
+[`docs/schema-migration.md`](docs/schema-migration.md) for version upgrades,
+and [`docs/faq.md`](docs/faq.md) for ops questions and troubleshooting.
 
 ### The publisher
 
