@@ -59,6 +59,7 @@ All of these must pass before opening a PR. CI re-runs them on every push.
    - Add a valid envelope fixture demonstrating it.
    - Update `docs/schema.md`.
    - Update the viewer if it needs new chart handling.
+   For breaking schema changes (version bump to v2+), follow [`docs/schema-migration.md`](docs/schema-migration.md).
 6. Never manually edit `CHANGELOG.md` — `release-please` owns it.
 
 ## Writing a new converter
