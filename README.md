@@ -269,6 +269,7 @@ no hand-curation required.
 See [`docs/schema.md`](docs/schema.md) for fields,
 [`docs/schema-migration.md`](docs/schema-migration.md) for version upgrades,
 and [`docs/faq.md`](docs/faq.md) for ops questions and troubleshooting.
+See [`docs/api.md`](docs/api.md) for the Python API reference (`get_converter()`, `ConverterContext`, `detect_system()`, and friends).
 
 ### The publisher
 
