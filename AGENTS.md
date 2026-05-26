@@ -1,6 +1,6 @@
-# CLAUDE.md
+# mlx-benchmarks — AI Agent Documentation
 
-Agent-facing notes for Claude Code sessions in this repo. For the
+Agent-facing notes for AI coding sessions in this repo. For the
 human-facing overview, install instructions, and contribution guide see
 [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and
 [`docs/architecture.md`](docs/architecture.md).
