@@ -187,7 +187,7 @@ uv sync
 python -m venv .venv && source .venv/bin/activate && pip install -e ".[viewer]"
 
 # Token with write scope on the HF dataset, required for publishing
-export HF_TOKEN="hf_..."
+export HF_TOKEN=hf_your_write_token_here
 
 # Install pre-commit hooks (optional but encouraged)
 .venv/bin/pre-commit install
@@ -196,6 +196,10 @@ export HF_TOKEN="hf_..."
 For Nix users: `direnv allow` activates the included `flake.nix` dev shell.
 
 ## Usage
+
+**Getting started?** See [`docs/first-benchmark-run.md`](docs/first-benchmark-run.md)
+for a step-by-step walkthrough: model setup, lm-eval dry run, envelope validation,
+publishing, and viewing results in the HF Space.
 
 ### Run a benchmark and publish
 
