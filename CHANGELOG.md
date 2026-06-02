@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.1...v0.7.2) (2026-06-02)
+
+
+### Bug Fixes
+
+* **ci:** repoint release-please caller to org-native reusable workflow ([#68](https://github.com/dryvist/mlx-benchmarks/issues/68)) ([01ee035](https://github.com/dryvist/mlx-benchmarks/commit/01ee035f9031b0cbe40a3cc5e2b65681e1e3c0c5))
+* **ci:** retarget reusable-workflow uses: refs to current org homes ([#66](https://github.com/dryvist/mlx-benchmarks/issues/66)) ([4622ef8](https://github.com/dryvist/mlx-benchmarks/commit/4622ef8a520ce35fae0e4027b9963a8b35b0e291))
+
 ## [0.7.1](https://github.com/JacobPEvans/mlx-benchmarks/compare/v0.7.0...v0.7.1) (2026-05-25)
 
 
