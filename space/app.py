@@ -54,7 +54,7 @@ def load_data() -> pd.DataFrame:
             return df
 
         df = pd.concat([pd.read_parquet(p) for p in paths], ignore_index=True)
-        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, format="ISO8601")
         df["model_short"] = df["model"].apply(short_model)
         _cache = (time.time(), df)
         return df
