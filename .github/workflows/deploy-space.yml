@@ -34,7 +34,7 @@ jobs:
 
       - name: Upload space
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN_WRITE_ALL }}
           GIT_SHA: ${{ github.sha }}
         run: |
           hf upload JacobPEvans/mlx-benchmarks-viewer ./space . \

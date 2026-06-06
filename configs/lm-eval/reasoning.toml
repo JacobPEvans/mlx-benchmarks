@@ -3,28 +3,28 @@
 # IMPORTANT: base_url must be the full chat/completions endpoint URL, not just /v1.
 # lm_eval POSTs to base_url directly.
 #
-# Usage — local models (thinking enabled, use --limit 100 for ~25 sec/example):
+# Default suite: arc_challenge_chat, generate_until, HTTP-API compatible.
+# Run with --limit 15 for a ~10-min indicative pass (~33s/example on 35B MLX models).
+# Full dataset (1172 examples) = ~10.7 h — requires explicit user request.
+#
+# Excluded tasks and why:
+#   arc_challenge          — output_type=multiple_choice, incompatible with local-chat-completions
+#   gpqa_diamond           — name doesn't exist; use gpqa_diamond_cot_zeroshot, but dataset is gated
+#   gsm8k_cot_zeroshot     — ~157s/example, full run ~2300 examples = many hours; opt-in only
+#   ifeval                 — requires langdetect package not in devenv
+#
+# Usage — local models (quick pass, ~10 min):
 #   lm_eval --model local-chat-completions \
 #     --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,max_length=32768,timeout=3600" \
-#     --tasks gsm8k_cot_zeroshot,arc_challenge \
-#     --batch_size 1 --num_fewshot 0 --limit 100 \
-#     --gen_kwargs "max_gen_toks=8192" \
-#     --apply_chat_template --fewshot_as_multiturn \
-#     --log_samples \
-#     --output_path ./run-output/$SLUG
-#
-# Usage — cloud models via Bifrost (full run, ~2 sec/example):
-#   lm_eval --model local-chat-completions \
-#     --model_args "base_url=http://localhost:30080/v1/chat/completions,model=$MODEL,max_length=32768,timeout=3600" \
-#     --tasks gsm8k_cot_zeroshot,arc_challenge \
-#     --batch_size 1 --num_fewshot 0 \
-#     --gen_kwargs "max_gen_toks=2048" \
+#     --tasks arc_challenge_chat \
+#     --batch_size 1 --num_fewshot 0 --limit 15 \
+#     --gen_kwargs "max_gen_toks=4096" \
 #     --apply_chat_template --fewshot_as_multiturn \
 #     --log_samples \
 #     --output_path ./run-output/$SLUG
 
 model = "local-chat-completions"
-tasks = ["gsm8k_cot_zeroshot", "arc_challenge"]
+tasks = ["arc_challenge_chat"]
 batch_size = 1
 num_fewshot = 0
 apply_chat_template = true
