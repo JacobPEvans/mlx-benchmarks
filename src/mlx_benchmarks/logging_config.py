@@ -7,6 +7,30 @@ import logging
 import sys
 from typing import Any
 
+_STANDARD_LOG_ATTRS: frozenset[str] = frozenset(
+    {
+        "args",
+        "msg",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "name",
+    }
+)
+
 
 class JsonFormatter(logging.Formatter):
     """Minimal JSON-lines formatter (no external dep needed)."""
@@ -23,27 +47,7 @@ class JsonFormatter(logging.Formatter):
         for key, value in record.__dict__.items():
             if key in payload or key.startswith("_"):
                 continue
-            if key in {
-                "args",
-                "msg",
-                "levelname",
-                "levelno",
-                "pathname",
-                "filename",
-                "module",
-                "exc_text",
-                "stack_info",
-                "lineno",
-                "funcName",
-                "created",
-                "msecs",
-                "relativeCreated",
-                "thread",
-                "threadName",
-                "processName",
-                "process",
-                "name",
-            }:
+            if key in _STANDARD_LOG_ATTRS:
                 continue
             try:
                 json.dumps(value)
