@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.2...v0.7.3) (2026-06-06)
+
+
+### Bug Fixes
+
+* **ci:** use HF_TOKEN_WRITE_ALL for Space deployment ([#72](https://github.com/dryvist/mlx-benchmarks/issues/72)) ([1ad58ab](https://github.com/dryvist/mlx-benchmarks/commit/1ad58abad9750ed5d30bb5f033c99a815a3813a2))
+* **space:** use format='ISO8601' for mixed timestamp parsing ([b505370](https://github.com/dryvist/mlx-benchmarks/commit/b5053709d6a8b38525fd2c2e09f2f3b86c9aeda2))
+
+
+### Refactoring
+
+* **logging:** extract _STANDARD_LOG_ATTRS module-level constant ([#71](https://github.com/dryvist/mlx-benchmarks/issues/71)) ([98e0a55](https://github.com/dryvist/mlx-benchmarks/commit/98e0a55e5b65191001cc6395241032312b2acb0e))
+
 ## [0.7.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.1...v0.7.2) (2026-06-02)
 
 
