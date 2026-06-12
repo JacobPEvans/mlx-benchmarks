@@ -116,7 +116,7 @@ jobs:
     name: Python Security
     needs: changes
     if: needs.changes.outputs.lockfile == 'true'
-    uses: JacobPEvans-personal/.github/.github/workflows/_python-security.yml@main
+    uses: dryvist/.github/.github/workflows/_python-security.yml@main
     with:
       python-dirs: "."
       # MUST mirror osv-scanner.toml `[[IgnoredVulns]]`. Each ID is documented
@@ -137,18 +137,18 @@ jobs:
     # osv-scanner.toml edits need to be validated against current advisories
     # even when no lockfile changes accompany them.
     if: always()
-    uses: JacobPEvans-personal/.github/.github/workflows/_osv-scan.yml@main
+    uses: dryvist/.github/.github/workflows/_osv-scan.yml@main
 
   markdown-lint:
     name: Markdown Lint
     needs: changes
     if: needs.changes.outputs.markdown == 'true'
-    uses: JacobPEvans-personal/.github/.github/workflows/_markdown-lint.yml@main
+    uses: dryvist/.github/.github/workflows/_markdown-lint.yml@main
 
   file-size:
     name: File Size
     needs: changes
-    uses: JacobPEvans-personal/.github/.github/workflows/_file-size.yml@main
+    uses: dryvist/.github/.github/workflows/_file-size.yml@main
 
   schema-validate:
     name: Schema Validate
