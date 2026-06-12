@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.3...v0.7.4) (2026-06-12)
+
+
+### Bug Fixes
+
+* **ci:** repoint shared workflows to dryvist hub ([#76](https://github.com/dryvist/mlx-benchmarks/issues/76)) ([3cc02f7](https://github.com/dryvist/mlx-benchmarks/commit/3cc02f7934bf7a0541243c596fbc139f23040a70))
+
 ## [0.7.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.2...v0.7.3) (2026-06-06)
 
 
