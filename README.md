@@ -42,7 +42,27 @@ other harnesses) with:
 Read results as a pandas DataFrame with no tooling beyond `huggingface_hub` +
 `pyarrow`.
 
+## Requirements
+
+This repo owns the result contract and publish pipeline; it delegates model
+serving and evaluation execution to external tools:
+
+- **An OpenAI-compatible inference endpoint** (default
+  `http://localhost:11434/v1`) — any server speaking the OpenAI chat/completions
+  API works. This repo does not start, manage, or assume a specific inference
+  server; it only sends requests to the configured base URL.
+- **An evaluation driver** ([lm-eval](#upstream-tools-wired-in), vllm's
+  `benchmark_serving`, or the in-repo framework harness) that produces a raw
+  results file. The converters in `src/mlx_benchmarks/converters/` translate
+  each driver's native output into the versioned envelope.
+- **A HuggingFace token** with write scope on the target dataset, for the
+  publish step only.
+
 ## Architecture
+
+The repo owns the **envelope contract** (`schema.json`), the **publisher**
+(`mlx-bench-publish`), and the **converters** that fan in from each upstream
+evaluation tool. Its own data flow:
 
 ```mermaid
 %%{init: {
@@ -62,58 +82,35 @@ Read results as a pandas DataFrame with no tooling beyond `huggingface_hub` +
   }
 }}%%
 flowchart LR
-  NixAI([nix-ai env])
-  Serve([vllm-mlx + llama-swap])
-  Eval([lm-eval · vllm · framework-eval])
-  Bench([mlx-benchmarks])
+  Raw([raw results_*.json])
+  Convert([converter])
+  Envelope([validated envelope])
+  Publish([mlx-bench-publish])
   Dataset[("HF dataset")]
   Viewer([HF Space viewer])
 
-  NixAI --> Serve
-  Serve -->|":11434/v1"| Eval
-  Eval -->|"results_*.json"| Bench
-  Bench -->|"validate + publish"| Dataset
+  Raw -->|"convert"| Convert
+  Convert -->|"build_envelope"| Envelope
+  Envelope -->|"schema check"| Publish
+  Publish -->|"parquet upload"| Dataset
   Dataset --> Viewer
 
   classDef source fill:#102937,stroke:#E06B4A,stroke-width:2.5px,color:#F4EFE6;
-  classDef stack  fill:#102937,stroke:#4FB3A9,stroke-width:2px,color:#F4EFE6;
   classDef core   fill:#102937,stroke:#4FB3A9,stroke-width:3px,color:#F4EFE6;
   classDef sink   fill:#102937,stroke:#F4EFE6,stroke-width:2.5px,color:#F4EFE6;
 
-  class NixAI source
-  class Serve,Eval stack
-  class Bench core
+  class Raw source
+  class Convert,Envelope,Publish core
   class Dataset,Viewer sink
 
   linkStyle 0,1,2,3,4 stroke:#4FB3A9,stroke-width:2px;
 ```
 
-The repo lives at the **mlx-benchmarks** node: it owns the envelope contract
-(`schema.json`), the publisher (`mlx-bench-publish`), and the converters that
-fan in from each upstream evaluation tool. Everything to the left of it
-(model serving, evaluation drivers) and to the right (storage, viewer) is
-delegated. See [`docs/architecture.md`](docs/architecture.md) for the
-detailed component breakdown, data-flow, and CI diagrams.
-
-## Ecosystem
-
-`mlx-benchmarks` is the instrumentation layer of a larger Apple-Silicon
-homelab AI stack. The full stack is documented at
-[**docs.jacobpevans.com**](https://docs.jacobpevans.com/tools/mlx-benchmarks).
-
-| Layer | Repo | Provides |
-| --- | --- | --- |
-| Declarative env | [`nix-ai`](https://github.com/JacobPEvans/nix-ai) | `vllm-mlx` LaunchAgent, `llama-swap`, MLX module derivations |
-| macOS host | [`nix-darwin`](https://github.com/JacobPEvans/nix-darwin) | Composes `nix-ai` + `nix-home` into the system flake |
-| Multi-provider gateway | [`orbstack-kubernetes`](https://github.com/JacobPEvans/orbstack-kubernetes) | Bifrost AI gateway, OTEL collection on local K8s |
-| AI tool policy | [`ai-assistant-instructions`](https://github.com/JacobPEvans/ai-assistant-instructions) | Model routing, permissions, MCP server canon |
-
-User-visible workflow: `darwin-rebuild switch` brings up the inference
-stack via `nix-ai` → `vllm-mlx` serves models on `:11434` → benchmark
-drivers in this repo hit that endpoint → `mlx-bench-publish` validates
-and uploads results → the HF Space viewer renders them. Nothing in this
-repo assumes a specific model registry or routing layer; it talks to any
-OpenAI-compatible endpoint.
+A raw results file from any wired-in evaluation tool is converted into the
+envelope, validated against `schema.json`, and published as a content-addressed
+parquet shard to the HF dataset, which the HF Space viewer renders. See
+[`docs/architecture.md`](docs/architecture.md) for the detailed component
+breakdown, data-flow, and CI diagrams.
 
 ## Upstream tools wired in
 
@@ -173,9 +170,9 @@ implemented vs aspirational.
 
 ## Installation
 
-Requires macOS on Apple Silicon (for inference) and Python 3.11+. A running
-`vllm-mlx` OpenAI-compatible inference server on `http://localhost:11434/v1`
-is assumed by the lm-eval configs.
+Requires macOS on Apple Silicon (for inference) and Python 3.11+. The lm-eval
+configs assume a running OpenAI-compatible inference server on
+`http://localhost:11434/v1` (see [Requirements](#requirements)).
 
 ```sh
 git clone https://github.com/JacobPEvans/mlx-benchmarks.git
@@ -200,7 +197,7 @@ For Nix users: `direnv allow` activates the included `flake.nix` dev shell.
 ### Run a benchmark and publish
 
 ```sh
-# 1. Run lm-eval against your local vllm-mlx endpoint
+# 1. Run lm-eval against your local OpenAI-compatible endpoint
 BASE="http://localhost:11434/v1/chat/completions"
 MODEL="mlx-community/Qwen3.5-9B-MLX-4bit"
 .venv/bin/lm_eval --model local-chat-completions \
@@ -310,3 +307,7 @@ policy are covered in [`SECURITY.md`](SECURITY.md).
 ## License
 
 Apache 2.0. See [`LICENSE`](LICENSE).
+
+---
+
+> Part of a [larger ecosystem of ~40 repos](https://docs.jacobpevans.com) — see how it all fits together.
