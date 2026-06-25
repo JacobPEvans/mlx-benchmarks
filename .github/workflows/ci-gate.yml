@@ -126,9 +126,12 @@ jobs:
       #     smolagents 1.22.0 chain; hub<1.0.0 conflict blocks upgrade. #35.
       #   GHSA-g4r7-86gm-pgqc — sqlitedict 2.1.0 via lm-eval[api]. #18.
       #   PYSEC-2026-161 — starlette 0.52.1 via google-adk<1 cap. #44.
+      #   PYSEC-2026-211 — gradio 6.14.0, latest, no upstream fix. #80.
+      #   GHSA-p4gq-832x-fm9v — nltk 3.9.4, latest, no upstream fix. #80.
       ignore-vulns: >-
         GHSA-q9r5-6hrr-9ph7 GHSA-54fq-v6x8-244g GHSA-jxgv-6j54-wwc7
-        GHSA-g4r7-86gm-pgqc PYSEC-2026-161
+        GHSA-g4r7-86gm-pgqc PYSEC-2026-161 PYSEC-2026-211
+        GHSA-p4gq-832x-fm9v
 
   osv-scan:
     name: OSV Scan

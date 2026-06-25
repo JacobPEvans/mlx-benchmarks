@@ -91,3 +91,42 @@ Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/44
 Re-evaluate before 2026-08-22 (or sooner if google-adk lifts the
 starlette<1 cap).
 """
+
+# ============================================================================
+# gradio / nltk — latest version, no upstream fix available
+# ============================================================================
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-211"
+ignoreUntil = 2026-12-25
+reason = """
+gradio 6.14.0 (CVE-2026-10783, CVSS 2.5 Low) — current latest published
+version, no fix released and none available (OSV reports FIXED VERSION as none).
+Distinct from the disputed gradio advisory tracked in #43 (PYSEC-2024-274).
+
+Exploitability in our usage: gradio ships only in the HF Space frontend used to
+visualise benchmark results. The Space accepts no untrusted input reaching the
+affected surface. CVSS 2.5 (Low).
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/80
+Re-evaluate before 2026-12-25 (or sooner if a fixed gradio ships / OSV
+withdraws the advisory).
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-p4gq-832x-fm9v"
+ignoreUntil = 2026-12-25
+reason = """
+nltk 3.9.4 (CVE-2026-54293, CVSS 7.5 High) — URL-encoded path traversal in
+nltk.data.load() allowing arbitrary local file read. Current latest published
+version, no fix released (OSV reports FIXED VERSION as none). Distinct from the
+nltk advisory tracked in #44 (PYSEC-2026-97 / CVE-2026-0846).
+
+Exploitability in our usage: nltk is a transitive dep via lm-eval, used only for
+benchmark runs against models we control on hardware we control. We never call
+nltk.data.load() with untrusted URLs/paths — there is no untrusted input path.
+Local attack vector only.
+
+Tracked in: https://github.com/JacobPEvans/mlx-benchmarks/issues/80
+Re-evaluate before 2026-12-25 (or sooner if upstream nltk ships a fix).
+"""
