@@ -100,7 +100,9 @@ jobs:
         run: |
           uv venv --python "$PYTHON_VERSION"
           uv pip install -e ".[viewer]"
-          uv pip install mypy pytest pytest-cov ruff types-jsonschema types-psutil
+          # Pin mypy to the version resolved in uv.lock so the type check is reproducible.
+          # An unpinned (latest) mypy errors on numpy's bundled stubs under py3.12.
+          uv pip install mypy==2.1.0 pytest pytest-cov ruff types-jsonschema types-psutil
       - name: Ruff lint
         run: .venv/bin/ruff check .
       - name: Ruff format check
