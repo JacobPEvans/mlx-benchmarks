@@ -82,7 +82,7 @@ evaluation tool. Its own data flow:
   }
 }}%%
 flowchart LR
-  Raw([raw results_*.json])
+  Raw(["raw results_*.json"])
   Convert([converter])
   Envelope([validated envelope])
   Publish([mlx-bench-publish])
