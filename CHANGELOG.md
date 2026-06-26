@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.4...v0.7.5) (2026-06-26)
+
+
+### Documentation
+
+* **readme:** make standalone — drop cross-repo narrative, link the hub ([#79](https://github.com/dryvist/mlx-benchmarks/issues/79)) ([e4a71e4](https://github.com/dryvist/mlx-benchmarks/commit/e4a71e459d348e695148b695eca87a46fb9a6647))
+
 ## [0.7.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.3...v0.7.4) (2026-06-12)
 
 
