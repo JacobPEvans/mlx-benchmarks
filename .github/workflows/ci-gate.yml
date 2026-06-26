@@ -9,9 +9,7 @@
 # Genuinely repo-specific checks that the org gate does NOT cover are preserved
 # here as bespoke sibling jobs and folded into a single `Merge Gate`:
 #
-#   python-security    -> org `_python-security.yml`, called DIRECTLY because the
-#                         org `_ci-gate.yml` does not pass `ignore-vulns` through
-#                         (this repo needs the documented ignore list below).
+#   python-security    -> org `_python-security.yml` (pip-audit dependency scan).
 #   osv-scan           -> org `_osv-scan.yml`; the org `_ci-gate.yml` has no OSV
 #                         toggle at all.
 #   schema-validate    -> validates schema.json + TOML configs (repo-specific).
@@ -121,23 +119,12 @@ jobs:
     uses: dryvist/.github/.github/workflows/_python-security.yml@main
     with:
       python-dirs: "."
-      # MUST mirror osv-scanner.toml `[[IgnoredVulns]]`. Each ID is documented
-      # there with rationale, tracking issue, and `ignoreUntil` review date.
-      # New advisories must be added to BOTH files in lockstep.
-      #   GHSA-q9r5-6hrr-9ph7 / GHSA-54fq-v6x8-244g / GHSA-jxgv-6j54-wwc7 —
-      #     smolagents 1.22.0 chain; hub<1.0.0 conflict blocks upgrade. #35.
-      #   GHSA-g4r7-86gm-pgqc — sqlitedict 2.1.0 via lm-eval[api]. #18.
-      #   PYSEC-2026-161 — starlette 0.52.1 via google-adk<1 cap. #44.
-      ignore-vulns: >-
-        GHSA-q9r5-6hrr-9ph7 GHSA-54fq-v6x8-244g GHSA-jxgv-6j54-wwc7
-        GHSA-g4r7-86gm-pgqc PYSEC-2026-161
 
   osv-scan:
     name: OSV Scan
     needs: changes
-    # Always run — vulnerabilities can be introduced by any change, and
-    # osv-scanner.toml edits need to be validated against current advisories
-    # even when no lockfile changes accompany them.
+    # Always run — new advisories can land against unchanged dependencies, so
+    # scan on every PR regardless of whether the lockfile changed.
     if: always()
     uses: dryvist/.github/.github/workflows/_osv-scan.yml@main
 
@@ -174,7 +161,8 @@ jobs:
       - name: Install project + viewer + dev dependencies
         run: |
           uv venv --python 3.13
-          uv pip install -e ".[viewer]"
+          uv pip install -e .
+          uv pip install -r space/requirements.txt
           uv pip install pytest pytest-cov
       - name: Pytest (space viewer)
         run: .venv/bin/pytest space/tests
