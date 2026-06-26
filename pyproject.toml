@@ -41,6 +41,19 @@ viewer = [
     "plotly>=6.7.0",
     "pandas>=2.0",
 ]
+# `dev` is consumed by the org reusable Python CI via `uv run --extra dev`
+# (lint/format/type/test gate). It lives here as an optional-dependencies
+# extra — NOT a PEP 735 [dependency-groups] table — because `uv run --extra`
+# only resolves optional-dependencies.
+dev = [
+    "pyright>=1.1.390",
+    "pre-commit>=3.8",
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.6.9",
+    "types-jsonschema",
+    "types-psutil",
+]
 # Note: vllm benchmarking targets an external vllm server. The vllm Python
 # package itself is Linux/CUDA-only, isn't installable on the Apple-Silicon
 # dev platform, and isn't needed by the converter (which only parses JSON
@@ -79,17 +92,6 @@ include = [
     "LICENSE",
     "CHANGELOG.md",
     "pyproject.toml",
-]
-
-[dependency-groups]
-dev = [
-    "pyright>=1.1.390",
-    "pre-commit>=3.8",
-    "pytest>=8.3",
-    "pytest-cov>=5.0",
-    "ruff>=0.6.9",
-    "types-jsonschema",
-    "types-psutil",
 ]
 
 [tool.ruff]
