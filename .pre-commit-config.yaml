@@ -20,39 +20,37 @@ repos:
         args: [--fix=lf]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    rev: v0.15.18
     hooks:
-      - id: ruff
+      # `ruff-check` is the current lint hook id; bare `ruff` is a legacy alias.
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.2
-    hooks:
-      - id: mypy
-        files: ^src/mlx_benchmarks/
-        # NOTE: pyarrow is intentionally NOT in additional_dependencies.
-        # pyarrow ships no type stubs (no py.typed marker), so when it's
-        # installed the only way to silence no-untyped-call on pq.write_table
-        # is via a per-line `# type: ignore`, which then trips
-        # warn_unused_ignores against the local venv's typed-ish read of
-        # pyarrow. Leaving it out lets mypy treat pyarrow as a missing
-        # import and the [tool.mypy.overrides] ignore_missing_imports=true
-        # rule applies cleanly to both pre-commit and local runs.
-        additional_dependencies:
-          - jsonschema>=4.23.0
-          - types-jsonschema
-          - types-psutil
-          # tokenizers ships its own .pyi so we just need the package present
-          # for mypy to resolve it. Keeps the hook env aligned with CI's full
-          # project install so warn_unused_ignores never fires on the
-          # Tokenizer.from_pretrained call.
-          - tokenizers>=0.20
 
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.4
     hooks:
       - id: actionlint
+
+  # pyright + pytest run from the project venv so pyproject.toml dev-deps are the
+  # SINGLE version authority (no rev pin to drift). pyright is the org-mandated
+  # type checker (replaced mypy 2026-06). pytest is gated at PUSH, not commit, to
+  # keep the commit cycle fast; CI runs the full suite.
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright (type check, from .venv)
+        entry: .venv/bin/pyright
+        language: system
+        pass_filenames: false
+        types: [python]
+      - id: pytest
+        name: pytest (from .venv, pre-push only)
+        entry: .venv/bin/pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
 
 default_language_version:
   python: python3

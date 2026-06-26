@@ -1,19 +1,27 @@
-# CI Gate — Conditional Required Checks
+# CI Gate — thin wrapper over the dryvist org reusable workflows
 #
-# Single merge-blocking workflow following the org-wide pattern
-# (see JacobPEvans/ai-workflows and JacobPEvans/nix-*).
+# The standard checks (ruff lint/format, pyright type-check, pytest, zizmor,
+# markdown lint, file size) are delegated to the org orchestrator
+# `dryvist/.github/.github/workflows/_ci-gate.yml@main`. This repo carries NO
+# `run:` lint config of its own for those — pyproject.toml + .pre-commit-config
+# are the single source the org `_python-ci.yml` consumes via `uv run pre-commit`.
 #
-# Change detection runs first; each downstream job is conditional on the
-# relevant file categories. The final "Merge Gate" job aggregates all
-# results via re-actors/alls-green and is the ONLY check that should be
-# marked required in branch protection.
+# Genuinely repo-specific checks that the org gate does NOT cover are preserved
+# here as bespoke sibling jobs and folded into a single `Merge Gate`:
 #
-# To add a new check:
-#   1. (Shared check) create a reusable workflow in JacobPEvans/.github
-#      and call it from here.
-#   2. Add a filter pattern under `changes.steps.filter.with.filters`.
-#   3. Add the job with appropriate `if:` condition.
-#   4. Append the job name to `gate.needs` and `allowed-skips`.
+#   python-security    -> org `_python-security.yml`, called DIRECTLY because the
+#                         org `_ci-gate.yml` does not pass `ignore-vulns` through
+#                         (this repo needs the documented ignore list below).
+#   osv-scan           -> org `_osv-scan.yml`; the org `_ci-gate.yml` has no OSV
+#                         toggle at all.
+#   schema-validate    -> validates schema.json + TOML configs (repo-specific).
+#   space-viewer-test  -> pytest over `space/tests`; `_python-ci.yml` runs
+#                         `pytest` which honours pyproject `testpaths=["tests"]`,
+#                         so the space viewer suite is otherwise never run.
+#   dry-run-publish    -> builds the wheel and exercises the HF publisher CLI.
+#
+# To add a STANDARD check, prefer enabling a toggle on the org `_ci-gate.yml`
+# call below. Add a bespoke job only when the org gate genuinely cannot cover it.
 
 name: CI Gate
 
@@ -30,35 +38,24 @@ permissions:
   pull-requests: read
 
 jobs:
+  # ============================================================================
+  # CHANGE DETECTION — drives the bespoke jobs below. (The org `_ci-gate.yml`
+  # runs its own paths-filter internally for the standard checks.)
+  # ============================================================================
   changes:
     name: Detect Changes
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
     outputs:
-      python: ${{ steps.filter.outputs.python }}
-      markdown: ${{ steps.filter.outputs.markdown }}
       schema: ${{ steps.filter.outputs.schema }}
       publisher: ${{ steps.filter.outputs.publisher }}
+      space: ${{ steps.filter.outputs.space }}
       lockfile: ${{ steps.filter.outputs.lockfile }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
           filters: |
-            python:
-              - 'src/**'
-              - 'scripts/**'
-              - 'space/**'
-              - 'tests/**'
-              - 'pyproject.toml'
-              - 'uv.lock'
-              - '.github/workflows/ci-gate.yml'
-            markdown:
-              - '**.md'
-              - '.markdownlint*'
             schema:
               - 'schema.json'
               - 'configs/**'
@@ -69,49 +66,54 @@ jobs:
               - 'schema.json'
               - 'tests/fixtures/**'
               - 'pyproject.toml'
+            space:
+              - 'space/**'
+              - 'src/mlx_benchmarks/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
             lockfile:
               - 'uv.lock'
               - 'pyproject.toml'
 
-  python-test:
-    name: Python Test
-    needs: changes
-    if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12"]
-    steps:
-      - uses: actions/checkout@v6
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: pyproject.toml
-      - name: Install project + dev dependencies
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-        run: |
-          uv venv --python "$PYTHON_VERSION"
-          uv pip install -e ".[viewer]"
-          uv pip install mypy pytest pytest-cov ruff types-jsonschema types-psutil
-      - name: Ruff lint
-        run: .venv/bin/ruff check .
-      - name: Ruff format check
-        run: .venv/bin/ruff format --check .
-      - name: Mypy strict
-        run: .venv/bin/mypy src/mlx_benchmarks
-      - name: Pytest (package)
-        run: .venv/bin/pytest tests --cov=mlx_benchmarks --cov-report=term
-      - name: Pytest (space viewer)
-        run: .venv/bin/pytest space/tests
+  # ============================================================================
+  # STANDARD CHECKS — delegated to the org orchestrator. This covers ruff
+  # lint/format, pyright type-check, pytest (the `tests/` suite across the
+  # py3.13-only matrix), zizmor, markdown lint, and file size.
+  # ============================================================================
+  standard-ci:
+    name: Standard CI
+    permissions:
+      contents: read
+      pull-requests: read
+      # The org gate's queue watchdog cancels stuck sibling jobs via the
+      # Actions API; a called workflow can never exceed the caller's grant, so
+      # `actions: write` must be granted here or the run fails at graph
+      # validation (startup_failure).
+      actions: write
+    uses: dryvist/.github/.github/workflows/_ci-gate.yml@main
+    with:
+      python_ci: true
+      # mlx-benchmarks is an internal tool — Python 3.13 only.
+      python_ci_versions: '["3.13"]'
+      markdown_lint: true
+      file_size: true
+      filters: |
+        python:
+          - 'src/**'
+          - 'scripts/**'
+          - 'space/**'
+          - 'tests/**'
+          - 'pyproject.toml'
+          - 'uv.lock'
+          - '.pre-commit-config.yaml'
+          - '.github/workflows/ci-gate.yml'
+        markdown:
+          - '**.md'
+          - '.markdownlint*'
 
+  # ============================================================================
+  # BESPOKE CHECKS — not covered by the org gate (see header).
+  # ============================================================================
   python-security:
     name: Python Security
     needs: changes
@@ -139,17 +141,6 @@ jobs:
     if: always()
     uses: dryvist/.github/.github/workflows/_osv-scan.yml@main
 
-  markdown-lint:
-    name: Markdown Lint
-    needs: changes
-    if: needs.changes.outputs.markdown == 'true'
-    uses: dryvist/.github/.github/workflows/_markdown-lint.yml@main
-
-  file-size:
-    name: File Size
-    needs: changes
-    uses: dryvist/.github/.github/workflows/_file-size.yml@main
-
   schema-validate:
     name: Schema Validate
     needs: changes
@@ -161,11 +152,32 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.13"
       - name: Install validator deps
         run: python -m pip install --no-cache-dir "jsonschema[format]>=4.23.0"
       - name: Validate schema + TOML configs
         run: python scripts/validate_schema.py
+
+  space-viewer-test:
+    name: Space Viewer Test
+    needs: changes
+    if: needs.changes.outputs.space == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+      - name: Install project + viewer + dev dependencies
+        run: |
+          uv venv --python 3.13
+          uv pip install -e ".[viewer]"
+          uv pip install pytest pytest-cov
+      - name: Pytest (space viewer)
+        run: .venv/bin/pytest space/tests
 
   dry-run-publish:
     name: Dry-run publish
@@ -180,19 +192,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
+          python-version: "3.13"
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
       - name: Build wheel
         run: |
-          uv venv .venv-build --python 3.11
+          uv venv .venv-build --python 3.13
           uv pip install --python .venv-build/bin/python build
           .venv-build/bin/python -m build --wheel --outdir dist/
       - name: Install built wheel in a clean venv
         run: |
-          uv venv .venv-install --python 3.11
+          uv venv .venv-install --python 3.13
           uv pip install --python .venv-install/bin/python dist/*.whl
       - name: Dry-run publish against canonical fixture
         run: |
@@ -203,22 +215,27 @@ jobs:
             --git-sha "${COMMIT_SHA:0:7}" \
             --dry-run
 
+  # ============================================================================
+  # MERGE GATE — aggregates the org standard gate plus the bespoke jobs. This
+  # is the single check branch protection should require. (The org reusable
+  # surfaces its own internal "Standard CI / Merge Gate"; this outer gate only
+  # needs the caller job, which already reflects that result.)
+  # ============================================================================
   gate:
     name: Merge Gate
     needs:
       - changes
-      - python-test
+      - standard-ci
       - python-security
       - osv-scan
-      - markdown-lint
-      - file-size
       - schema-validate
+      - space-viewer-test
       - dry-run-publish
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Check all results
-        uses: re-actors/alls-green@release/v1
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # release/v1
         with:
-          allowed-skips: python-test, python-security, osv-scan, markdown-lint, schema-validate, dry-run-publish
+          allowed-skips: python-security, osv-scan, schema-validate, space-viewer-test, dry-run-publish
           jobs: ${{ toJSON(needs) }}
