@@ -153,7 +153,7 @@ def validate_envelope(envelope: Envelope | dict[str, Any]) -> None:
     # An Envelope/dict is a JSON object at runtime; cast to the plain mapping
     # jsonschema's iter_errors expects (its param type rejects TypedDicts).
     errors: list[jsonschema.ValidationError] = sorted(
-        _validator().iter_errors(cast("dict[str, Any]", envelope)),
+        _validator().iter_errors(cast(dict[str, Any], envelope)),
         key=lambda e: list(e.absolute_path),
     )
     if errors:
@@ -162,4 +162,4 @@ def validate_envelope(envelope: Envelope | dict[str, Any]) -> None:
 
 def iter_validation_errors(envelope: Envelope | dict[str, Any]) -> Iterable[jsonschema.ValidationError]:
     """Yield schema errors without raising — useful for best-effort downgrade to ``errors[]``."""
-    yield from _validator().iter_errors(cast("dict[str, Any]", envelope))
+    yield from _validator().iter_errors(cast(dict[str, Any], envelope))

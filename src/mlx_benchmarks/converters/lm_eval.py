@@ -55,7 +55,7 @@ def _default_tokenizer_loader(model: str) -> _TokenizerLike | None:
     try:
         # tokenizers.Tokenizer.encode has a wider signature than the converter
         # needs; at runtime it satisfies _TokenizerLike (encode(text).ids).
-        return cast("_TokenizerLike", Tokenizer.from_pretrained(model))
+        return cast(_TokenizerLike, Tokenizer.from_pretrained(model))
     except Exception as exc:
         log.warning("could not load tokenizer for %s: %s — tok/s fields will be unset", model, exc)
         return None
