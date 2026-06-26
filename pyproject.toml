@@ -4,7 +4,7 @@ version = "0.7.4"  # x-release-please-version
 description = "Benchmark harness for MLX-quantized LLMs on Apple Silicon — envelope v1 + HF dataset publisher"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 authors = [{ name = "Jacob Evans" }]
 keywords = ["mlx", "benchmarks", "lm-eval", "llm", "apple-silicon"]
 classifiers = [
@@ -12,8 +12,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
@@ -24,8 +23,8 @@ dependencies = [
     "lm-eval[api]==0.4.12",
     # tokenizers powers the lm-eval converter's tok/s computation. The library
     # is also a transitive dep of transformers (and therefore lm-eval), but
-    # declaring it explicitly keeps mypy happy across Python minor versions and
-    # documents the direct usage.
+    # declaring it explicitly keeps the type checker happy and documents the
+    # direct usage.
     "tokenizers>=0.20",
 ]
 
@@ -84,7 +83,7 @@ include = [
 
 [dependency-groups]
 dev = [
-    "mypy>=1.11",
+    "pyright>=1.1.390",
     "pre-commit>=3.8",
     "pytest>=8.3",
     "pytest-cov>=5.0",
@@ -95,7 +94,7 @@ dev = [
 
 [tool.ruff]
 line-length = 110
-target-version = "py311"
+target-version = "py313"
 src = ["src", "tests", "scripts"]
 
 [tool.ruff.lint]
@@ -122,25 +121,22 @@ ignore = [
 [tool.ruff.format]
 docstring-code-format = true
 
-[tool.mypy]
-python_version = "3.11"
-strict = true
-pretty = true
-show_error_codes = true
-warn_unused_ignores = true
-files = ["src/mlx_benchmarks"]
-
-[[tool.mypy.overrides]]
-module = [
-    "huggingface_hub",
-    "huggingface_hub.*",
-    "pyarrow",
-    "pyarrow.parquet",
-    "gradio",
-    "plotly",
-    "plotly.*",
-]
-ignore_missing_imports = true
+[tool.pyright]
+# pyright is the org-mandated type checker (replaced mypy 2026-06). It runs from
+# the project venv via .pre-commit-config.yaml so the dev-deps above are the
+# single version authority.
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+include = ["src/mlx_benchmarks"]
+typeCheckingMode = "standard"
+# Several runtime deps ship no type stubs (huggingface_hub, pyarrow, gradio,
+# plotly). Don't fail the gate on their missing stubs / unknown member types —
+# this repo's own code is what we type-check.
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
 
 [tool.pytest.ini_options]
 addopts = "-ra -q --strict-markers --strict-config"

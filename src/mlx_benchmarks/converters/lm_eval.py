@@ -8,7 +8,7 @@ import logging
 import re
 from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from mlx_benchmarks.converters.base import ConverterContext
 from mlx_benchmarks.envelope import Envelope, GenKwargs, Result, System
@@ -53,7 +53,9 @@ def _default_tokenizer_loader(model: str) -> _TokenizerLike | None:
         log.debug("tokenizers package not available; tok/s fields will be unset")
         return None
     try:
-        return Tokenizer.from_pretrained(model)
+        # tokenizers.Tokenizer.encode has a wider signature than the converter
+        # needs; at runtime it satisfies _TokenizerLike (encode(text).ids).
+        return cast("_TokenizerLike", Tokenizer.from_pretrained(model))
     except Exception as exc:
         log.warning("could not load tokenizer for %s: %s — tok/s fields will be unset", model, exc)
         return None

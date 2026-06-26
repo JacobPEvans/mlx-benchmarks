@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, Required, TypedDict, cast
 
 import jsonschema
 from jsonschema import Draft7Validator
@@ -55,20 +55,23 @@ class GenKwargs(TypedDict, total=False):
 
 
 class Envelope(TypedDict, total=False):
-    schema_version: str
-    timestamp: str
-    git_sha: str
-    trigger: str
+    # Keys marked Required[...] mirror schema.json's `required` list — they are
+    # always present on a validated envelope (and `LmEvalConverter.build_envelope`
+    # always sets them), so indexing them is safe. The rest stay optional.
+    schema_version: Required[str]
+    timestamp: Required[str]
+    git_sha: Required[str]
+    trigger: Required[str]
     pr_number: int | None
-    suite: str
-    model: str
+    suite: Required[str]
+    model: Required[str]
     model_revision: str
     quantization: str
     skipped: bool
     seed: int
     gen_kwargs: GenKwargs
-    system: System
-    results: list[Result]
+    system: Required[System]
+    results: Required[list[Result]]
     memory_snapshots: list[dict[str, Any]]
     errors: list[str]
 
@@ -147,8 +150,11 @@ def validate_envelope(envelope: Envelope | dict[str, Any]) -> None:
     Collects every validation error rather than failing on the first —
     gives publishers a complete picture to fix in one pass.
     """
+    # An Envelope/dict is a JSON object at runtime; cast to the plain mapping
+    # jsonschema's iter_errors expects (its param type rejects TypedDicts).
     errors: list[jsonschema.ValidationError] = sorted(
-        _validator().iter_errors(envelope), key=lambda e: list(e.absolute_path)
+        _validator().iter_errors(cast("dict[str, Any]", envelope)),
+        key=lambda e: list(e.absolute_path),
     )
     if errors:
         raise EnvelopeValidationError(errors)
@@ -156,4 +162,4 @@ def validate_envelope(envelope: Envelope | dict[str, Any]) -> None:
 
 def iter_validation_errors(envelope: Envelope | dict[str, Any]) -> Iterable[jsonschema.ValidationError]:
     """Yield schema errors without raising — useful for best-effort downgrade to ``errors[]``."""
-    yield from _validator().iter_errors(envelope)
+    yield from _validator().iter_errors(cast("dict[str, Any]", envelope))
