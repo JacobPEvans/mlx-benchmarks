@@ -10,11 +10,10 @@ git clone https://github.com/JacobPEvans/mlx-benchmarks.git
 cd mlx-benchmarks
 
 # Install package + dev deps
-uv sync
+uv sync --extra dev
 # Or pip-based:
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[viewer]"
-pip install mypy pytest pytest-cov ruff types-jsonschema types-psutil pre-commit
+pip install -e ".[dev]"
 
 # Install the pre-commit hooks
 .venv/bin/pre-commit install
@@ -30,7 +29,7 @@ For Nix users: `direnv allow` activates `flake.nix`.
 .venv/bin/ruff format --check .
 
 # Type check (strict mode)
-.venv/bin/mypy src/mlx_benchmarks
+.venv/bin/pyright src/mlx_benchmarks
 
 # Tests
 .venv/bin/pytest tests space/tests

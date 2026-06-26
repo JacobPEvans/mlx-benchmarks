@@ -73,18 +73,21 @@ Confirm the shard landed by checking the HF dataset repo directly.
 
 ### Q: Pip-audit or OSV scanner flags a dependency I want to suppress. How?
 
-**A:** Add an ignore rule to [`osv-scanner.toml`](../osv-scanner.toml):
+**A:** Prefer fixing it — bump the dependency so the advisory clears. If it
+genuinely can't be fixed yet, this repo inherits the org-wide ignore policy from
+`dryvist/.github/osv-scanner.toml`. For a repo-specific suppression, create a
+local `osv-scanner.toml` at the repo root (it takes precedence over the org
+default):
 
 ```toml
 [[IgnoredVulns]]
 id = "GHSA-xxxx-xxxx-xxxx"
 ignoreUntil = 2026-12-31
-reason = "<justification>"
+reason = "<justification, linking a tracking issue>"
 ```
 
 `ignoreUntil` (an unquoted TOML date literal) forces the entry back through
-review when the date passes — see [`osv-scanner.toml`](../osv-scanner.toml)
-for live examples.
+review when the date passes.
 
 ---
 

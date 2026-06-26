@@ -170,7 +170,7 @@ implemented vs aspirational.
 
 ## Installation
 
-Requires macOS on Apple Silicon (for inference) and Python 3.11+. The lm-eval
+Requires macOS on Apple Silicon (for inference) and Python 3.13+. The lm-eval
 configs assume a running OpenAI-compatible inference server on
 `http://localhost:11434/v1` (see [Requirements](#requirements)).
 
@@ -181,7 +181,10 @@ cd mlx-benchmarks
 # Plain uv (recommended)
 uv sync
 # ...or plain pip into a venv
-python -m venv .venv && source .venv/bin/activate && pip install -e ".[viewer]"
+python -m venv .venv && source .venv/bin/activate && pip install -e .
+
+# The Gradio result viewer (space/) installs its own deps separately:
+#   pip install -r space/requirements.txt
 
 # Token with write scope on the HF dataset, required for publishing
 export HF_TOKEN="hf_..."
