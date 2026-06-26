@@ -29,7 +29,7 @@ For Nix users: `direnv allow` activates `flake.nix`.
 .venv/bin/ruff format --check .
 
 # Type check (strict mode)
-.venv/bin/mypy src/mlx_benchmarks
+.venv/bin/pyright src/mlx_benchmarks
 
 # Tests
 .venv/bin/pytest tests space/tests
