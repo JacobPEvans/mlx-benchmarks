@@ -35,6 +35,29 @@ def test_cli_dry_run_happy_path(tmp_path: Path, lm_eval_sample: dict, capsys: py
     assert "dry-run" in captured.err.lower() or "planned" in captured.err.lower()
 
 
+def test_cli_promptfoo_dry_run(tmp_path: Path, promptfoo_sample: dict, capsys: pytest.CaptureFixture) -> None:
+    results_path = _write_sample(tmp_path, promptfoo_sample)
+    exit_code = main(
+        [
+            str(results_path),
+            "--kind",
+            "promptfoo",
+            "--suite",
+            "capability-comparison",
+            "--model",
+            "flagship-sweep",
+            "--git-sha",
+            "deadbeef",
+            "--ship-splunk",
+            "--dry-run",
+        ]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    # --ship-splunk under --dry-run plans the HEC send without network I/O.
+    assert "would ship" in captured.err.lower()
+
+
 def test_cli_rejects_invalid_tag(tmp_path: Path, lm_eval_sample: dict) -> None:
     results_path = _write_sample(tmp_path, lm_eval_sample)
     with pytest.raises(SystemExit, match="invalid --tag"):

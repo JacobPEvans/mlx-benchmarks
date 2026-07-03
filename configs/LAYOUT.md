@@ -14,9 +14,19 @@ configs/
 │   ├── coding.toml           # humaneval_instruct_qwen3, mbpp_instruct_qwen3
 │   ├── reasoning.toml        # gsm8k_cot_zeroshot, arc_challenge
 │   └── qwen3-tasks/          # think-stripping overlay for Qwen3.x models
+├── promptfoo/                # model-comparison suites (YAML, promptfoo-native)
+│   ├── flagship-comparison.yaml  # baseline vs candidate flagships
+│   └── light-tier.yaml           # light-tier routing tuning (hermes vs qwen3-4b)
 └── vllm/
     └── benchmark_serving.toml # vllm throughput; no local install
 ```
+
+> **promptfoo configs are YAML, not TOML.** promptfoo consumes its own
+> `promptfooconfig.yaml` shape, so these files are not validated by
+> `scripts/validate_schema.py` (which only parses TOML). They are tool-native
+> and env-parameterized — endpoints come from `PROMPTFOO_BASE_URL` /
+> `PROMPTFOO_API_KEY` (see each file's header) so no domains are committed.
+> Convert their JSON output to the envelope with `--kind promptfoo`.
 
 Planned but not yet implemented (file a
 [benchmark request](../.github/ISSUE_TEMPLATE/benchmark-request.yml) if you
