@@ -118,10 +118,12 @@ breakdown, data-flow, and CI diagrams.
 | --- | --- | --- |
 | [lm-evaluation-harness][lm-eval] | `coding`, `reasoning` | Standard LLM evals (humaneval, mbpp, gsm8k, arc, ...) |
 | [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check throughput against vllm upstream (install with `[vllm]` extra) |
+| [promptfoo][promptfoo] | `capability-comparison` | Prompt-level model comparison with assertions + LLM-as-judge (`configs/promptfoo/`) |
 | OpenAI + [Qwen-Agent][qwen-agent] + [smolagents][smolagents] + [ADK][adk] | `framework-eval` | Per-framework agent harness in `harness/framework-eval/` |
 
 [lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
 [vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
+[promptfoo]: https://www.promptfoo.dev/
 [qwen-agent]: https://github.com/QwenLM/Qwen-Agent
 [smolagents]: https://github.com/huggingface/smolagents
 [adk]: https://github.com/google/adk-python
@@ -134,38 +136,20 @@ implemented vs aspirational.
 
 ```text
 .
-├── README.md                 <- this file
-├── CLAUDE.md                 <- agent-facing project notes
-├── CONTRIBUTING.md           <- dev workflow
-├── SECURITY.md               <- HF token handling, unsafe-code warning
-├── LICENSE                   <- Apache-2.0
+├── README.md · CLAUDE.md · CONTRIBUTING.md · SECURITY.md · LICENSE
 ├── schema.json               <- envelope v1 (authoritative)
 ├── examples/                 <- known-good + known-bad envelope fixtures
 ├── pyproject.toml            <- package + lint/type/test config
-├── src/mlx_benchmarks/       <- Python package (publisher, converters)
-│   ├── cli.py                <-   mlx-bench-publish entry point
-│   ├── envelope.py           <-   typed envelope + jsonschema validator
-│   ├── publish.py            <-   parquet + HF upload (unique filenames)
-│   ├── system.py             <-   runtime detection of os/chip/memory/versions
-│   ├── logging_config.py     <-   text + JSON-lines logging
-│   └── converters/lm_eval.py <-   lm-eval results.json -> envelope
+├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI, splunk ship,
+│                                converters/ (lm_eval, vllm, promptfoo)
 ├── tests/                    <- package tests + fixtures
-├── configs/                  <- one TOML per (tool, suite) pair
-│   ├── LAYOUT.md
-│   ├── lm-eval/{coding.toml, reasoning.toml, qwen3-tasks/}
-│   └── vllm/benchmark_serving.toml
-├── harness/                  <- inline-Python suites (non-TOML)
-│   └── framework-eval/       <-   agent framework evaluations
+├── configs/                  <- one config per (tool, suite); see LAYOUT.md
+│                                (lm-eval/, promptfoo/, vllm/)
+├── harness/framework-eval/   <- inline-Python agent-framework suites
 ├── scripts/                  <- one-shot tooling (validator, space deploy)
 ├── space/                    <- Gradio viewer (deployed to HF Space)
-│   ├── app.py
-│   ├── requirements.txt
-│   ├── README.md             <-   HF Spaces front-matter
-│   └── tests/
 ├── docs/                     <- architecture.md, schema.md, faq.md, journal/
-└── .github/workflows/        <- ci-gate (test + lint + scan + dry-run-publish
-                                  + schema-validate via paths-filter),
-                                  release-please, deploy-space
+└── .github/workflows/        <- ci-gate, release-please, deploy-space
 ```
 
 ## Installation
@@ -223,6 +207,16 @@ MODEL="mlx-community/Qwen3.5-9B-MLX-4bit"
 Filenames are deterministic
 (`data/run-<timestamp>-<git_sha>-<suite>-<model_slug>.parquet`)
 so historical shards are never overwritten.
+
+### Run a promptfoo model comparison
+
+The `promptfoo` suites compare models on shared prompts (deterministic asserts +
+a local LLM-as-judge), env-parameterized so no endpoints are committed. Point
+providers and the judge at one OpenAI-compatible gateway via `PROMPTFOO_BASE_URL`
+/ `PROMPTFOO_API_KEY`, run a suite, then `mlx-bench-publish --kind promptfoo`;
+add `--ship-splunk` (`SPLUNK_HEC_URL` / `SPLUNK_HEC_TOKEN`) to also emit
+per-result regression events. Full run/convert/publish/ship walkthrough:
+[`configs/LAYOUT.md`](configs/LAYOUT.md).
 
 ### View results
 

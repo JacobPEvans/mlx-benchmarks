@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -20,9 +21,10 @@ from typing import Any
 
 from mlx_benchmarks.converters import get_converter
 from mlx_benchmarks.converters.base import ConverterContext
-from mlx_benchmarks.envelope import EnvelopeValidationError
+from mlx_benchmarks.envelope import Envelope, EnvelopeValidationError
 from mlx_benchmarks.logging_config import configure_logging
 from mlx_benchmarks.publish import PublishError, current_git_sha, publish
+from mlx_benchmarks.splunk import SplunkShipError, envelope_to_hec_events, ship_envelope
 from mlx_benchmarks.system import detect_system
 
 log = logging.getLogger("mlx_benchmarks.cli")
@@ -39,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--kind",
         default="lm-eval",
-        choices=["lm-eval", "vllm"],
+        choices=["lm-eval", "vllm", "promptfoo"],
         help="Source format of results_json",
     )
     parser.add_argument("--suite", required=True, help="Envelope suite (must be in schema enum)")
@@ -71,6 +73,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--repo-id", default=None, help="Override HF dataset repo (default: JacobPEvans/mlx-benchmarks)"
     )
+    parser.add_argument(
+        "--ship-splunk",
+        action="store_true",
+        help="Also POST per-result events to Splunk HEC (SPLUNK_HEC_URL + SPLUNK_HEC_TOKEN)",
+    )
+    parser.add_argument(
+        "--splunk-sourcetype",
+        default="model_eval",
+        help="Sourcetype for Splunk HEC events (default: model_eval)",
+    )
+    parser.add_argument("--splunk-index", default="ai", help="Index for Splunk HEC events (default: ai)")
     return parser
 
 
@@ -129,6 +142,38 @@ def main(argv: list[str] | None = None) -> int:
         return 4
 
     log.info("%s -> %s", "planned" if args.dry_run else "published", path)
+
+    if args.ship_splunk:
+        ship_rc = _ship_to_splunk(envelope, args)
+        if ship_rc != 0:
+            return ship_rc
+
+    return 0
+
+
+def _ship_to_splunk(envelope: Envelope, args: argparse.Namespace) -> int:
+    """Best-effort HEC side-channel. Returns 0 on success/plan, non-zero on failure."""
+    events = envelope_to_hec_events(envelope, sourcetype=args.splunk_sourcetype, index=args.splunk_index)
+    if args.dry_run:
+        log.info("dry-run: would ship %d event(s) to Splunk HEC", len(events))
+        return 0
+
+    hec_url = os.environ.get("SPLUNK_HEC_URL")
+    hec_token = os.environ.get("SPLUNK_HEC_TOKEN")
+    if not hec_url or not hec_token:
+        log.error("--ship-splunk needs SPLUNK_HEC_URL and SPLUNK_HEC_TOKEN in the environment")
+        return 5
+    try:
+        ship_envelope(
+            envelope,
+            hec_url=hec_url,
+            hec_token=hec_token,
+            sourcetype=args.splunk_sourcetype,
+            index=args.splunk_index,
+        )
+    except SplunkShipError as exc:
+        log.error("Splunk ship failed: %s", exc)
+        return 5
     return 0
 
 

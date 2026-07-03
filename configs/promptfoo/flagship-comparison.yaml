@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# Flagship model comparison suite.
+#
+# Compares a baseline flagship (gpt-oss-120b) against candidate flagships across
+# coding, agentic/tool-use, and general-knowledge prompts. Deterministic asserts
+# gate the obvious failures; a local LLM-as-judge (llm-rubric) scores the
+# open-ended quality dimensions.
+#
+# Endpoints are env-parameterized — this repo is public, so no FQDNs/domains are
+# committed. Point every provider (systems under test AND the judge) at one
+# OpenAI-compatible gateway via:
+#
+#   PROMPTFOO_BASE_URL   e.g. http://localhost:30080/v1   (the LiteLLM router /
+#                        Bifrost gateway — see configs/LAYOUT.md)
+#   PROMPTFOO_API_KEY    gateway API key (any non-empty string if the gateway
+#                        does not enforce auth)
+#   PROMPTFOO_JUDGE_MODEL model alias used for grading (default: gpt-oss-120b)
+#
+# Model aliases below are public model names, not infrastructure — swap them for
+# whatever the gateway currently exposes (`curl $PROMPTFOO_BASE_URL/models`).
+#
+# Run:
+#   PROMPTFOO_BASE_URL=... PROMPTFOO_API_KEY=... \
+#     npx promptfoo@latest eval -c configs/promptfoo/flagship-comparison.yaml \
+#     --no-cache -o flagship-output.json
+
+description: Flagship comparison — baseline vs candidate flagships on coding, agentic, and general prompts
+
+providers:
+  - id: openai:chat:gpt-oss-120b
+    label: baseline-gpt-oss-120b
+    config:
+      apiBaseUrl: "{{ env.PROMPTFOO_BASE_URL }}"
+      apiKey: "{{ env.PROMPTFOO_API_KEY }}"
+      temperature: 0
+  - id: openai:chat:qwen3-235b
+    label: candidate-qwen3-235b
+    config:
+      apiBaseUrl: "{{ env.PROMPTFOO_BASE_URL }}"
+      apiKey: "{{ env.PROMPTFOO_API_KEY }}"
+      temperature: 0
+  - id: openai:chat:deepseek-v3
+    label: candidate-deepseek-v3
+    config:
+      apiBaseUrl: "{{ env.PROMPTFOO_BASE_URL }}"
+      apiKey: "{{ env.PROMPTFOO_API_KEY }}"
+      temperature: 0
+
+# Local LLM-as-judge for every model-graded assertion. Same gateway, its own
+# model alias (overridable via PROMPTFOO_JUDGE_MODEL), temperature pinned to 0
+# for reproducible grading.
+defaultTest:
+  options:
+    provider:
+      id: "openai:chat:{{ env.PROMPTFOO_JUDGE_MODEL | default('gpt-oss-120b') }}"
+      label: local-judge
+      config:
+        apiBaseUrl: "{{ env.PROMPTFOO_BASE_URL }}"
+        apiKey: "{{ env.PROMPTFOO_API_KEY }}"
+        temperature: 0
+
+prompts:
+  - "{{ prompt }}"
+
+tests:
+  - description: coding — implement a pure function
+    vars:
+      prompt: |
+        Write a Python function `merge_intervals(intervals)` that merges all
+        overlapping intervals in a list of [start, end] pairs and returns the
+        merged list sorted by start. Return only the function, no prose.
+    assert:
+      - type: contains
+        value: "def merge_intervals"
+      - type: llm-rubric
+        value: >
+          The response defines a correct merge_intervals function: it sorts by
+          start, merges overlapping/adjacent intervals, and handles the empty
+          list. Score 1 only if the logic is correct.
+        metric: coding_correctness
+
+  - description: agentic — choose and justify a tool call
+    vars:
+      prompt: |
+        You are an agent with tools: web_search(query), calculator(expr), and
+        send_email(to, body). A user asks: "What is 17% of 4,320, and email the
+        result to ops@example.net." Describe, step by step, which tools you call
+        in which order and with what arguments. Do not invent other tools.
+    assert:
+      - type: llm-rubric
+        value: >
+          The plan uses calculator for the arithmetic (0.17 * 4320 = 734.4) and
+          send_email to ops@example.net with the computed result, in a sensible
+          order, and does not hallucinate tools outside the provided set.
+        metric: agentic_planning
+
+  - description: general — concise factual explanation
+    vars:
+      prompt: |
+        Explain, in three sentences or fewer, the difference between latency and
+        throughput for an inference server.
+    assert:
+      - type: llm-rubric
+        value: >
+          The answer correctly distinguishes latency (time per request) from
+          throughput (requests/tokens per unit time), is accurate, and stays
+          within three sentences.
+        metric: general_quality
