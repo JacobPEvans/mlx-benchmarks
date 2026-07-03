@@ -1,0 +1,20 @@
+# Smoke test for the jevans-ms self-hosted runner (llm-runners group).
+# Manually dispatched; proves the ephemeral Apple-container runner picks up
+# jobs end-to-end. The scheduled benchmark workflow (issue #86) supersedes
+# this as the real consumer.
+name: runner-smoke
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, jevans-ms]
+    timeout-minutes: 10
+    steps:
+      - name: Runner environment
+        run: |
+          uname -a
+          echo "runner=${RUNNER_NAME:-unknown} arch=$(arch)"
