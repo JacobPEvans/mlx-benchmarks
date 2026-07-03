@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.6](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.5...v0.7.6) (2026-07-03)
+
+
+### Bug Fixes
+
+* **ci:** declare jevans-ms self-hosted runner label for actionlint ([#89](https://github.com/dryvist/mlx-benchmarks/issues/89)) ([b8142df](https://github.com/dryvist/mlx-benchmarks/commit/b8142df3ce08a98468504711250666cf0728f694))
+
 ## [0.7.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.4...v0.7.5) (2026-06-26)
 
 
