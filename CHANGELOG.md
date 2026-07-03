@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.6...v0.8.0) (2026-07-03)
+
+
+### Features
+
+* **promptfoo:** model-comparison suites, converter, and optional Splunk ship ([#88](https://github.com/dryvist/mlx-benchmarks/issues/88)) ([bbb6204](https://github.com/dryvist/mlx-benchmarks/commit/bbb6204f5ddf7d462b1caa974851c5fade2a5a70))
+
 ## [0.7.6](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.5...v0.7.6) (2026-07-03)
 
 
