@@ -136,40 +136,20 @@ implemented vs aspirational.
 
 ```text
 .
-├── README.md                 <- this file
-├── CLAUDE.md                 <- agent-facing project notes
-├── CONTRIBUTING.md           <- dev workflow
-├── SECURITY.md               <- HF token handling, unsafe-code warning
-├── LICENSE                   <- Apache-2.0
+├── README.md · CLAUDE.md · CONTRIBUTING.md · SECURITY.md · LICENSE
 ├── schema.json               <- envelope v1 (authoritative)
 ├── examples/                 <- known-good + known-bad envelope fixtures
 ├── pyproject.toml            <- package + lint/type/test config
-├── src/mlx_benchmarks/       <- Python package (publisher, converters)
-│   ├── cli.py                <-   mlx-bench-publish entry point
-│   ├── envelope.py           <-   typed envelope + jsonschema validator
-│   ├── publish.py            <-   parquet + HF upload (unique filenames)
-│   ├── system.py             <-   runtime detection of os/chip/memory/versions
-│   ├── logging_config.py     <-   text + JSON-lines logging
-│   ├── splunk.py             <-   optional HEC ship of eval-result summaries
-│   └── converters/           <-   lm_eval.py, vllm.py, promptfoo.py -> envelope
+├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI, splunk ship,
+│                                converters/ (lm_eval, vllm, promptfoo)
 ├── tests/                    <- package tests + fixtures
-├── configs/                  <- one config per (tool, suite) pair
-│   ├── LAYOUT.md
-│   ├── lm-eval/{coding.toml, reasoning.toml, qwen3-tasks/}
-│   ├── promptfoo/{flagship-comparison.yaml, light-tier.yaml}
-│   └── vllm/benchmark_serving.toml
-├── harness/                  <- inline-Python suites (non-TOML)
-│   └── framework-eval/       <-   agent framework evaluations
+├── configs/                  <- one config per (tool, suite); see LAYOUT.md
+│                                (lm-eval/, promptfoo/, vllm/)
+├── harness/framework-eval/   <- inline-Python agent-framework suites
 ├── scripts/                  <- one-shot tooling (validator, space deploy)
 ├── space/                    <- Gradio viewer (deployed to HF Space)
-│   ├── app.py
-│   ├── requirements.txt
-│   ├── README.md             <-   HF Spaces front-matter
-│   └── tests/
 ├── docs/                     <- architecture.md, schema.md, faq.md, journal/
-└── .github/workflows/        <- ci-gate (test + lint + scan + dry-run-publish
-                                  + schema-validate via paths-filter),
-                                  release-please, deploy-space
+└── .github/workflows/        <- ci-gate, release-please, deploy-space
 ```
 
 ## Installation
@@ -230,39 +210,13 @@ so historical shards are never overwritten.
 
 ### Run a promptfoo model comparison
 
-The `promptfoo` suites compare several models on the same prompts with
-deterministic assertions plus a local LLM-as-judge. Endpoints are
-env-parameterized (nothing host-specific is committed) — point every provider
-and the judge at one OpenAI-compatible gateway:
-
-```sh
-export PROMPTFOO_BASE_URL="http://localhost:30080/v1"   # LiteLLM router / gateway
-export PROMPTFOO_API_KEY="..."                           # gateway key
-export PROMPTFOO_JUDGE_MODEL="gpt-oss-120b"              # optional; grading model
-
-# 1. Run a suite and write the JSON output
-npx promptfoo@latest eval -c configs/promptfoo/flagship-comparison.yaml \
-  --no-cache -o flagship-output.json
-
-# 2. Convert to envelope v1 and publish to the HF dataset
-#    (one row per model x metric: pass_rate, mean_score, each rubric metric)
-.venv/bin/mlx-bench-publish flagship-output.json \
-  --kind promptfoo --suite capability-comparison --model flagship-sweep
-
-# 3. Optionally also ship per-result events to Splunk (index=ai
-#    sourcetype=model_eval) so regression alerts can track score trends
-export SPLUNK_HEC_URL="https://<splunk-host>:8088/services/collector/event"
-export SPLUNK_HEC_TOKEN="..."
-.venv/bin/mlx-bench-publish flagship-output.json \
-  --kind promptfoo --suite capability-comparison --model flagship-sweep \
-  --ship-splunk
-```
-
-`--ship-splunk` is an optional side-channel to the HF publish; it emits one HEC
-event per result carrying `model`, `suite`, `metric`, and `score`. Run it on a
-schedule (cron, systemd timer, or a CI `schedule:` trigger — whatever your
-environment provides) to feed a standing regression alert; the Splunk side of
-that alert lives in the downstream Splunk config, not here.
+The `promptfoo` suites compare models on shared prompts (deterministic asserts +
+a local LLM-as-judge), env-parameterized so no endpoints are committed. Point
+providers and the judge at one OpenAI-compatible gateway via `PROMPTFOO_BASE_URL`
+/ `PROMPTFOO_API_KEY`, run a suite, then `mlx-bench-publish --kind promptfoo`;
+add `--ship-splunk` (`SPLUNK_HEC_URL` / `SPLUNK_HEC_TOKEN`) to also emit
+per-result regression events. Full run/convert/publish/ship walkthrough:
+[`configs/LAYOUT.md`](configs/LAYOUT.md).
 
 ### View results
 

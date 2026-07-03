@@ -28,6 +28,39 @@ configs/
 > `PROMPTFOO_API_KEY` (see each file's header) so no domains are committed.
 > Convert their JSON output to the envelope with `--kind promptfoo`.
 
+### Running a promptfoo suite (run → convert → publish → ship)
+
+Point every provider and the judge at one OpenAI-compatible gateway, run a
+suite, convert the JSON output to envelope v1 (one row per model × metric:
+`pass_rate`, `mean_score`, each rubric metric), and publish to the HF dataset.
+`--ship-splunk` is optional — it POSTs one event per result
+(`model` / `suite` / `metric` / `score`) to a Splunk HEC (`index=ai`
+`sourcetype=model_eval`) so a standing regression alert can track score trends.
+Run it on whatever scheduler your environment provides (cron, systemd timer, or
+a CI `schedule:` trigger); the Splunk-side alert lives in the downstream Splunk
+config, not here.
+
+```sh
+export PROMPTFOO_BASE_URL="http://localhost:30080/v1"  # gateway (LiteLLM router)
+export PROMPTFOO_API_KEY="..."                          # gateway key
+export PROMPTFOO_JUDGE_MODEL="gpt-oss-120b"             # optional; grading model
+
+# 1. Run a suite → JSON output
+npx promptfoo@latest eval -c configs/promptfoo/flagship-comparison.yaml \
+  --no-cache -o flagship-output.json
+
+# 2. Convert to envelope v1 + publish to the HF dataset
+.venv/bin/mlx-bench-publish flagship-output.json \
+  --kind promptfoo --suite capability-comparison --model flagship-sweep
+
+# 3. (optional) also ship per-result events to Splunk HEC
+export SPLUNK_HEC_URL="https://<splunk-host>:8088/services/collector/event"
+export SPLUNK_HEC_TOKEN="..."
+.venv/bin/mlx-bench-publish flagship-output.json \
+  --kind promptfoo --suite capability-comparison --model flagship-sweep \
+  --ship-splunk
+```
+
 Planned but not yet implemented (file a
 [benchmark request](../.github/ISSUE_TEMPLATE/benchmark-request.yml) if you
 want to move any of these forward):
