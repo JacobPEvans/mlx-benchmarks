@@ -1,0 +1,6 @@
+# actionlint configuration.
+# Declare self-hosted runner labels so actionlint does not flag them as unknown
+# (runner-smoke.yml targets the jevans-ms self-hosted runner).
+self-hosted-runner:
+  labels:
+    - jevans-ms
