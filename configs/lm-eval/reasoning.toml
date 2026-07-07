@@ -1,7 +1,9 @@
-# Passed to lm_eval (installed via pyproject.toml dev shell)
+# lm-eval reasoning suite. Run via the nix-ai `mlx-eval` wrapper (lm-eval is not
+# a dependency of this repo — it only parses lm-eval's JSON output).
 #
 # IMPORTANT: base_url must be the full chat/completions endpoint URL, not just /v1.
-# lm_eval POSTs to base_url directly.
+# lm_eval POSTs to base_url directly. The wrapper owns base_url/max_length/
+# num_concurrent — the values below mirror it so the runbook reads standalone.
 #
 # Default suite: arc_challenge_chat, generate_until, HTTP-API compatible.
 # Run with --limit 15 for a ~10-min indicative pass (~33s/example on 35B MLX models).

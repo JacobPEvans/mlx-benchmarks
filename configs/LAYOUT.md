@@ -1,9 +1,8 @@
 # configs/ layout
 
-One TOML file per `(upstream-tool, suite)` pair. Configs are consumed by the
-sweep orchestration (see the top-level [README](../README.md)) and should
-contain **only** the parameters the upstream tool itself takes. No custom
-wrapper logic.
+One TOML file per `(upstream-tool, suite)` pair. These are **runbooks**: they
+record the task list and tool-native options for a suite. No file here is read
+by in-repo code — they document *what to run* so a run is reproducible.
 
 ## Layout (as shipped)
 
@@ -11,138 +10,62 @@ wrapper logic.
 configs/
 ├── LAYOUT.md                 # this file
 ├── lm-eval/
-│   ├── coding.toml           # humaneval_instruct_qwen3, mbpp_instruct_qwen3
-│   ├── reasoning.toml        # gsm8k_cot_zeroshot, arc_challenge
-│   └── qwen3-tasks/          # think-stripping overlay for Qwen3.x models
-├── promptfoo/                # model-comparison suites (YAML, promptfoo-native)
-│   ├── flagship-comparison.yaml  # baseline vs candidate flagships
-│   └── light-tier.yaml           # light-tier routing tuning (hermes vs qwen3-4b)
+│   ├── reasoning.toml        # arc_challenge_chat (quick) / gsm8k (canonical)
+│   ├── coding.toml           # humaneval, mbpp
+│   ├── math-hard.toml        # minerva_math500
+│   └── qwen3-tasks/          # optional <think>-stripping overlay (see below)
 └── vllm/
-    └── benchmark_serving.toml # vllm throughput; no local install
+    └── benchmark_serving.toml # vllm throughput cross-check; no local install
 ```
 
-> **promptfoo configs are YAML, not TOML.** promptfoo consumes its own
-> `promptfooconfig.yaml` shape, so these files are not validated by
-> `scripts/validate_schema.py` (which only parses TOML). They are tool-native
-> and env-parameterized — endpoints come from `PROMPTFOO_BASE_URL` /
-> `PROMPTFOO_API_KEY` (see each file's header) so no domains are committed.
-> Convert their JSON output to the envelope with `--kind promptfoo`.
+## Where the run command lives (single source of truth)
 
-### Running a promptfoo suite (run → convert → publish → ship)
+The canonical way to run these suites is the thin `uvx` wrappers in the serving
+stack (nix-ai `modules/mlx/packages.nix`), **not** a script in this repo:
 
-Point every provider and the judge at one OpenAI-compatible gateway, run a
-suite, convert the JSON output to envelope v1 (one row per model × metric:
-`pass_rate`, `mean_score`, each rubric metric), and publish to the HF dataset.
-`--ship-splunk` is optional — it POSTs one event per result
-(`model` / `suite` / `metric` / `score`) to a Splunk HEC (`index=ai`
-`sourcetype=model_eval`) so a standing regression alert can track score trends.
-Run it on whatever scheduler your environment provides (cron, systemd timer, or
-a CI `schedule:` trigger); the Splunk-side alert lives in the downstream Splunk
-config, not here.
+- `mlx-eval <tasks…>` — lm-eval against the live vllm-mlx server. It owns the
+  connection args: `base_url`, `max_length=32768`, `num_concurrent`
+  (`MLX_EVAL_CONCURRENT`, default 4), `--apply_chat_template`. Do **not**
+  re-specify those as authoritative here — the `[model_args]` blocks below
+  mirror them only so the runbook reads standalone.
+- `mlx-bench` / `mlx-bench-raw` — vllm-mlx / raw `mlx_lm.benchmark` throughput.
+- `mlx-wait` — health-gate the server before a run.
 
-```sh
-export PROMPTFOO_BASE_URL="http://localhost:30080/v1"  # gateway (LiteLLM router)
-export PROMPTFOO_API_KEY="..."                          # gateway key
-export PROMPTFOO_JUDGE_MODEL="gpt-oss-120b"             # optional; grading model
+This repo owns only the step *after* a run: convert the tool's JSON to envelope
+v1 and publish it (`mlx-bench-publish`). See the top-level
+[README](../README.md) → "Run + publish a benchmark".
 
-# 1. Run a suite → JSON output
-npx promptfoo@latest eval -c configs/promptfoo/flagship-comparison.yaml \
-  --no-cache -o flagship-output.json
+## qwen3-tasks overlay (optional)
 
-# 2. Convert to envelope v1 + publish to the HF dataset
-.venv/bin/mlx-bench-publish flagship-output.json \
-  --kind promptfoo --suite capability-comparison --model flagship-sweep
-
-# 3. (optional) also ship per-result events to Splunk HEC
-export SPLUNK_HEC_URL="https://<splunk-host>:8088/services/collector/event"
-export SPLUNK_HEC_TOKEN="..."
-.venv/bin/mlx-bench-publish flagship-output.json \
-  --kind promptfoo --suite capability-comparison --model flagship-sweep \
-  --ship-splunk
-```
-
-Planned but not yet implemented (file a
-[benchmark request](../.github/ISSUE_TEMPLATE/benchmark-request.yml) if you
-want to move any of these forward):
-
-- `lm-eval/knowledge.toml` — mmlu / ifeval
-- `lm-eval/math-hard.toml` — minerva math500
-- `lighteval/*` — broader task coverage
-- `mlxbench/*` — native vllm-mlx throughput harness
-
-Add a subdirectory when you wire up the first suite for a given tool — do
-not pre-create empty dirs.
-
-## Non-TOML suite: framework-eval
-
-The `framework-eval` suite does NOT live under `configs/`. It lives at
-[`../harness/framework-eval/`](../harness/framework-eval/) as per-framework
-Python scripts (`eval_openai_tool_calling.py`, `eval_qwen_agent.py`,
-`eval_smolagents.py`, `eval_google_adk.py`). Each framework exposes a
-different API shape, so a declarative TOML wrapper would be harder to
-maintain than inline Python. See the harness directory's README for
-details.
+`configs/lm-eval/qwen3-tasks/` provides `humaneval`/`mbpp` variants that strip
+`<think>…</think>` blocks before code extraction — only needed when a model
+emits raw reasoning in its completion. Current residents (Instruct / harmony
+models served through vllm-mlx) return the final answer directly, so the plain
+`humaneval`/`mbpp` tasks in `coding.toml` are the default. Use the overlay via
+`--include_path configs/lm-eval/qwen3-tasks` only if a model's raw `<think>`
+output leaks into scored text.
 
 ## TOML shape
 
-Keep configs declarative and tool-native. Example (`lm-eval/coding.toml`):
-
-```toml
-# Passed to lm_eval (installed into .venv via uv sync)
-model = "local-chat-completions"
-tasks = ["humaneval", "mbpp"]
-batch_size = 1
-num_fewshot = 0
-apply_chat_template = true
-fewshot_as_multiturn = true
-
-[model_args]
-base_url = "http://localhost:11434/v1/chat/completions"
-# model is injected per-sweep; leave out here
-max_length = 32768
-timeout = 3600
-```
-
-The sweep runner is responsible for injecting per-invocation values (`model`,
-run metadata, output paths) and for converting tool output into the envelope
-schema defined in [`schema.json`](../schema.json).
+Keep configs declarative and tool-native. The runner injects per-invocation
+values (`model`, output paths); the converter maps the tool's JSON to
+[`schema.json`](../schema.json).
 
 ## Local vs cloud execution
 
-**Default: local models only.** Local models share the vllm-mlx inference
-backend via llama-swap and must run sequentially (only one model loaded at a
-time).
-
-**Cloud models can run in parallel** — they go through the Bifrost gateway at
-`http://localhost:30080/v1/chat/completions` and do not touch the local
-inference stack. Only include cloud models in a sweep when the word `cloud` or
-`full` is explicitly requested. When cloud models are included, launch them
-as concurrent background processes to avoid serializing on network I/O.
-
-### Standard cloud comparison models (always include in `full` sweeps)
-
-| Bifrost model ID | Resolves to | Notes |
-| --- | --- | --- |
-| `gemini/gemini-3-flash-preview` | Gemini 3 Flash | Fast Google model |
-| `openai/gpt-5.4-mini` | GPT-5.4 Mini | Latest OpenAI quick model — verify name against catalog before use |
-| `openrouter/auto` | Best available | OpenRouter auto-selects optimal model for the prompt |
-| `openrouter/openrouter/free` | Best free model | OpenRouter free-tier routing (double-prefix required through Bifrost) |
-
-**Important**: Always verify model names against the live catalog before use — names change faster
-than documentation. Run `curl -s http://localhost:30080/v1/models | grep -o '"id":"[^"]*"'` to confirm.
-
-OpenAI models via the bare `openai/` prefix use the `OPENAI_API_KEY` from Doppler project
-`ai-ci-automation`. As of 2026-04-19 that key has exhausted quota — use `openrouter/openai/gpt-5.4-mini`
-as the fallback path, which routes through `OPENROUTER_API_KEY` instead.
+**Default: local models only** — they share the vllm-mlx backend via llama-swap
+and run sequentially (one model resident at a time on the MacBook; the Studio
+keeps a resident pair). Cloud comparison models go through the Bifrost gateway
+(`http://localhost:30080/v1/chat/completions`) and only belong in a sweep when
+`cloud`/`full` is explicitly requested. Always verify model names against the
+live catalog first:
+`curl -s http://localhost:30080/v1/models | grep -o '"id":"[^"]*"'`.
 
 ## Adding a new config
 
-1. Identify which upstream tool covers the measurement you want.
-2. Add a TOML file under the matching subdirectory.
-3. Keep options tool-native — if you need a wrapper shim, that's a signal
-   the wrong tool is being used.
-4. Run a single-model smoke sweep locally, verify the envelope output
-   validates against `schema.json`, and push the resulting Parquet to the
-   HF dataset via the append pattern.
-5. Open a PR with the new config plus a one-line row in the top-level README
-   upstream-tools table if the tool isn't already listed.
+1. Identify which upstream tool covers the measurement.
+2. Add a TOML under the matching subdirectory; keep options tool-native — a
+   wrapper shim is a signal the wrong tool is being used.
+3. Smoke it against one model, confirm the envelope validates against
+   `schema.json`, publish the Parquet to the HF dataset.
+4. Open a PR adding a row to the README upstream-tools table if new.

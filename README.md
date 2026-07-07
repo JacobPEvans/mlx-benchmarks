@@ -51,10 +51,10 @@ serving and evaluation execution to external tools:
   `http://localhost:11434/v1`) — any server speaking the OpenAI chat/completions
   API works. This repo does not start, manage, or assume a specific inference
   server; it only sends requests to the configured base URL.
-- **An evaluation driver** ([lm-eval](#upstream-tools-wired-in), vllm's
-  `benchmark_serving`, or the in-repo framework harness) that produces a raw
-  results file. The converters in `src/mlx_benchmarks/converters/` translate
-  each driver's native output into the versioned envelope.
+- **An evaluation driver** ([lm-eval](#upstream-tools-wired-in) for accuracy or
+  vllm's `benchmark_serving` for throughput) that produces a raw results file.
+  The converters in `src/mlx_benchmarks/converters/` translate each driver's
+  native output into the versioned envelope.
 - **A HuggingFace token** with write scope on the target dataset, for the
   publish step only.
 
@@ -116,21 +116,16 @@ breakdown, data-flow, and CI diagrams.
 
 | Tool | Suite(s) | Purpose |
 | --- | --- | --- |
-| [lm-evaluation-harness][lm-eval] | `coding`, `reasoning` | Standard LLM evals (humaneval, mbpp, gsm8k, arc, ...) |
-| [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check throughput against vllm upstream (install with `[vllm]` extra) |
-| [promptfoo][promptfoo] | `capability-comparison` | Prompt-level model comparison with assertions + LLM-as-judge (`configs/promptfoo/`) |
-| OpenAI + [Qwen-Agent][qwen-agent] + [smolagents][smolagents] + [ADK][adk] | `framework-eval` | Per-framework agent harness in `harness/framework-eval/` |
+| [lm-evaluation-harness][lm-eval] | `reasoning`, `coding`, `math-hard` | Standard LLM accuracy evals (arc, gsm8k, humaneval, mbpp, minerva_math500) |
+| [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check serving throughput against vllm upstream |
 
 [lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
 [vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
-[promptfoo]: https://www.promptfoo.dev/
-[qwen-agent]: https://github.com/QwenLM/Qwen-Agent
-[smolagents]: https://github.com/huggingface/smolagents
-[adk]: https://github.com/google/adk-python
 
-Planned but not wired yet: lighteval (broader tasks), MLXBench (native throughput).
-The `configs/LAYOUT.md` is the single source of truth for what is currently
-implemented vs aspirational.
+The run commands themselves are thin `uvx` wrappers in the serving stack
+(nix-ai `mlx-eval` / `mlx-bench`), not scripts in this repo — see
+[`configs/LAYOUT.md`](configs/LAYOUT.md), the single source of truth for the
+wired suites.
 
 ## Repository layout
 
@@ -140,13 +135,12 @@ implemented vs aspirational.
 ├── schema.json               <- envelope v1 (authoritative)
 ├── examples/                 <- known-good + known-bad envelope fixtures
 ├── pyproject.toml            <- package + lint/type/test config
-├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI, splunk ship,
-│                                converters/ (lm_eval, vllm, promptfoo)
+├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI,
+│                                converters/ (lm_eval, vllm)
 ├── tests/                    <- package tests + fixtures
-├── configs/                  <- one config per (tool, suite); see LAYOUT.md
-│                                (lm-eval/, promptfoo/, vllm/)
-├── harness/framework-eval/   <- inline-Python agent-framework suites
-├── scripts/                  <- one-shot tooling (validator, space deploy)
+├── configs/                  <- one runbook per (tool, suite); see LAYOUT.md
+│                                (lm-eval/, vllm/)
+├── scripts/                  <- schema validator
 ├── space/                    <- Gradio viewer (deployed to HF Space)
 ├── docs/                     <- architecture.md, schema.md, faq.md, journal/
 └── .github/workflows/        <- ci-gate, release-please, deploy-space
@@ -181,42 +175,39 @@ For Nix users: `direnv allow` activates the included `flake.nix` dev shell.
 
 ## Usage
 
-### Run a benchmark and publish
+### Run + publish a benchmark
+
+This repo does not run models — it publishes the output of a run. Point an
+OpenAI-compatible endpoint at `http://localhost:11434/v1`, drive it with a
+standard tool, then convert + publish. The example is an accuracy run with
+lm-eval; swap in vllm's `benchmark_serving` for a `throughput` suite
+(`--kind vllm --suite throughput`).
 
 ```sh
-# 1. Run lm-eval against your local OpenAI-compatible endpoint
-BASE="http://localhost:11434/v1/chat/completions"
-MODEL="mlx-community/Qwen3.5-9B-MLX-4bit"
-.venv/bin/lm_eval --model local-chat-completions \
-  --model_args "base_url=$BASE,model=$MODEL,max_length=32768,timeout=3600" \
-  --tasks gsm8k_cot_zeroshot \
-  --batch_size 1 --num_fewshot 0 --limit 10 \
-  --gen_kwargs "max_gen_toks=4096" \
-  --apply_chat_template --fewshot_as_multiturn --log_samples \
-  --output_path ./run-output
+# 1. Run lm-eval against the endpoint (from your own lm-eval install — this repo
+#    only parses its JSON output, it is not a dependency). num_concurrent>1 is
+#    the biggest speedup for long suites; vllm-mlx batches via continuous batching.
+MODEL="mlx-community/Qwen3-30B-A3B-Instruct-2507-4bit"
+lm_eval --model local-chat-completions \
+  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,num_concurrent=4,max_length=32768,timeout=3600" \
+  --tasks gsm8k --apply_chat_template --log_samples --output_path ./run-output
 
-# 2. Dry-run conversion (validates envelope against schema, no upload)
+# 2. Dry-run the conversion (validates the envelope against schema.json; no upload)
 .venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
   --kind lm-eval --suite reasoning --dry-run
 
-# 3. Publish to the HF dataset
+# 3. Publish to the HF dataset (HF_TOKEN must have write scope on the dataset)
+export HF_TOKEN="hf_..."
 .venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
   --kind lm-eval --suite reasoning
 ```
 
-Filenames are deterministic
-(`data/run-<timestamp>-<git_sha>-<suite>-<model_slug>.parquet`)
-so historical shards are never overwritten.
-
-### Run a promptfoo model comparison
-
-The `promptfoo` suites compare models on shared prompts (deterministic asserts +
-a local LLM-as-judge), env-parameterized so no endpoints are committed. Point
-providers and the judge at one OpenAI-compatible gateway via `PROMPTFOO_BASE_URL`
-/ `PROMPTFOO_API_KEY`, run a suite, then `mlx-bench-publish --kind promptfoo`;
-add `--ship-splunk` (`SPLUNK_HEC_URL` / `SPLUNK_HEC_TOKEN`) to also emit
-per-result regression events. Full run/convert/publish/ship walkthrough:
-[`configs/LAYOUT.md`](configs/LAYOUT.md).
+`detect_system()` records the running machine's `hostname` in every envelope, so
+runs from different machines — e.g. a desktop and a laptop that are both "Apple
+M4 Max / 128 GB" — stay distinct in the dataset and are shown as separate series
+in the viewer. Filenames are content-addressed
+(`data/run-<timestamp>-<git_sha>-<suite>-<model_slug>-<hash>.parquet`) so
+historical shards are never overwritten.
 
 ### View results
 
@@ -255,7 +246,7 @@ backing every published shard. A minimal valid envelope:
 ```
 
 Optional v1 fields (non-breaking additions): `seed`, `gen_kwargs`,
-`model_revision`, `quantization`, and on the `system` object:
+`model_revision`, `quantization`, and on the `system` object: `hostname`,
 `python_version`, `mlx_version`, `mlx_lm_version`, `lm_eval_version`,
 `kernel`. The CLI auto-detects all of these at publish time —
 no hand-curation required.

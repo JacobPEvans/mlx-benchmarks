@@ -1,0 +1,23 @@
+# lm-eval math-hard suite — task: minerva_math500
+#
+# The math task the nix-ai `mlx-eval` wrapper targets. Needs the lm-eval
+# `[math]` extra (sympy + math_verify + antlr4) — the wrapper installs it via
+# `lm-eval[api,math]`.
+#
+# Canonical run (wrapper owns base_url/max_length/concurrency):
+#   mlx-eval minerva_math500 --output_path ./run-output/$SLUG
+#
+# Publish: mlx-bench-publish <results.json> --kind lm-eval --suite math-hard
+model = "local-chat-completions"
+tasks = ["minerva_math500"]
+batch_size = 1
+num_fewshot = 0
+apply_chat_template = true
+fewshot_as_multiturn = true
+
+[model_args]
+base_url = "http://localhost:11434/v1/chat/completions"
+# model injected per-sweep; base_url/max_length/timeout are owned by the nix-ai
+# `mlx-eval` wrapper — mirrored here only so the runbook reads standalone.
+max_length = 32768
+timeout = 3600

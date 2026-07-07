@@ -35,27 +35,56 @@ def test_cli_dry_run_happy_path(tmp_path: Path, lm_eval_sample: dict, capsys: py
     assert "dry-run" in captured.err.lower() or "planned" in captured.err.lower()
 
 
-def test_cli_promptfoo_dry_run(tmp_path: Path, promptfoo_sample: dict, capsys: pytest.CaptureFixture) -> None:
-    results_path = _write_sample(tmp_path, promptfoo_sample)
+def test_cli_vllm_dry_run(tmp_path: Path, vllm_sample: dict, capsys: pytest.CaptureFixture) -> None:
+    results_path = _write_sample(tmp_path, vllm_sample)
     exit_code = main(
         [
             str(results_path),
             "--kind",
-            "promptfoo",
+            "vllm",
             "--suite",
-            "capability-comparison",
+            "throughput",
             "--model",
-            "flagship-sweep",
+            "mlx-community/gpt-oss-120b-MXFP4-Q8",
             "--git-sha",
             "deadbeef",
-            "--ship-splunk",
+            "--tag",
+            "host=mac-studio",
             "--dry-run",
         ]
     )
     assert exit_code == 0
     captured = capsys.readouterr()
-    # --ship-splunk under --dry-run plans the HEC send without network I/O.
-    assert "would ship" in captured.err.lower()
+    assert "dry-run" in captured.err.lower() or "planned" in captured.err.lower()
+
+
+def test_cli_hostname_override(tmp_path: Path, lm_eval_sample: dict, monkeypatch: pytest.MonkeyPatch) -> None:
+    results_path = _write_sample(tmp_path, lm_eval_sample)
+    captured: dict[str, object] = {}
+
+    def fake_publish(envelope: dict, **_: object) -> str:
+        captured["envelope"] = envelope
+        return "data/x.parquet"
+
+    monkeypatch.setattr("mlx_benchmarks.cli.publish", fake_publish)
+    exit_code = main(
+        [
+            str(results_path),
+            "--kind",
+            "lm-eval",
+            "--suite",
+            "reasoning",
+            "--git-sha",
+            "deadbeef",
+            "--hostname",
+            "mac-studio",
+            "--dry-run",
+        ]
+    )
+    assert exit_code == 0
+    envelope = captured["envelope"]
+    assert isinstance(envelope, dict)
+    assert envelope["system"]["hostname"] == "mac-studio"
 
 
 def test_cli_rejects_invalid_tag(tmp_path: Path, lm_eval_sample: dict) -> None:

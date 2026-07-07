@@ -56,6 +56,14 @@ def load_data() -> pd.DataFrame:
         df = pd.concat([pd.read_parquet(p) for p in paths], ignore_index=True)
         df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, format="ISO8601")
         df["model_short"] = df["model"].apply(short_model)
+        # When runs carry a hostname (e.g. a Mac Studio vs a MacBook Pro — both
+        # Apple M4 Max / 128 GB), fold it into the series label so the same model
+        # on two machines compares as two bars/lines instead of collapsing to one.
+        if "hostname" in df.columns:
+            df["model_short"] = [
+                f"{label} @{host}" if isinstance(host, str) and host else label
+                for label, host in zip(df["model_short"], df["hostname"], strict=False)
+            ]
         _cache = (time.time(), df)
         return df
 
@@ -86,8 +94,8 @@ def bar_chart(df: pd.DataFrame, suite: str, task: str, metric: str) -> go.Figure
         )
         return fig
 
-    # Keep only the latest run per model
-    sub = sub.sort_values("timestamp").groupby("model", as_index=False).last()
+    # Keep only the latest run per model (per host — model_short carries the host).
+    sub = sub.sort_values("timestamp").groupby("model_short", as_index=False).last()
     sub["label"] = sub["model_short"]
     sub = sub.sort_values("value", ascending=True)
     value_max = sub["value"].max()
@@ -156,7 +164,7 @@ def summary_table(df: pd.DataFrame, suite: str, metric: str) -> pd.DataFrame:
     if sub.empty:
         return pd.DataFrame({"(no data)": []})
 
-    sub = sub.sort_values("timestamp").groupby(["model", "name"], as_index=False).last()
+    sub = sub.sort_values("timestamp").groupby(["model_short", "name"], as_index=False).last()
     pivot = sub.pivot(index="model_short", columns="name", values="value")
     pivot = pivot.round(4).reset_index().rename(columns={"model_short": "Model"})
     return pivot
@@ -171,8 +179,7 @@ def build_ui():
     suites = sorted(df["suite"].dropna().unique().tolist()) if not df.empty else ["reasoning"]
     tasks = sorted(df["name"].dropna().unique().tolist()) if not df.empty else []
     metrics = sorted(df["metric"].dropna().unique().tolist()) if not df.empty else []
-    models = sorted(df["model"].dropna().unique().tolist()) if not df.empty else []
-    model_labels = [short_model(m) for m in models]
+    model_labels = sorted(df["model_short"].dropna().unique().tolist()) if not df.empty else []
 
     default_suite = "reasoning" if "reasoning" in suites else (suites[0] if suites else "reasoning")
     default_metric = (
@@ -208,8 +215,7 @@ def build_ui():
         new_suites = sorted(d["suite"].dropna().unique().tolist()) if not d.empty else ["reasoning"]
         new_tasks = sorted(d["name"].dropna().unique().tolist()) if not d.empty else []
         new_metrics = sorted(d["metric"].dropna().unique().tolist()) if not d.empty else []
-        new_models = sorted(d["model"].dropna().unique().tolist()) if not d.empty else []
-        new_model_labels = [short_model(m) for m in new_models]
+        new_model_labels = sorted(d["model_short"].dropna().unique().tolist()) if not d.empty else []
         return (
             gr.Dropdown(choices=new_suites, value=new_suites[0] if new_suites else None),
             gr.Dropdown(choices=new_tasks, value=new_tasks[0] if new_tasks else None),

@@ -18,9 +18,8 @@ HF Space.
 
 ```text
 src/mlx_benchmarks/    Python package (envelope, publish, converters, CLI)
-scripts/               Small one-shot tools (validator, space deploy, shim)
-configs/               TOML per (tool, suite) pair — see configs/LAYOUT.md
-harness/framework-eval/ Inline Python suites (agent frameworks)
+scripts/               validate_schema.py (schema + TOML config validator)
+configs/               TOML runbook per (tool, suite) pair — see configs/LAYOUT.md
 schema.json            Envelope v1 authoritative contract
 examples/              Canonical valid + invalid envelope fixtures
 tests/                 Pytest suite with fixtures
@@ -42,15 +41,15 @@ docs/                  architecture.md, schema.md, journal/ (session notes)
   Never overwrite. Use `target_path(envelope)` to compute.
 - **System detection**: always use `detect_system()`. Never hardcode system
   metadata.
-- **Main workflow uses the venv directly**: for the publisher and primary
-  evaluation commands, use `.venv/bin/lm_eval`, `.venv/bin/mlx-bench-publish`,
-  etc. rather than `uv run` / `uvx`. Exception: `harness/framework-eval/`
-  uses `uv run --with ...` because each per-framework script declares its
-  own dependencies via PEP 723 inline metadata.
+- **Publisher runs from the venv**: `.venv/bin/mlx-bench-publish` and the
+  quality gates run from `.venv/bin/*` (not `uv run` / `uvx`). The evaluation
+  tools themselves (lm-eval, vllm `benchmark_serving`) are NOT dependencies of
+  this repo — run them via the serving stack's `mlx-eval` / `mlx-bench`
+  wrappers; this repo only parses their JSON output.
 - **Conventional commits**: `release-please` consumes them. `feat:` minor,
   `fix:` patch. Never manually edit `CHANGELOG.md`.
 - **Pre-commit must pass**: `.venv/bin/pre-commit run --all-files`. CI
-  re-runs ruff + ruff-format + mypy + pytest. Zero tolerance for `# noqa`
+  re-runs ruff + ruff-format + pyright + pytest. Zero tolerance for `# noqa`
   suppressions — fix the underlying issue.
 
 ## Common tasks
@@ -58,7 +57,7 @@ docs/                  architecture.md, schema.md, journal/ (session notes)
 ```bash
 # Quality gates (run all before committing)
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
-.venv/bin/mypy src/mlx_benchmarks
+.venv/bin/pyright src/mlx_benchmarks
 .venv/bin/pytest tests space/tests
 .venv/bin/python scripts/validate_schema.py
 
@@ -68,12 +67,12 @@ docs/                  architecture.md, schema.md, journal/ (session notes)
 .venv/bin/mlx-bench-publish run-output/<...>/results_*.json \
   --kind lm-eval --suite reasoning
 
-# Run lm-eval smoke (adjust model + task)
-BASE="http://localhost:11434/v1/chat/completions"
-.venv/bin/lm_eval --model local-chat-completions \
-  --model_args "base_url=$BASE,model=$MODEL,max_length=32768,timeout=3600" \
-  --tasks gsm8k_cot_zeroshot --batch_size 1 --num_fewshot 0 --limit 10 \
-  --gen_kwargs "max_gen_toks=4096" \
+# Run an lm-eval smoke (lm-eval is external — via the mlx-eval wrapper or your
+# own install; this repo only publishes its output). num_concurrent>1 is the
+# biggest speedup for long suites.
+lm_eval --model local-chat-completions \
+  --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,num_concurrent=4,max_length=32768,timeout=3600" \
+  --tasks gsm8k --limit 10 \
   --apply_chat_template --fewshot_as_multiturn --log_samples \
   --output_path ./run-output
 ```
@@ -84,7 +83,7 @@ BASE="http://localhost:11434/v1/chat/completions"
 - `vllm-mlx` (via `llama-swap`) on `http://localhost:11434/v1`. The
   `base_url` for lm-eval must include the full `/v1/chat/completions`
   path — not just `/v1`.
-- Python 3.11+.
+- Python 3.13+.
 - `HF_TOKEN` with write scope on the dataset namespace (for publish) and
   on the space namespace (for deploy, stored as a repo secret).
 

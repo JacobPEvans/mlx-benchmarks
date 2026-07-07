@@ -106,6 +106,10 @@
           "type": "integer",
           "description": "Total system RAM in GB"
         },
+        "hostname": {
+          "type": "string",
+          "description": "Short host label of the machine that ran the benchmark — distinguishes machines with identical chip/memory (e.g. a Mac Studio vs a MacBook Pro)"
+        },
         "vllm_mlx_version": {
           "type": "string",
           "description": "vllm-mlx package version if available"
