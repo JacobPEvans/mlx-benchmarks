@@ -1,16 +1,18 @@
-# lm_eval coding benchmark
-# Tasks: humaneval_instruct_qwen3, mbpp_instruct_qwen3 (Qwen3.x thinking-mode variants)
-# Run with:
-#   HF_ALLOW_CODE_EVAL=1 lm_eval ... \
-#     --tasks humaneval_instruct_qwen3,mbpp_instruct_qwen3 \
-#     --include_path configs/lm-eval/qwen3-tasks \
-#     --confirm_run_unsafe_code
+# lm-eval coding suite — tasks: humaneval, mbpp
 #
-# The qwen3-tasks variants strip <think>...</think> blocks before code extraction.
-# lm-eval's api_models backend (local-chat-completions) does not support
-# think_end_token, so stripping must happen at the filter level instead.
+# Canonical run (via the nix-ai wrapper, which owns base_url/max_length/concurrency):
+#   HF_ALLOW_CODE_EVAL=1 mlx-eval humaneval mbpp \
+#     --confirm_run_unsafe_code --output_path ./run-output/$SLUG
+#
+# Coding benchmarks execute model-generated code — see ../../SECURITY.md before
+# running outside a sandbox.
+#
+# Plain humaneval/mbpp are the default: models served through vllm-mlx (Instruct /
+# harmony) return the final answer directly. If a model leaks raw <think> blocks
+# into scored text, use the strip overlay: --include_path configs/lm-eval/qwen3-tasks
+# with tasks humaneval_instruct_qwen3, mbpp_instruct_qwen3.
 model = "local-chat-completions"
-tasks = ["humaneval_instruct_qwen3", "mbpp_instruct_qwen3"]
+tasks = ["humaneval", "mbpp"]
 batch_size = 1
 num_fewshot = 0
 apply_chat_template = true
@@ -18,6 +20,7 @@ fewshot_as_multiturn = true
 
 [model_args]
 base_url = "http://localhost:11434/v1/chat/completions"
-# model injected per-sweep
+# model injected per-sweep; base_url/max_length/timeout are owned by the nix-ai
+# `mlx-eval` wrapper — mirrored here only so the runbook reads standalone.
 max_length = 32768
 timeout = 3600

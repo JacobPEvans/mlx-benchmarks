@@ -24,7 +24,7 @@ High-level data flow, from "I kick off a benchmark" to "I see a chart".
 flowchart LR
   subgraph Local["Apple-Silicon box"]
     Serve([vllm-mlx + llama-swap])
-    Eval([lm-eval · vllm · framework-eval])
+    Eval([lm-eval · vllm benchmark_serving])
     CLI([mlx-bench-publish])
   end
 
@@ -77,10 +77,10 @@ repo.
 
 ### Evaluation layer
 
-Everything under `configs/` (TOML per suite) plus inline scripts in
-`harness/framework-eval/`. TOML configs are consumed directly by the upstream
-tool (`lm_eval --config`, etc.). No config-to-arg translation layer lives
-here; the TOML is the runbook.
+Everything under `configs/` (a TOML runbook per suite). The run commands are the
+serving stack's `mlx-eval` / `mlx-bench` wrappers (lm-eval / vllm
+`benchmark_serving`), not scripts in this repo. No config-to-arg translation
+layer lives here; the TOML is the runbook.
 
 ### Publisher (`src/mlx_benchmarks/`)
 
@@ -90,7 +90,7 @@ Parquet, and uploads via `HfApi.create_commit` with a deterministic
 content-addressed filename pattern:
 
 ```text
-data/run-<ISO-timestamp>-<git_sha>-<suite>-<model_slug>.parquet
+data/run-<ISO-timestamp>-<git_sha>-<suite>-<model_slug>-<payload_hash>.parquet
 ```
 
 This guarantees idempotent re-publishes and no overwrites. The envelope
@@ -117,7 +117,7 @@ non-compliant shard.
   }
 }}%%
 flowchart TD
-  Run([lm-eval / vllm / framework-eval])
+  Run([lm-eval / vllm benchmark_serving])
   Raw[("results_*.json")]
   CLI([mlx-bench-publish])
   Detect([detect_system])
@@ -177,7 +177,7 @@ pushes that touch `space/`.
 
 `ci-gate.yml` detects file changes and conditionally runs:
 
-- `python-test` (ruff + mypy + pytest matrix)
+- `python-test` (ruff + pyright + pytest matrix)
 - `schema-validate` (Draft-07 + TOML)
 - `dry-run-publish` (publisher round-trip on fixture)
 - the central reusables `_python-security.yml` (pip-audit), `_osv-scan.yml`
@@ -259,8 +259,9 @@ be processed when the default setup is enabled") and was removed.
 A published shard records the full context needed to replay:
 
 - `git_sha` — state of this repo at run time.
-- `system.*` — OS, chip, memory, plus (optional) `python_version`,
-  `mlx_version`, `mlx_lm_version`, `lm_eval_version`, `kernel`.
+- `system.*` — OS, chip, memory, plus (optional) `hostname` (distinguishes
+  machines with identical chip/memory), `python_version`, `mlx_version`,
+  `mlx_lm_version`, `lm_eval_version`, `kernel`.
 - `gen_kwargs` — generation hyperparameters passed to the inference API.
 - `seed` — when the run was seeded.
 - `model_revision` / `quantization` — model-side metadata when reported.

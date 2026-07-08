@@ -39,8 +39,10 @@ Closed suite set: `throughput`, `ttft`, `tool-calling`, `code-accuracy`,
 Required: `os`, `chip`, `memory_gb`.
 
 Optional (all populated automatically by `detect_system()`):
-`python_version`, `mlx_version`, `mlx_lm_version`, `lm_eval_version`,
-`kernel`, `runner` (for GitHub Actions), `vllm_mlx_version`.
+`hostname` (short host label — distinguishes machines with identical
+chip/memory, e.g. a Mac Studio vs a MacBook Pro), `python_version`,
+`mlx_version`, `mlx_lm_version`, `lm_eval_version`, `kernel`,
+`runner` (for GitHub Actions), `vllm_mlx_version`.
 
 ## `results[]` items
 

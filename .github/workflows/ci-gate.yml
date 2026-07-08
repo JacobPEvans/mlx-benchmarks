@@ -60,7 +60,6 @@ jobs:
               - 'scripts/validate_schema.py'
             publisher:
               - 'src/mlx_benchmarks/**'
-              - 'scripts/publish_run.py'
               - 'schema.json'
               - 'tests/fixtures/**'
               - 'pyproject.toml'

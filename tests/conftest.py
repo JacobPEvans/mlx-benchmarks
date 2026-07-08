@@ -23,11 +23,6 @@ def vllm_sample() -> dict[str, Any]:
 
 
 @pytest.fixture
-def promptfoo_sample() -> dict[str, Any]:
-    return json.loads((FIXTURES / "promptfoo_output_sample.json").read_text())
-
-
-@pytest.fixture
 def valid_envelope() -> dict[str, Any]:
     return json.loads((EXAMPLES / "envelope.valid.json").read_text())
 

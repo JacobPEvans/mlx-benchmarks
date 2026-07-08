@@ -36,6 +36,13 @@ def detect_system() -> dict[str, Any]:
         "python_version": platform.python_version(),
     }
 
+    # hostname distinguishes machines the chip/memory pair cannot — e.g. a Mac
+    # Studio and a MacBook Pro that are both "Apple M4 Max, 128 GB". Best-effort:
+    # only recorded when the node name is resolvable.
+    hostname = _detect_hostname()
+    if hostname:
+        data["hostname"] = hostname
+
     for pkg_name, envelope_key in (
         ("mlx", "mlx_version"),
         ("mlx-lm", "mlx_lm_version"),
@@ -92,6 +99,12 @@ def _detect_memory_gb() -> int:
 
 def _detect_kernel() -> str:
     return platform.release() or "unknown"
+
+
+def _detect_hostname() -> str | None:
+    """Short host label (e.g. ``mac-studio``), stripped of any ``.local``/domain suffix."""
+    node = platform.node().strip()
+    return node.split(".", 1)[0] or None
 
 
 def _package_version(name: str) -> str | None:

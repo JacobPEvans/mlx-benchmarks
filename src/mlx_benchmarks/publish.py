@@ -72,6 +72,7 @@ def envelope_to_rows(envelope: Envelope) -> list[dict[str, Any]]:
         "os": system.get("os"),
         "chip": system.get("chip"),
         "memory_gb": system.get("memory_gb"),
+        "hostname": system.get("hostname"),
     }
     if "model_revision" in envelope:
         base["model_revision"] = envelope["model_revision"]

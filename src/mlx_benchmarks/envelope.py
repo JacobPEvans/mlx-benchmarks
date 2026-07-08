@@ -23,6 +23,7 @@ class System(TypedDict, total=False):
     os: str
     chip: str
     memory_gb: int
+    hostname: str
     vllm_mlx_version: str
     runner: str
     python_version: str
