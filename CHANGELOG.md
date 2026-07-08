@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.0...v0.10.1) (2026-07-08)
+
+
+### Documentation
+
+* **configs:** make the qwen3-tasks overlay the coding-suite default ([#103](https://github.com/dryvist/mlx-benchmarks/issues/103)) ([d1fbeac](https://github.com/dryvist/mlx-benchmarks/commit/d1fbeacb64a813285972b222a0def84ea654d574))
+
 ## [0.10.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.9.2...v0.10.0) (2026-07-08)
 
 
