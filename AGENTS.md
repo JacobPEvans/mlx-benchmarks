@@ -124,6 +124,25 @@ read it before running anything. The essentials an agent must not get wrong:
   [`RANKINGS.md`](RANKINGS.md) in the **same PR**, pulling the numbers back from
   the dataset (loop in that file). The page must never drift from the dataset.
 
+## Verdict policy (hard rules — [docs/verdict-policy.md](docs/verdict-policy.md))
+
+Results drift between runs, so verdicts are earned, not declared. Non-negotiable
+for agents:
+
+- **Never write "X is the best/worst model"** anywhere — docs, PR bodies, serving
+  comments. Check maturity first and write **"X leads/lags as of N runs"**, naming
+  the environment class once past a gate. A dismissal gates *this cycle's* action
+  ("not the brain this week"), never a permanent judgment.
+- **Never publish or score a single unreplicated run.** Every benchmark is a
+  **consecutive pair** (identical config, back-to-back); if the two diverge past
+  the threshold (default relative Δ >15% on the primary metric, tunable) **discard
+  both halves** — a divergent pair does not count toward maturity.
+- **Both environment classes required** for a final verdict: **isolated** (clean
+  room, managed window only if it can't co-reside) and **under-load** (production
+  live, no window). A big isolated-vs-under-load gap is itself a finding.
+- **Maturity gate:** ≥4 validated runs ≥5 days apart in each class before a
+  verdict moves from provisional to final. Record host + concurrent load per run.
+
 ## Gotchas learned the hard way
 
 - **Model names**: verify against the live catalog

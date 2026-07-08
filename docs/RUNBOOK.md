@@ -30,6 +30,10 @@ A model may be **disqualified for a role** before every suite runs — a 0% agen
 brain is not a brain no matter its throughput — but the catalog row in
 `RANKINGS.md` is only "complete" when all five are present.
 
+A "complete" row is still **provisional**: a verdict is final only after the
+[verdict policy](verdict-policy.md) — **≥4 runs ≥5 days apart, each a validated
+pair, in both environment classes**. Read it before any "best/worst" claim.
+
 ## Decision tree
 
 ```text
@@ -38,10 +42,12 @@ model arrives
         └─ 2. Fit check      → Σ(weights + caches) < GPU trip < wired ceiling?
               ├─ fits MacBook → run there (workstation; concurrencyLimit=2)
               └─ needs room   → run on Studio jevans-ms (128 GB)
-                    └─ 3. Serve → existing llama-swap slot OR solo managed window
-                          └─ 4. Run the 5 suites (mind every trap)
-                                └─ 5. Publish each shard (Doppler write token)
-                                      └─ 6. Update RANKINGS.md in the same PR
+                    └─ 3. Serve → per environment class:
+                          ├─ ISOLATED    → solo (managed window if it can't co-reside)
+                          └─ UNDER-LOAD  → production stays live; NO managed window
+                          └─ 4. Run the 5 suites — each a replicated pair (mind every trap)
+                                └─ 5. Validate the pair, then publish (Doppler token)
+                                      └─ 6. Update RANKINGS.md; verdict PROVISIONAL, schedule re-bench
 ```
 
 ## Environments
@@ -59,20 +65,19 @@ Pick a host by fit and by who else needs the machine.
 
 Two host rules that silently ruin a run if missed:
 
-- **MacBook: `MLX_EVAL_CONCURRENT=2` is mandatory.** `llama-swap` there caps at
-  `concurrencyLimit=2`. lm-eval 0.4.11 with a higher `num_concurrent` fires an
-  instant burst of 429s and crashes with `Session is closed`, discarding hours
-  of work. Match the eval concurrency to the server cap.
+- **MacBook: `MLX_EVAL_CONCURRENT=2` is mandatory.** `llama-swap` caps at
+  `concurrencyLimit=2`; a higher lm-eval `num_concurrent` triggers a 429 burst
+  that crashes it (`Session is closed`), losing hours. Match eval concurrency to
+  the cap.
 - **Studio: always `curl -s4 127.0.0.1`, never a hostname.** Caddy holds the
   *same* port on IPv6 with TLS; the plain-HTTP vllm-mlx server is on IPv4. Force
   IPv4 with `-4` and the literal `127.0.0.1`.
 
-**One actor at a time.** Never edit the `llama-swap` config, restart the serving
-LaunchAgent, or start a second `vllm-mlx serve` while a bench is in flight on
-that host — the second loader contends for the same GPU memory and both runs
-corrupt or OOM. Check for a live `mlx-eval` / `mlx-bench` / `vllm-mlx` / `run.py`
-process and for a bench chain's log heartbeat
-([trap 10](benchmark-traps.md#trap-10-run-hygiene)) before you start.
+**One actor at a time.** Never edit the `llama-swap` config, restart serving, or
+start a second `vllm-mlx serve` while a bench is in flight — the second loader
+contends for GPU memory and both runs corrupt or OOM. Check for a live
+`mlx-eval`/`mlx-bench`/`vllm-mlx`/`run.py` and a bench-chain log heartbeat
+([trap 10](benchmark-traps.md#trap-10-run-hygiene)) first.
 
 ## Step 1 — Identify and size the model
 
@@ -83,14 +88,13 @@ process and for a bench chain's log heartbeat
    curl -s4 http://127.0.0.1:11434/v1/models | grep -o '"id":"[^"]*"'
    ```
 
-2. **Estimate resident weight footprint.** Roughly 4-bit ≈ 0.55 GB/B params,
-   8-bit ≈ 1.1 GB/B. A MoE keeps its *whole* weight set resident even though only
-   the active experts compute per token — size by total params, not active. Add
+2. **Estimate resident footprint.** ~0.55 GB/B (4-bit), ~1.1 GB/B (8-bit); a MoE
+   keeps its *whole* weight set resident — size by total params, not active. Add
    the KV cache budget (Step 2).
 
-3. **Note the architecture and quant recipe** — they drive the serving flags and
-   the [parser map](benchmark-traps.md#parser-map). Quant *recipe*
-   (OptiQ/DWQ mixed-precision vs a stock uniform quant) matters more than bit
+3. **Note architecture + quant recipe** — they pick the
+   [parser map](benchmark-traps.md#parser-map) flags. Quant *recipe*
+   (OptiQ/DWQ vs a stock uniform quant) matters more than bit
    width for agentic fitness — see [`model-notes.md`](model-notes.md).
 
 ## Step 2 — Fit check (capacity rules)
@@ -117,13 +121,18 @@ The invariant to satisfy:
 
 ## Step 3 — Serve the model
 
-### Option A — existing `llama-swap` slot (no downtime)
+Serve in **each** environment class (a full verdict needs both): Option A =
+**under-load** (production live), Option B = **isolated**. Record the class +
+what else was running (`llama-swap` `/running` + load avg) with the run.
+
+### Option A — existing `llama-swap` slot (no downtime) = under-load class
 
 If the model is already a `llama-swap` model on the host, target the endpoint;
 `llama-swap` loads it on first request. Default on the MacBook and for any Studio
-run that does not need a solo model. Do not edit the swap config mid-run.
+run that does not need a solo model. Do not edit the swap config mid-run. Running
+here **with production live** is the under-load class — no window needed.
 
-### Option B — solo `vllm-mlx serve` in a managed window (Studio)
+### Option B — solo `vllm-mlx serve` in a managed window (Studio) = isolated class
 
 When the model isn't in the swap config, or you need the whole machine's memory
 for one large model, take a **managed window** on the Studio. This takes
@@ -159,9 +168,10 @@ HF_TOKEN=…` if the model needs downloading (cache on `/Volumes/HuggingFace`).
 
 ## Step 4 — Run the required suites
 
-Run against the served endpoint. Timings are for a 30B-A3B-class model; scale up
-for larger models. Full trap detail:
-[`benchmark-traps.md`](benchmark-traps.md).
+Run against the served endpoint. Timings below are **one** run of a 30B-A3B-class
+model — but each suite runs as a **replicated pair** (×2), repeated in **both**
+environment classes, so budget ~**4×**; discard + re-run a diverging pair. Full
+trap detail: [`benchmark-traps.md`](benchmark-traps.md).
 
 ### 4a. Throughput (`--kind vllm --suite throughput`)
 
@@ -250,18 +260,17 @@ an issue rather than throwing away benchmark time.
 
 ## Step 6 — Update RANKINGS.md
 
-In the **same PR** as the publish, update the affected row in
-[`../RANKINGS.md`](../RANKINGS.md) so the ranking never drifts from the dataset.
-Pull the stored numbers back from the dataset (don't transcribe from memory) —
-the exact loop is in that file's
-["Keeping this page current"](../RANKINGS.md#keeping-this-page-current) section.
+In the **same PR** as the publish, update the affected
+[`../RANKINGS.md`](../RANKINGS.md) row (numbers pulled back via that file's
+["Keeping this page current"](../RANKINGS.md#keeping-this-page-current) loop).
+Bump **Maturity** only for a validated pair ≥5 days out; keep the verdict
+**provisional** per the [policy](verdict-policy.md).
 
 ## See also
 
-- [`benchmark-traps.md`](benchmark-traps.md) — traps checklist, parser map,
-  serving-flag pitfalls.
-- [`agentic.md`](agentic.md) — the agentic suite in depth (grid, pass gate).
-- [`model-notes.md`](model-notes.md) — durable per-model-class serving quirks.
-- [`../configs/LAYOUT.md`](../configs/LAYOUT.md) — the per-(tool, suite) configs.
-- [`../RANKINGS.md`](../RANKINGS.md) — the current model leaderboard.
-- Worked host walkthroughs: [`../examples/`](../examples/).
+- [`verdict-policy.md`](verdict-policy.md) — when a model may be called best/worst.
+- [`benchmark-traps.md`](benchmark-traps.md) — traps, parser map, serving flags.
+- [`agentic.md`](agentic.md) · [`model-notes.md`](model-notes.md) — suite depth,
+  per-class quirks.
+- [`../configs/LAYOUT.md`](../configs/LAYOUT.md) · [`../RANKINGS.md`](../RANKINGS.md)
+  · [`../examples/`](../examples/) — configs, leaderboard, walkthroughs.
