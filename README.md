@@ -130,13 +130,24 @@ The lm-eval/vllm run commands are thin `uvx` wrappers in the serving stack
 wired suites. The `agentic` runner is the exception: a standalone PEP 723
 script under `harness/`, documented in [`docs/agentic.md`](docs/agentic.md).
 
+## Benchmarking playbook
+
+To benchmark **any** model on either Apple Silicon host, follow
+**[`docs/RUNBOOK.md`](docs/RUNBOOK.md)**; traps and the serving parser map are in
+[`docs/benchmark-traps.md`](docs/benchmark-traps.md), the leaderboard in
+**[`RANKINGS.md`](RANKINGS.md)**. Benchmarks come in three kinds — **throughput**
+(batched tok/s), **accuracy** (`coding` / `math-hard` / `reasoning` via lm-eval),
+and **agentic** (`tool-calling` via [`harness/agentic/run.py`](harness/agentic/run.py))
+— a model is "fully benchmarked" with a published shard for each.
+
 ## Repository layout
 
 ```text
 .
 ├── README.md · CLAUDE.md · CONTRIBUTING.md · SECURITY.md · LICENSE
+├── RANKINGS.md               <- model leaderboard
 ├── schema.json               <- envelope v1 (authoritative)
-├── examples/                 <- known-good + known-bad envelope fixtures
+├── examples/                 <- envelope fixtures + host walkthroughs
 ├── pyproject.toml            <- package + lint/type/test config
 ├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI,
 │                                converters/ (lm_eval, vllm, agentic)
@@ -146,7 +157,7 @@ script under `harness/`, documented in [`docs/agentic.md`](docs/agentic.md).
 ├── harness/                  <- standalone PEP 723 runners (agentic/)
 ├── scripts/                  <- schema validator
 ├── space/                    <- Gradio viewer (deployed to HF Space)
-├── docs/                     <- architecture.md, schema.md, faq.md, journal/
+├── docs/                     <- RUNBOOK.md, architecture.md, schema.md, faq.md, journal/
 └── .github/workflows/        <- ci-gate, release-please, deploy-space
 ```
 
@@ -183,33 +194,29 @@ For Nix users: `direnv allow` activates the included `flake.nix` dev shell.
 
 This repo does not run models — it publishes the output of a run. Point an
 OpenAI-compatible endpoint at `http://localhost:11434/v1`, drive it with a
-standard tool, then convert + publish. The example is an accuracy run with
-lm-eval; swap in vllm's `benchmark_serving` for a `throughput` suite
-(`--kind vllm --suite throughput`).
+standard tool, then convert + publish (the full per-host procedure is
+[`docs/RUNBOOK.md`](docs/RUNBOOK.md)). An accuracy run with lm-eval:
 
 ```sh
-# 1. Run lm-eval against the endpoint (from your own lm-eval install — this repo
-#    only parses its JSON output, it is not a dependency). num_concurrent>1 is
-#    the biggest speedup for long suites; vllm-mlx batches via continuous batching.
+# 1. Run lm-eval against the endpoint (your own install — this repo only parses
+#    its JSON output). Swap in vllm benchmark_serving for --kind vllm.
 MODEL="mlx-community/Qwen3-30B-A3B-Instruct-2507-4bit"
 lm_eval --model local-chat-completions \
   --model_args "base_url=http://localhost:11434/v1/chat/completions,model=$MODEL,num_concurrent=4,max_length=32768,timeout=3600" \
   --tasks gsm8k --apply_chat_template --log_samples --output_path ./run-output
 
-# 2. Dry-run the conversion (validates the envelope against schema.json; no upload)
+# 2. Dry-run the conversion (validates against schema.json; no upload)
 .venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
   --kind lm-eval --suite reasoning --dry-run
 
-# 3. Publish to the HF dataset (HF_TOKEN must have write scope on the dataset)
-export HF_TOKEN="hf_..."
-.venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
+# 3. Publish — the ambient HF_TOKEN is read-only, so inject a write token
+doppler run -p ai-ci-automation -c prd -- \
+  .venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
   --kind lm-eval --suite reasoning
 ```
 
-`detect_system()` records the running machine's `hostname` in every envelope, so
-runs from different machines — e.g. a desktop and a laptop that are both "Apple
-M4 Max / 128 GB" — stay distinct in the dataset and are shown as separate series
-in the viewer. Filenames are content-addressed
+`detect_system()` records each run's `hostname`, keeping cross-machine runs
+distinct. Filenames are content-addressed
 (`data/run-<timestamp>-<git_sha>-<suite>-<model_slug>-<hash>.parquet`) so
 historical shards are never overwritten.
 
@@ -304,4 +311,4 @@ Apache 2.0. See [`LICENSE`](LICENSE).
 
 ---
 
-> Part of a [larger ecosystem of ~40 repos](https://docs.jacobpevans.com) — see how it all fits together.
+> Part of a larger homelab ecosystem — [docs.jacobpevans.com](https://docs.jacobpevans.com).

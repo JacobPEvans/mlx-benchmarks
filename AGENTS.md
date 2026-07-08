@@ -87,6 +87,62 @@ lm_eval --model local-chat-completions \
 - `HF_TOKEN` with write scope on the dataset namespace (for publish) and
   on the space namespace (for deploy, stored as a repo secret).
 
+## Benchmarking a model (the playbook)
+
+The full any-model-any-host procedure is [`docs/RUNBOOK.md`](docs/RUNBOOK.md) —
+read it before running anything. The essentials an agent must not get wrong:
+
+- **Required suite set for "fully benchmarked":** `throughput`, `coding`,
+  `math-hard`, `reasoning`, `tool-calling`. A model is not complete in
+  [`RANKINGS.md`](RANKINGS.md) until all five have a published shard (or one
+  suite is decisive enough to disqualify a role).
+- **Host constraints:**
+  - MacBook `llama-swap` caps at `concurrencyLimit=2` → **`MLX_EVAL_CONCURRENT=2`
+    is mandatory** or lm-eval 0.4.11 crashes (`Session is closed`) on a 429 burst.
+  - Studio `jevans-ms` (128 GB, wired ceiling ~118 GB) serves production on
+    `127.0.0.1:11434` IPv4 plain HTTP — **always `curl -s4 127.0.0.1`** (caddy
+    holds the same port on IPv6/TLS).
+  - **One actor per host.** Never edit `llama-swap` config or restart serving
+    while a bench is in flight.
+  - A **managed window** (solo `vllm-mlx serve`) takes production Hermes
+    offline: `launchctl bootout gui/501/dev.vllm-mlx.server` → serve → restore
+    with `launchctl bootstrap gui/501 …dev.vllm-mlx.server.plist`. **Notify the
+    user before, restore after.**
+- **Traps checklist:** coding needs the qwen3 overlay; read `math_verify` not
+  `exact_match`; lm-eval needs `--tasks a,b` (positional selects zero); `mlx-bench`
+  loads the model directly (server must be DOWN); run both agentic thinking
+  tracks; check sampling parity when a bench winner misbehaves live; match the
+  serving parser to the family (`hermes` for general Qwen3, not `qwen3_coder`);
+  `--timeout 3600` for agent brains; `--gpu-memory-utilization ≤0.85`. Full
+  detail: [`docs/benchmark-traps.md`](docs/benchmark-traps.md#traps-checklist).
+- **Publish flow + token:** the ambient `HF_TOKEN` is **read-only**. Publishing
+  needs the Doppler write token:
+  `doppler run -p ai-ci-automation -c prd -- .venv/bin/mlx-bench-publish <json>
+  --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host>`. Dry-run
+  first. Dataset: `JacobPEvans/mlx-benchmarks`.
+- **Ranking duty:** after every publish, update the model's row in
+  [`RANKINGS.md`](RANKINGS.md) in the **same PR**, pulling the numbers back from
+  the dataset (loop in that file). The page must never drift from the dataset.
+
+## Verdict policy (hard rules — [docs/verdict-policy.md](docs/verdict-policy.md))
+
+Results drift between runs, so verdicts are earned, not declared. Non-negotiable
+for agents:
+
+- **Never write "X is the best/worst model"** anywhere — docs, PR bodies, serving
+  comments. Check maturity first and write **"X leads/lags as of N runs"**, naming
+  the environment class once past a gate. A dismissal gates *this cycle's* action
+  ("not the brain this week"), never a permanent judgment.
+- **Never publish or score a single unreplicated run.** Every benchmark is a
+  **consecutive pair** (identical config, back-to-back); if the two diverge past
+  the threshold (default relative Δ >15% on the primary metric, tunable) **discard
+  both halves** — a divergent pair does not count toward maturity.
+- **Both environment classes required** for a final verdict: **isolated** (clean
+  room, managed window only if it can't co-reside) and **under-load** (production
+  live, no window). A big isolated-vs-under-load gap is itself a finding.
+- **Maturity gate:** ≥4 validated runs ≥5 days apart in each class before a
+  verdict moves from provisional to final. Record host + concurrent load per run.
+
 ## Gotchas learned the hard way
 
 - **Model names**: verify against the live catalog

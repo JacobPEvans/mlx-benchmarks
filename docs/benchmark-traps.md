@@ -1,0 +1,99 @@
+# Benchmark traps + serving reference
+
+The serving parser map, the serving flags that bite, and the 10-item traps
+checklist that [`RUNBOOK.md`](RUNBOOK.md) links into. If a result looks wrong,
+walk the checklist before blaming the model. Per-model-class failure modes live
+in [`model-notes.md`](model-notes.md).
+
+## Parser map
+
+Wrong `--tool-call-parser` → empty `function.name` repair storms and 500s at
+swap-in. Match the family exactly:
+
+| Family | `--tool-call-parser` | `--reasoning-parser` | Notes |
+| --- | --- | --- | --- |
+| Qwen3 / Qwen3.6 general + Instruct (dense, MoE) | `hermes` | `qwen3` | Production-verified for the resident brain; **not** `qwen3_coder` |
+| Qwen3-Coder / Coder-Next | `qwen3_coder` | `qwen3` | Coder builds only |
+| Qwen3-Next (hybrid attention) | `hermes` | `qwen3` | Never spec-decode/MTP; no prefix cache |
+| GLM-4.7-Flash | `glm47` | `glm45` | Thinking on by default |
+| gpt-oss (harmony) | `harmony` | `gpt_oss` | Add `--disable-prefix-cache`; thinking via `reasoning_effort` |
+| DeepSeek-V4-Flash | `deepseek` (+ `--enable-auto-tool-choice`) | `deepseek_r1` | Native `<think>` |
+| Hermes-4 | `hermes` | — | — |
+
+## Serving flags that bite
+
+- **`--timeout` defaults to 300 s** and acts as a disconnect guard that kills any
+  generation running longer — which a legitimate long agentic turn does. Use
+  `--timeout 3600` for any agent-brain serving or bench.
+- **`--gpu-memory-utilization`** sets the KV-cache clear trip
+  (`device_mem × (util + 0.05)`); 0.80 standard, never >0.85. Keep
+  `Σ(weights + caches) < trip < wired ceiling` (see
+  [RUNBOOK Step 2](RUNBOOK.md#step-2--fit-check-capacity-rules)).
+- **gpt-oss (harmony)** additionally needs `--disable-prefix-cache` — its
+  alternating sliding-window attention is incompatible with the paged/prefix
+  cache and throws `[broadcast_shapes]` failures otherwise.
+
+## Traps checklist
+
+### Trap 1: coding overlay is mandatory
+
+Plain `humaneval`/`mbpp` score ~0 on chat-served models (the extractor grabs the
+echoed prompt). Use `--include_path configs/lm-eval/qwen3-tasks --tasks
+humaneval_instruct_qwen3,mbpp_instruct_qwen3 --confirm_run_unsafe_code
+--log_samples`, with `HF_ALLOW_CODE_EVAL=1`.
+
+### Trap 2: read math_verify
+
+On `math-hard`, read the `math_verify` metric, not `exact_match` (prose-depressed
+on chat output).
+
+### Trap 3: lm-eval tasks flag
+
+lm-eval 0.4.11 needs `--tasks a,b`. Positional task names silently select zero
+tasks and the run reports success with no data.
+
+### Trap 4: mlx-bench loads directly
+
+`mlx-bench --model <id> --prompts 10` loads its own copy of the model. The server
+must be DOWN, or the weights double-load and OOM the host.
+
+### Trap 5: both thinking tracks
+
+Agentic: run thinking ON and OFF, judge at conc4 + thinking-ON + large-ctx,
+record the multi-turn `first_degraded_round` for each. Single-shot validity is
+not a passing verdict; serve to match the winning track.
+
+### Trap 6: sampling parity
+
+A bench winner can misbehave in production if the sampling differs. The agentic
+bench uses client defaults (temp 1.0). Production requests with
+`temperature=None` + `repetition_penalty=None` let 4-bit quants degenerate into
+repetition loops (same sentence 100+ times, ~37 duplicate tool calls/turn). When
+a bench winner misbehaves live, check the **sampling delta first**. Guardrail for
+4-bit Qwen-family: `repetition_penalty ~1.05`, `temp 0.6–0.7` in thinking mode.
+
+### Trap 7: parser map
+
+Wrong `--tool-call-parser` → empty `function.name` storms. Qwen3 general/Instruct
+→ `hermes` (not `qwen3_coder`); Qwen3-Coder → `qwen3_coder`; GLM-4.7 → `glm47`;
+gpt-oss → `harmony` (+ `--disable-prefix-cache`). Full map [above](#parser-map).
+
+### Trap 8: serving flags
+
+`--timeout` defaults to 300 s and kills long agentic generations — use `3600`.
+`--gpu-memory-utilization` also sets the KV-cache trip
+(`device_mem × (util+0.05)`); 0.80 standard, never >0.85. Keep
+`Σ(weights+caches) < trip < wired ceiling`.
+
+### Trap 9: publish token
+
+Ambient `HF_TOKEN` is read-only. Publishing needs Doppler
+`ai-ci-automation/prd` `HF_TOKEN_REPOS_ADMIN` via `doppler run -p
+ai-ci-automation -c prd -- .venv/bin/mlx-bench-publish …`.
+
+### Trap 10: run hygiene
+
+Results land in `~/bench-runs*/` per host. Chain long runs with `nohup` and a
+`===== <date> START/DONE <model> =====` log convention, and monitor those marker
+lines to know where a chain is. Approximate suite timings (30B-A3B class):
+coding ~3 h, math ~45 min, reasoning ~2.5–4 h, agentic full grid ~30 min.

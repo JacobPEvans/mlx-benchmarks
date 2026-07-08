@@ -11,9 +11,9 @@ Serving-flag quick reference (vllm-mlx):
 
 | Family | `--tool-call-parser` | `--reasoning-parser` | Thinking control |
 | --- | --- | --- | --- |
-| Qwen3 / Qwen3.6 dense + MoE | `qwen` (XML) | `qwen3` | `chat_template_kwargs.enable_thinking` |
+| Qwen3 / Qwen3.6 dense + MoE | `hermes` | `qwen3` | `chat_template_kwargs.enable_thinking` |
 | Qwen3-Coder / Coder-Next | `qwen3_coder` | `qwen3` | `enable_thinking` |
-| Qwen3-Next (hybrid attention) | `qwen` | `qwen3` | `enable_thinking`; never spec-decode/MTP |
+| Qwen3-Next (hybrid attention) | `hermes` | `qwen3` | `enable_thinking`; never spec-decode/MTP |
 | GLM-4.7-Flash | `glm47` | `glm45` | thinking on by default |
 | gpt-oss (harmony) | `harmony` | `gpt_oss` | `chat_template_kwargs.reasoning_effort` |
 | DeepSeek-V4-Flash | `deepseek` + `--enable-auto-tool-choice` | `deepseek_r1` | native `<think>` |
@@ -47,6 +47,14 @@ wider tool-parser set comes from the server flags
   Qwen3.6.** It produces empty `function.name` "repairs" on every call; the
   `hermes` tool-call parser (with `--reasoning-parser qwen3`) drives the general
   MoE clean, and is what the shipped serving uses for this brain.
+- **Sampling parity is a serving-side variable, not a bench one.** A quant that
+  passes the agentic bench (client default `temperature=1.0`) can still
+  degenerate in production if requests arrive with `temperature=None` +
+  `repetition_penalty=None` — the 4-bit weights fall into repetition loops (the
+  same sentence 100+ times, ~37 duplicate tool calls per turn). Serve this class
+  with a guardrail: `repetition_penalty ~1.05` and `temperature 0.6–0.7` in
+  thinking mode. When a bench winner misbehaves live, check the sampling delta
+  before re-benchmarking (2026-07-08).
 - Tool-call format is unstable with `enable_thinking=false` in
   token-in/token-out rollout across vLLM 0.18–0.20; 9B and older Qwen3 are
   unaffected ([verl #6223](https://github.com/verl-project/verl/issues/6223)).
