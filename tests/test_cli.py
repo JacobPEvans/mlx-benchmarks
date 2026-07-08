@@ -58,6 +58,25 @@ def test_cli_vllm_dry_run(tmp_path: Path, vllm_sample: dict, capsys: pytest.Capt
     assert "dry-run" in captured.err.lower() or "planned" in captured.err.lower()
 
 
+def test_cli_agentic_dry_run(tmp_path: Path, agentic_sample: dict, capsys: pytest.CaptureFixture) -> None:
+    results_path = _write_sample(tmp_path, agentic_sample)
+    exit_code = main(
+        [
+            str(results_path),
+            "--kind",
+            "agentic",
+            "--suite",
+            "tool-calling",
+            "--git-sha",
+            "deadbeef",
+            "--dry-run",
+        ]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "dry-run" in captured.err.lower() or "planned" in captured.err.lower()
+
+
 def test_cli_hostname_override(tmp_path: Path, lm_eval_sample: dict, monkeypatch: pytest.MonkeyPatch) -> None:
     results_path = _write_sample(tmp_path, lm_eval_sample)
     captured: dict[str, object] = {}
