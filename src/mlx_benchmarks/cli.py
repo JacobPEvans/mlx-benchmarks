@@ -39,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--kind",
         default="lm-eval",
-        choices=["lm-eval", "vllm"],
+        choices=["agentic", "lm-eval", "vllm"],
         help="Source format of results_json",
     )
     parser.add_argument("--suite", required=True, help="Envelope suite (must be in schema enum)")

@@ -1,0 +1,126 @@
+"""End-to-end: agentic runner sample -> envelope -> passes schema validation."""
+
+from __future__ import annotations
+
+import pytest
+
+from mlx_benchmarks.converters import get_converter
+from mlx_benchmarks.converters.base import ConverterContext
+from mlx_benchmarks.envelope import validate_envelope
+from mlx_benchmarks.system import detect_system
+
+
+def _ctx(**overrides: object) -> ConverterContext:
+    defaults: dict = {
+        "suite": "tool-calling",
+        "model": "mlx-community/Qwen3.6-35B-A3B-4bit",
+        "git_sha": "deadbeef",
+        "system": detect_system(),
+    }
+    defaults.update(overrides)
+    return ConverterContext(**defaults)
+
+
+def test_agentic_round_trip(agentic_sample: dict) -> None:
+    converter = get_converter("agentic")
+    envelope = converter.build_envelope(agentic_sample, _ctx())
+
+    validate_envelope(envelope)
+
+    assert envelope["suite"] == "tool-calling"
+    assert envelope["timestamp"] == "2026-07-08T04:15:00Z"
+
+    results = envelope["results"]
+    assert all(r["name"] == "tool_calling" for r in results)
+
+    # 2 cells x (3 rate + 2 latency rows) + 2 multiturn rows
+    metric_names = [r["metric"] for r in results]
+    assert metric_names.count("valid_tool_call_rate") == 2
+    assert metric_names.count("finish_reason_tool_calls_rate") == 2
+    assert metric_names.count("request_latency_p50_ms") == 2
+    assert metric_names.count("request_latency_p95_ms") == 2
+    assert metric_names.count("first_degraded_round") == 2
+
+
+def test_agentic_cell_dimensions_and_measurements(agentic_sample: dict) -> None:
+    converter = get_converter("agentic")
+    envelope = converter.build_envelope(agentic_sample, _ctx())
+    validate_envelope(envelope)
+
+    gate_cell = [
+        r
+        for r in envelope["results"]
+        if r["metric"] == "valid_tool_call_rate" and r["tags"]["cell"] == "conc4_think-on_ctx-large_stream"
+    ]
+    assert len(gate_cell) == 1
+    result = gate_cell[0]
+    assert result["value"] == 0.9
+    assert result["unit"] == "ratio"
+    # Sweep dimensions travel as string tags.
+    tags = result["tags"]
+    assert tags["concurrency"] == "4"
+    assert tags["thinking"] == "on"
+    assert tags["context"] == "large"
+    assert tags["stream"] == "stream"
+    # Failure taxonomy counts as string tags.
+    assert tags["failure_empty_function_name"] == "1"
+    assert tags["failure_no_tool_call"] == "0"
+    # First-class measurement fields populated where measured.
+    assert result["duration_seconds"] == 184.2
+    assert result["decode_tokens_per_second"] == 21.4
+    assert result["first_token_latency_ms"] == 2410.2
+
+
+def test_agentic_nostream_cell_has_no_first_token_latency(agentic_sample: dict) -> None:
+    converter = get_converter("agentic")
+    envelope = converter.build_envelope(agentic_sample, _ctx())
+    nostream = [
+        r
+        for r in envelope["results"]
+        if r["metric"] == "valid_tool_call_rate" and r["tags"]["stream"] == "nostream"
+    ]
+    assert len(nostream) == 1
+    assert "first_token_latency_ms" not in nostream[0]
+    assert nostream[0]["value"] == 1.0
+
+
+def test_agentic_multiturn_mapping(agentic_sample: dict) -> None:
+    converter = get_converter("agentic")
+    envelope = converter.build_envelope(agentic_sample, _ctx())
+    validate_envelope(envelope)
+
+    multiturn = [r for r in envelope["results"] if r["metric"] == "first_degraded_round"]
+    by_thinking = {r["tags"]["thinking"]: r for r in multiturn}
+
+    degraded = by_thinking["on"]
+    assert degraded["value"] == 5.0
+    assert degraded["unit"] == "round"
+    assert degraded["tags"]["degraded"] == "true"
+    assert degraded["tags"]["track"] == "multiturn"
+    assert degraded["tags"]["valid_rounds"] == "4"
+
+    clean = by_thinking["off"]
+    assert clean["value"] == 0.0  # never degraded -> 0 with degraded=false
+    assert clean["tags"]["degraded"] == "false"
+    assert clean["tags"]["rounds"] == "5"
+
+
+def test_agentic_extra_tags(agentic_sample: dict) -> None:
+    converter = get_converter("agentic")
+    envelope = converter.build_envelope(agentic_sample, _ctx(extra_tags={"host": "mac-studio"}))
+    validate_envelope(envelope)
+    assert all(r["tags"]["host"] == "mac-studio" for r in envelope["results"])
+
+
+def test_agentic_empty_cells_is_an_error() -> None:
+    converter = get_converter("agentic")
+    with pytest.raises(ValueError, match="no cells and no multiturn"):
+        converter.build_envelope({"cells": [], "multiturn": []}, _ctx())
+
+
+def test_agentic_multiturn_only_is_valid(agentic_sample: dict) -> None:
+    converter = get_converter("agentic")
+    raw = {"timestamp": agentic_sample["timestamp"], "multiturn": agentic_sample["multiturn"]}
+    envelope = converter.build_envelope(raw, _ctx())
+    validate_envelope(envelope)
+    assert len(envelope["results"]) == 2

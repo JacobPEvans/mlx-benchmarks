@@ -118,14 +118,17 @@ breakdown, data-flow, and CI diagrams.
 | --- | --- | --- |
 | [lm-evaluation-harness][lm-eval] | `reasoning`, `coding`, `math-hard` | Standard LLM accuracy evals (arc, gsm8k, humaneval, mbpp, minerva_math500) |
 | [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check serving throughput against vllm upstream |
+| [`harness/agentic/run.py`][agentic] (in-repo) | `tool-calling` | Many-tool tool-call reliability under load + multi-turn degradation |
 
 [lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
 [vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
+[agentic]: docs/agentic.md
 
-The run commands themselves are thin `uvx` wrappers in the serving stack
+The lm-eval/vllm run commands are thin `uvx` wrappers in the serving stack
 (nix-ai `mlx-eval` / `mlx-bench`), not scripts in this repo — see
 [`configs/LAYOUT.md`](configs/LAYOUT.md), the single source of truth for the
-wired suites.
+wired suites. The `agentic` runner is the exception: a standalone PEP 723
+script under `harness/`, documented in [`docs/agentic.md`](docs/agentic.md).
 
 ## Repository layout
 
@@ -136,10 +139,11 @@ wired suites.
 ├── examples/                 <- known-good + known-bad envelope fixtures
 ├── pyproject.toml            <- package + lint/type/test config
 ├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI,
-│                                converters/ (lm_eval, vllm)
+│                                converters/ (lm_eval, vllm, agentic)
 ├── tests/                    <- package tests + fixtures
 ├── configs/                  <- one runbook per (tool, suite); see LAYOUT.md
-│                                (lm-eval/, vllm/)
+│                                (lm-eval/, vllm/, agentic/)
+├── harness/                  <- standalone PEP 723 runners (agentic/)
 ├── scripts/                  <- schema validator
 ├── space/                    <- Gradio viewer (deployed to HF Space)
 ├── docs/                     <- architecture.md, schema.md, faq.md, journal/

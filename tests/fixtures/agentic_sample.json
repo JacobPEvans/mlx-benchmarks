@@ -1,0 +1,133 @@
+{
+  "benchmark": "agentic",
+  "model": "mlx-community/Qwen3.6-35B-A3B-4bit",
+  "timestamp": "2026-07-08T04:15:00Z",
+  "config": {
+    "base_url": "http://localhost:11434/v1",
+    "model": "mlx-community/Qwen3.6-35B-A3B-4bit",
+    "n_tools": 22,
+    "repeats": 10,
+    "concurrency": [1, 4],
+    "thinking": ["on", "off"],
+    "context": ["small", "large"],
+    "stream": ["stream", "nostream"],
+    "multiturn_rounds": 20,
+    "thinking_kwarg": "enable_thinking",
+    "max_tokens": 8192,
+    "timeout": 1200,
+    "large_context_tokens": 20000
+  },
+  "cells": [
+    {
+      "name": "conc4_think-on_ctx-large_stream",
+      "concurrency": 4,
+      "thinking": true,
+      "context": "large",
+      "stream": true,
+      "n_requests": 10,
+      "wall_seconds": 184.2,
+      "valid_tool_call_rate": 0.9,
+      "finish_reason_tool_calls_rate": 0.9,
+      "reasoning_present_rate": 1.0,
+      "failures": {
+        "no_tool_call": 0,
+        "empty_function_name": 1,
+        "bad_json_args": 0,
+        "unknown_tool": 0,
+        "http_error": 0,
+        "timeout": 0,
+        "stream_truncated": 0
+      },
+      "latency_p50_ms": 61250.0,
+      "latency_p95_ms": 84100.5,
+      "first_token_p50_ms": 2410.2,
+      "effective_tokens_per_second": 21.4,
+      "aggregate_tokens_per_second": 58.7,
+      "http_429": 0,
+      "http_5xx": 0,
+      "requests": [
+        {
+          "outcome": "valid",
+          "finish_reason": "tool_calls",
+          "reasoning_present": true,
+          "latency_ms": 61250.0,
+          "first_token_ms": 2410.2,
+          "completion_tokens": 1310,
+          "http_status": 200
+        },
+        {
+          "outcome": "empty_function_name",
+          "finish_reason": "tool_calls",
+          "reasoning_present": true,
+          "latency_ms": 59000.1,
+          "first_token_ms": 2100.0,
+          "completion_tokens": 1200,
+          "http_status": 200
+        }
+      ]
+    },
+    {
+      "name": "conc1_think-off_ctx-small_nostream",
+      "concurrency": 1,
+      "thinking": false,
+      "context": "small",
+      "stream": false,
+      "n_requests": 10,
+      "wall_seconds": 42.7,
+      "valid_tool_call_rate": 1.0,
+      "finish_reason_tool_calls_rate": 1.0,
+      "reasoning_present_rate": 0.0,
+      "failures": {
+        "no_tool_call": 0,
+        "empty_function_name": 0,
+        "bad_json_args": 0,
+        "unknown_tool": 0,
+        "http_error": 0,
+        "timeout": 0,
+        "stream_truncated": 0
+      },
+      "latency_p50_ms": 4100.0,
+      "latency_p95_ms": 5900.0,
+      "first_token_p50_ms": null,
+      "effective_tokens_per_second": 34.9,
+      "aggregate_tokens_per_second": 34.1,
+      "http_429": 0,
+      "http_5xx": 0,
+      "requests": [
+        {
+          "outcome": "valid",
+          "finish_reason": "tool_calls",
+          "reasoning_present": false,
+          "latency_ms": 4100.0,
+          "first_token_ms": null,
+          "completion_tokens": 145,
+          "http_status": 200
+        }
+      ]
+    }
+  ],
+  "multiturn": [
+    {
+      "thinking": true,
+      "rounds": [
+        {"round": 1, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": true},
+        {"round": 2, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": true},
+        {"round": 3, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": true},
+        {"round": 4, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": true},
+        {"round": 5, "outcome": "no_tool_call", "finish_reason": "stop", "reasoning_present": true}
+      ],
+      "first_degraded_round": 5
+    },
+    {
+      "thinking": false,
+      "rounds": [
+        {"round": 1, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": false},
+        {"round": 2, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": false},
+        {"round": 3, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": false},
+        {"round": 4, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": false},
+        {"round": 5, "outcome": "valid", "finish_reason": "tool_calls", "reasoning_present": false}
+      ],
+      "first_degraded_round": null
+    }
+  ]
+}

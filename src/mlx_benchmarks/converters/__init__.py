@@ -1,10 +1,12 @@
 """Converters transform raw tool output into envelope v1."""
 
+from mlx_benchmarks.converters.agentic import AgenticConverter
 from mlx_benchmarks.converters.base import Converter, ConverterContext
 from mlx_benchmarks.converters.lm_eval import LmEvalConverter
 from mlx_benchmarks.converters.vllm import VllmConverter
 
 __all__ = [
+    "AgenticConverter",
     "Converter",
     "ConverterContext",
     "LmEvalConverter",
@@ -20,6 +22,7 @@ def get_converter(kind: str) -> Converter:
     instead of silently defaulting.
     """
     registry: dict[str, type[Converter]] = {
+        "agentic": AgenticConverter,
         "lm-eval": LmEvalConverter,
         "vllm": VllmConverter,
     }
