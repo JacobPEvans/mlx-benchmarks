@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.9.1...v0.9.2) (2026-07-08)
+
+
+### Documentation
+
+* per-model-class agentic tool-calling notes (mid-2026 sourced) ([#99](https://github.com/dryvist/mlx-benchmarks/issues/99)) ([ae162c5](https://github.com/dryvist/mlx-benchmarks/commit/ae162c5365ff1fe6af72258f5e780153c1301bd8))
+
 ## [0.9.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.9.0...v0.9.1) (2026-07-08)
 
 
