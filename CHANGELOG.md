@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.2...v0.10.3) (2026-07-08)
+
+
+### Documentation
+
+* self-serve benchmarking playbook (RUNBOOK, RANKINGS, examples) ([#107](https://github.com/dryvist/mlx-benchmarks/issues/107)) ([586dd7d](https://github.com/dryvist/mlx-benchmarks/commit/586dd7dbc2128ffa5070b85bae1682e340bbc31c))
+
 ## [0.10.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.1...v0.10.2) (2026-07-08)
 
 
