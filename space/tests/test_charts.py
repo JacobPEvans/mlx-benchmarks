@@ -84,3 +84,30 @@ def test_short_model_strips_common_prefixes() -> None:
     assert app.short_model("mlx-community/Qwen3.5-9B-MLX-4bit") == "Qwen3.5-9B-MLX-4bit"
     assert app.short_model("openrouter/openai/gpt-5-mini") == "openrouter/gpt-5-mini"
     assert app.short_model("plain-name") == "plain-name"
+
+
+def test_normalize_rows_coalesces_layouts_and_drops_non_measurements() -> None:
+    raw = pd.DataFrame(
+        [
+            # Flat layout, real measurement — kept as-is.
+            {"suite": "reasoning", "model": "m/a", "name": "gsm8k", "metric": "exact_match", "value": 0.7},
+            # Nested layout (older shards) — must be surfaced via coalescing.
+            {
+                "suite": "tool-calling",
+                "model": "m/b",
+                "metric_name": "should-call-tool",
+                "metric_metric": "accuracy",
+                "metric_value": 0.9,
+            },
+            # Skipped CI run (no MLX server) — dropped.
+            {"suite": "code-accuracy", "model": "m/c", "skipped": True, "metric_value": None},
+            # No measurement in either layout — dropped.
+            {"suite": "framework-eval", "model": "m/d", "name": None, "value": None},
+        ]
+    )
+    out = app.normalize_rows(raw)
+    assert set(out["suite"]) == {"reasoning", "tool-calling"}
+    surfaced = out[out["suite"] == "tool-calling"].iloc[0]
+    assert surfaced["name"] == "should-call-tool"
+    assert surfaced["metric"] == "accuracy"
+    assert surfaced["value"] == 0.9
