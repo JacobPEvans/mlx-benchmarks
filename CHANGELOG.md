@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.4...v0.10.5) (2026-07-08)
+
+
+### Documentation
+
+* **verdict-policy:** document the 1/4 crediting rule for maturity ([#111](https://github.com/dryvist/mlx-benchmarks/issues/111)) ([6922438](https://github.com/dryvist/mlx-benchmarks/commit/69224380fa184c59dccd79b9ae0e0178b2a945e4))
+
 ## [0.10.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.3...v0.10.4) (2026-07-08)
 
 
