@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.8.0...v0.9.0) (2026-07-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* removes --kind promptfoo, the Splunk ship flags (--ship-splunk / --splunk-*), and --log-format. Publishing now covers lm-eval and vllm only.
+
+### Features
+
+* simplify to schema/publish core; add cross-machine hostname ([#92](https://github.com/dryvist/mlx-benchmarks/issues/92)) ([fbd83ba](https://github.com/dryvist/mlx-benchmarks/commit/fbd83baf280a628ad86aeb26e949c1f5d0d6ac6b))
+
 ## [0.8.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.7.6...v0.8.0) (2026-07-03)
 
 
