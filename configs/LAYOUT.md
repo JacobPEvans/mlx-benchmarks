@@ -35,15 +35,17 @@ This repo owns only the step *after* a run: convert the tool's JSON to envelope
 v1 and publish it (`mlx-bench-publish`). See the top-level
 [README](../README.md) → "Run + publish a benchmark".
 
-## qwen3-tasks overlay (optional)
+## qwen3-tasks overlay (the coding default)
 
-`configs/lm-eval/qwen3-tasks/` provides `humaneval`/`mbpp` variants that strip
-`<think>…</think>` blocks before code extraction — only needed when a model
-emits raw reasoning in its completion. Current residents (Instruct / harmony
-models served through vllm-mlx) return the final answer directly, so the plain
-`humaneval`/`mbpp` tasks in `coding.toml` are the default. Use the overlay via
-`--include_path configs/lm-eval/qwen3-tasks` only if a model's raw `<think>`
-output leaks into scored text.
+`configs/lm-eval/qwen3-tasks/` provides `humaneval`/`mbpp` variants whose
+custom filter strips `<think>…</think>` content AND extracts the fenced
+Python code block from a chat-style answer. This overlay is the **default**
+for the coding suite (see `coding.toml`), not an optional extra: chat-served
+Instruct models answer in prose + markdown, and the plain `humaneval`/`mbpp`
+extractors grab only the echoed prompt — measured 2026-07-08, a 30B Instruct
+model scored humaneval pass@1 = 0.0 / mbpp 0.128 under the plain tasks purely
+as an extraction artifact. Reserve the plain tasks for completion-style
+(non-chat) endpoints that emit bare code.
 
 ## TOML shape
 
