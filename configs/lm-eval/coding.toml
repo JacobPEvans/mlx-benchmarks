@@ -1,18 +1,26 @@
-# lm-eval coding suite — tasks: humaneval, mbpp
+# lm-eval coding suite — tasks: humaneval_instruct_qwen3, mbpp_instruct_qwen3
 #
 # Canonical run (via the nix-ai wrapper, which owns base_url/max_length/concurrency):
-#   HF_ALLOW_CODE_EVAL=1 mlx-eval humaneval mbpp \
-#     --confirm_run_unsafe_code --output_path ./run-output/$SLUG
+#   HF_ALLOW_CODE_EVAL=1 mlx-eval \
+#     --include_path configs/lm-eval/qwen3-tasks \
+#     --tasks humaneval_instruct_qwen3,mbpp_instruct_qwen3 \
+#     --confirm_run_unsafe_code --log_samples --output_path ./run-output/$SLUG
 #
 # Coding benchmarks execute model-generated code — see ../../SECURITY.md before
 # running outside a sandbox.
 #
-# Plain humaneval/mbpp are the default: models served through vllm-mlx (Instruct /
-# harmony) return the final answer directly. If a model leaks raw <think> blocks
-# into scored text, use the strip overlay: --include_path configs/lm-eval/qwen3-tasks
-# with tasks humaneval_instruct_qwen3, mbpp_instruct_qwen3.
+# The qwen3-tasks overlay is the DEFAULT, not the exception. Measured
+# 2026-07-08 (Qwen3-30B-A3B-Instruct-2507-4bit via vllm-mlx chat API): with
+# plain humaneval/mbpp the model answers in prose + fenced code, the plain
+# tasks' extractor grabs only the echoed prompt, and the scores are garbage —
+# humaneval pass@1 = 0.0, mbpp 0.128 — for a model whose real coding ability
+# is far higher. The overlay's custom filter strips any <think> content AND
+# extracts the fenced code block, which is what chat-served Instruct output
+# actually needs. Use the plain humaneval/mbpp tasks only for a
+# completion-style (non-chat) endpoint that emits bare code.
 model = "local-chat-completions"
-tasks = ["humaneval", "mbpp"]
+tasks = ["humaneval_instruct_qwen3", "mbpp_instruct_qwen3"]
+include_path = "configs/lm-eval/qwen3-tasks"
 batch_size = 1
 num_fewshot = 0
 apply_chat_template = true
