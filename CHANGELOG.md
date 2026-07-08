@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.9.0...v0.9.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **space:** coalesce dual result layouts so the viewer shows all real data ([#96](https://github.com/dryvist/mlx-benchmarks/issues/96)) ([99eb1ab](https://github.com/dryvist/mlx-benchmarks/commit/99eb1abbe39eed358c544fa15776be01d9189625))
+
 ## [0.9.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.8.0...v0.9.0) (2026-07-08)
 
 
