@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.9.2...v0.10.0) (2026-07-08)
+
+
+### Features
+
+* **agentic:** many-tool tool-call reliability suite ([#101](https://github.com/dryvist/mlx-benchmarks/issues/101)) ([83dc048](https://github.com/dryvist/mlx-benchmarks/commit/83dc0484915a43ceb16df5fa6367c6c382233c44))
+
 ## [0.9.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.9.1...v0.9.2) (2026-07-08)
 
 
