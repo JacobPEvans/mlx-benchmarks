@@ -85,10 +85,22 @@ final verdict  ⇐  isolated:   ≥4 runs (≥5 days apart), each a validated pa
 `RANKINGS.md` shows a maturity column as `N/4`, counting **protocol-valid runs**
 toward the 4 needed: a run only counts once it is a validated pair (Gate 2)
 recorded in a named environment class (Gate 3), ≥5 days from the previous counted
-run. Historical shards predate the replicated-pair and env-class protocol, so
-each counts as at most one pre-protocol run — **every model currently sits at
-`1/4` and every verdict is PROVISIONAL**, even models with shards on several
-dates (date count alone does not mature a verdict).
+run.
+
+**Crediting rule (why `1/4`, not `0/4`).** A model that has been benchmarked at
+all — even by a single pre-protocol shard that was never a validated pair or
+env-class-tagged — is credited **one** run: its column reads `1/4`, not `0/4`.
+`0/4` is reserved for a model with no benchmark data whatsoever. Only a
+**protocol-valid** run (validated pair, named env class, ≥5 days after the last
+counted run) increments the count past that first credit. So:
+
+- No data → `0/4`.
+- Any historical/pre-protocol data → `1/4` (one credited run), PROVISIONAL.
+- Each subsequent protocol-valid run → `2/4`, `3/4`, `4/4` → verdict final.
+
+Because every current shard predates the protocol, **every benchmarked model sits
+at `1/4` today**, even ones with shards on several dates — date count alone does
+not mature a verdict.
 
 ## Language rule
 
