@@ -82,12 +82,13 @@ final verdict  ⇐  isolated:   ≥4 runs (≥5 days apart), each a validated pa
 
 ## Counting maturity in RANKINGS
 
-`RANKINGS.md` shows a maturity column as `N/4`, counting distinct benchmark dates
-≥5 days apart per model. This is a **proxy**: a date only truly counts once its
-run is a validated pair (Gate 2) recorded in a named environment class (Gate 3).
-Historical shards predate the replicated-pair and env-class protocol, so **every
-current verdict is PROVISIONAL regardless of its date count** — even a model
-showing `4/4` dates has not yet been re-benched under the full protocol.
+`RANKINGS.md` shows a maturity column as `N/4`, counting **protocol-valid runs**
+toward the 4 needed: a run only counts once it is a validated pair (Gate 2)
+recorded in a named environment class (Gate 3), ≥5 days from the previous counted
+run. Historical shards predate the replicated-pair and env-class protocol, so
+each counts as at most one pre-protocol run — **every model currently sits at
+`1/4` and every verdict is PROVISIONAL**, even models with shards on several
+dates (date count alone does not mature a verdict).
 
 ## Language rule
 
