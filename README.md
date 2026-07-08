@@ -253,7 +253,9 @@ no hand-curation required.
 
 See [`docs/schema.md`](docs/schema.md) for fields,
 [`docs/schema-migration.md`](docs/schema-migration.md) for version upgrades,
-and [`docs/faq.md`](docs/faq.md) for ops questions and troubleshooting.
+[`docs/model-notes.md`](docs/model-notes.md) for per-model-class serving and
+tool-calling quirks, and [`docs/faq.md`](docs/faq.md) for ops questions and
+troubleshooting.
 
 ### The publisher
 
