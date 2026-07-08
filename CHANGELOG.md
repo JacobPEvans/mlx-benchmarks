@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.1...v0.10.2) (2026-07-08)
+
+
+### Documentation
+
+* **agentic:** record brain-selection run + durable per-class lessons ([#105](https://github.com/dryvist/mlx-benchmarks/issues/105)) ([1df057e](https://github.com/dryvist/mlx-benchmarks/commit/1df057eda6eae10ce30fa7dff88f971829dfd818))
+
 ## [0.10.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.0...v0.10.1) (2026-07-08)
 
 
