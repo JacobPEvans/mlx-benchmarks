@@ -87,6 +87,43 @@ lm_eval --model local-chat-completions \
 - `HF_TOKEN` with write scope on the dataset namespace (for publish) and
   on the space namespace (for deploy, stored as a repo secret).
 
+## Benchmarking a model (the playbook)
+
+The full any-model-any-host procedure is [`docs/RUNBOOK.md`](docs/RUNBOOK.md) —
+read it before running anything. The essentials an agent must not get wrong:
+
+- **Required suite set for "fully benchmarked":** `throughput`, `coding`,
+  `math-hard`, `reasoning`, `tool-calling`. A model is not complete in
+  [`RANKINGS.md`](RANKINGS.md) until all five have a published shard (or one
+  suite is decisive enough to disqualify a role).
+- **Host constraints:**
+  - MacBook `llama-swap` caps at `concurrencyLimit=2` → **`MLX_EVAL_CONCURRENT=2`
+    is mandatory** or lm-eval 0.4.11 crashes (`Session is closed`) on a 429 burst.
+  - Studio `jevans-ms` (128 GB, wired ceiling ~118 GB) serves production on
+    `127.0.0.1:11434` IPv4 plain HTTP — **always `curl -s4 127.0.0.1`** (caddy
+    holds the same port on IPv6/TLS).
+  - **One actor per host.** Never edit `llama-swap` config or restart serving
+    while a bench is in flight.
+  - A **managed window** (solo `vllm-mlx serve`) takes production Hermes
+    offline: `launchctl bootout gui/501/dev.vllm-mlx.server` → serve → restore
+    with `launchctl bootstrap gui/501 …dev.vllm-mlx.server.plist`. **Notify the
+    user before, restore after.**
+- **Traps checklist:** coding needs the qwen3 overlay; read `math_verify` not
+  `exact_match`; lm-eval needs `--tasks a,b` (positional selects zero); `mlx-bench`
+  loads the model directly (server must be DOWN); run both agentic thinking
+  tracks; check sampling parity when a bench winner misbehaves live; match the
+  serving parser to the family (`hermes` for general Qwen3, not `qwen3_coder`);
+  `--timeout 3600` for agent brains; `--gpu-memory-utilization ≤0.85`. Full
+  detail: [`docs/benchmark-traps.md`](docs/benchmark-traps.md#traps-checklist).
+- **Publish flow + token:** the ambient `HF_TOKEN` is **read-only**. Publishing
+  needs the Doppler write token:
+  `doppler run -p ai-ci-automation -c prd -- .venv/bin/mlx-bench-publish <json>
+  --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host>`. Dry-run
+  first. Dataset: `JacobPEvans/mlx-benchmarks`.
+- **Ranking duty:** after every publish, update the model's row in
+  [`RANKINGS.md`](RANKINGS.md) in the **same PR**, pulling the numbers back from
+  the dataset (loop in that file). The page must never drift from the dataset.
+
 ## Gotchas learned the hard way
 
 - **Model names**: verify against the live catalog
