@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.3...v0.10.4) (2026-07-08)
+
+
+### Documentation
+
+* **rankings:** mark all current verdicts 1/4 provisional maturity ([#109](https://github.com/dryvist/mlx-benchmarks/issues/109)) ([f7cbd09](https://github.com/dryvist/mlx-benchmarks/commit/f7cbd09438f986b9262b52031ac74f92190e77d2))
+
 ## [0.10.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.2...v0.10.3) (2026-07-08)
 
 
