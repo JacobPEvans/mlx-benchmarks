@@ -35,7 +35,18 @@ wider tool-parser set comes from the server flags
   ([smcleod.net, Apr 2026](https://smcleod.net/2026/04/measuring-model-quantisation-quality-with-kl-divergence/)).
   Use OptiQ/DWQ mixed-precision quants for agent brains; benchmark multi-turn
   (the `agentic` suite's degradation track exists exactly for this — a
-  single-shot test cannot see it).
+  single-shot test cannot see it). A DWQ/OptiQ 4-bit 35B-A3B is the proven
+  resident brain: 100% valid tool calls and a clean 20-round track
+  ([2026-07-08 selection run](./journal/2026-07-08-agentic-brain-selection.md)).
+- **Thinking must stay ON for the agent brain.** The same OptiQ-4bit that ran
+  0/20 multi-turn degradation with thinking ON degraded at round 6 with thinking
+  OFF — the mixed-precision quant does not carry multi-turn tool calling without
+  the reasoning pass. Serve this class with `enable_thinking:true`, not just a
+  good quant.
+- **Never put the `qwen3_coder` tool-call parser on a general (non-Coder)
+  Qwen3.6.** It produces empty `function.name` "repairs" on every call; the
+  `hermes` tool-call parser (with `--reasoning-parser qwen3`) drives the general
+  MoE clean, and is what the shipped serving uses for this brain.
 - Tool-call format is unstable with `enable_thinking=false` in
   token-in/token-out rollout across vLLM 0.18–0.20; 9B and older Qwen3 are
   unaffected ([verl #6223](https://github.com/verl-project/verl/issues/6223)).
@@ -80,8 +91,9 @@ wider tool-parser set comes from the server flags
   argparse — every swap-in 500s ("upstream command exited prematurely").
 - Coder-tuned: fine as a coding sidecar, weak as an autonomous agent brain —
   observed malformed tool calls under sustained agentic load where the
-  same-size instruct MoE ran clean. Poor-output reports on Coder-Next builds
-  ([llama.cpp #19305](https://github.com/ggml-org/llama.cpp/issues/19305)).
+  same-size instruct MoE ran clean (0–67% valid tool calls in the 2026-07-08
+  selection run vs 100% for the instruct MoE). Poor-output reports on Coder-Next
+  builds ([llama.cpp #19305](https://github.com/ggml-org/llama.cpp/issues/19305)).
 
 ## gpt-oss (120b / 20b — harmony format)
 
@@ -95,6 +107,9 @@ wider tool-parser set comes from the server flags
   `<|channel|>analysis to=functions...<|call|>` into content and ending the
   run early — pair with a parser/auto-recovery that tolerates it
   ([LangChain forum](https://forum.langchain.com/t/harmony-response-format-sometimes-outputted-when-using-gpt-oss-120b-as-an-agent/2554)).
+  This realized in the 2026-07-08 selection run: 0% valid structured tool calls
+  at ~2 tok/s — keep gpt-oss as an on-demand reasoning model, not the resident
+  tool-calling brain.
 - vllm-mlx 0.4.0's paged KV cache is incompatible with gpt-oss's alternating
   sliding-window attention (`[broadcast_shapes]` failures) — paged cache and
   prefix caching go off for this model only.
@@ -110,6 +125,11 @@ wider tool-parser set comes from the server flags
   [guide](https://aicybr.com/blog/glm-4-7-flash-complete-guide)).
 - Thinking is on by default; purpose-built for local agentic/coding use
   (30B MoE, ~3.6B active, 200K context).
+- **Speed does not equal agentic fitness.** In the 2026-07-08 selection run it
+  was the fastest candidate (15.1 tok/s) yet went tool-dead from round 1 of the
+  multi-turn track — unfit as an autonomous agent brain despite the best parser
+  story of the class. Fine as a fast single-shot/coding sidecar, not for
+  multi-turn tool driving.
 
 ## MiniMax-M2.7
 
@@ -137,6 +157,15 @@ wider tool-parser set comes from the server flags
   tool call / empty `function.name`* — indistinguishable from a weights
   problem in the app log. Rule out transport (client stream timeouts,
   router/proxy per-attempt timeouts) before blaming the model class.
+- **Server-side disconnect guards are a hidden killer.** A vllm-mlx server whose
+  disconnect guard was 300s aborted a legitimate 6320-token agentic generation
+  at 301.2s (`ABORTING orphaned request ...`), surfacing as "invalid tool call"
+  with empty content. Guards exist to reap genuinely-orphaned work, not to cap
+  legitimate long generations. Order the timeout chain so each outer layer
+  outlives the inner and the **client is the sole decider**: server
+  `--timeout` (e.g. 3600s) > router per-attempt timeout > client stream
+  read/stale timeout. If the server or router timeout is the shortest, it will
+  reap real work mid-tool-call.
 - Streaming last-chunk `tool_calls` with empty `type` broke strict clients
   ([vllm #38603](https://github.com/vllm-project/vllm/issues/38603));
   `--tool-call-parser hermes` + streaming returned raw text instead of parsed
