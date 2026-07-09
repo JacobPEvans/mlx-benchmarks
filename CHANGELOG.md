@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.6](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.5...v0.10.6) (2026-07-09)
+
+
+### Documentation
+
+* **flagship:** 2026-07-09 isolated-window results — no 60-90GB flagship fits ([#114](https://github.com/dryvist/mlx-benchmarks/issues/114)) ([c58da6f](https://github.com/dryvist/mlx-benchmarks/commit/c58da6f55e002cce029c3f251bd67105a590cf9e))
+
 ## [0.10.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.4...v0.10.5) (2026-07-08)
 
 
