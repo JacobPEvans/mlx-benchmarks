@@ -115,13 +115,45 @@ exists.
 | gemma-4-31b-it-4bit | ~17 | 1/4 | 18.4 | | | Dense generalist |
 | gemma-4-e4b-it-4bit | ~3 | 1/4 | 59.9 | | | Tiny, fast |
 | GLM-4.5-Air-4bit | ~60 | 1/4 | | 0.08 | | Legacy MoE |
+| Qwopus3.5-122B-A10B-…-abliterated-4bit | ~69 | 1/4 | 52.8² | | 1.0 (c1) / OOM (c4) | Fast single-stream; OOMs conc4 + **abliterated** — not adopted |
+| Hermes-4-70B-MLX-4bit | ~37 | 1/4 | 11.8² | | 0.875 (c1) / OOM | Dense 70B; needs thinking, OOMs on concurrency AND long history — not a viable brain here |
 
 ¹ GLM-4.7-Flash passes the single-shot pass-gate cell (100% valid) but the
 multi-turn track collapses at round 1 — the exact case the degradation track
 exists to expose. Single-shot validity alone is not a passing agentic verdict.
 
+² Single-stream (concurrency 1) agentic decode rate, **not** the batched
+`throughput` suite — the two are not comparable. These two rows come from the
+2026-07-09 flagship isolated-window session
+([journal](docs/journal/2026-07-09-flagship-isolated-window.md)).
+
 Cloud baselines (`reasoning` suite, `arc`/`gsm8k`, limit 100): `gemini-2.5-flash`,
 `openrouter/auto`, `openai/gpt-4.1-mini` — reference points, not local candidates.
+
+## Flagship investigation (2026-07-09) — the 50–90 GB tier does not fit here
+
+An 8-hour isolated-window sweep for a 50–90 GB "flagship" brain to maximize the
+128 GB Studio reached a firm negative: **no available 60–70 GB model is a viable
+brain for the concurrent, long-history agentic workload on this hardware.** The
+two independent walls, both measured:
+
+- **Weights vs concurrent KV cache.** A ~70 GB-weight model + four concurrent
+  20K-token KV caches exceeds the ~92 GB Metal allocation limit at
+  `gpu-memory-utilization 0.80` — Qwopus-122B-A10B-4bit OOMs the instant the
+  grid hits concurrency 4.
+- **Dense = slow + KV-heavy.** The only 70B that leaves weight headroom
+  (Hermes-4-70B-4bit, dense, 37 GB) decodes at ~12 tok/s and its per-token KV
+  cache is so large it OOMs at concurrency 4 (peak 102.8 GB) *and* at
+  concurrency 1 once a 20-round history accumulates.
+
+The 128 GB Studio serving the concurrent fleet is structurally best matched by a
+**~20–45 GB MoE** (low active params for speed, small weights for KV headroom) —
+which the resident `Qwen3.6-35B-A3B-OptiQ-4bit` already is. A 70 GB flagship only
+pays off for a **dedicated low-concurrency Hermes endpoint** (not shared with the
+cron fleet) or once **RDMA MacBook→Studio** adds memory. The non-abliterated
+122B-A10B community quants (`OptiQ-2bit`, `Text-mxfp4`) additionally **fail to
+load** in vllm-mlx 0.4.0 — they ship `vision_tower` weights the strict loader
+rejects; only the abliterated Qwopus repackaging loads.
 
 ## Keeping this page current
 
