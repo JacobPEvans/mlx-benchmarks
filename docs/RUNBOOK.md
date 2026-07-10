@@ -154,10 +154,13 @@ launchctl bootout gui/501/dev.mlx-night.prefetch 2>/dev/null || true
 # NOTE on rotation: the router-side litellm-rotate flips at 00:00Z/12:00Z
 # (staggered) and curls this host's llama-swap to warm/evict. With the
 # serving stack booted out those calls fail harmlessly (connection refused;
-# routers fall back), so no router-side pause is required for a window.
-# For a multi-day freeze, flip the committed ai_rotation_enabled var in
-# ansible-proxmox-apps and converge — never hand-touch the
-# /etc/litellm/rotation-paused sentinel (the next converge wipes it).
+# routers fall back), so no router-side pause is required for a same-day
+# window. To hold the fabric on the optimized brain across flips, touch the
+# rotation-paused sentinel on each router — that IS the designed wiring
+# point (litellm-rotate.service ConditionPathExists, see apps
+# docs/BRAIN_ROTATION.md); remove it to resume. Converges do not manage the
+# sentinel. Permanent policy changes go through the committed
+# ai_rotation_enabled var instead.
 
 # 2. Serve the target model solo (parser flags from the parser map + Step 2)
 vllm-mlx serve <model-id> \
