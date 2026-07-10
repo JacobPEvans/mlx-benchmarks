@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.0...v0.11.1) (2026-07-10)
+
+
+### Documentation
+
+* **runbook:** harden managed-window bootout/restore + rotation guidance ([#122](https://github.com/dryvist/mlx-benchmarks/issues/122)) ([1bb1889](https://github.com/dryvist/mlx-benchmarks/commit/1bb1889b790f7772a2255012acde62d5b6c74cc9))
+
 ## [0.11.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.6...v0.11.0) (2026-07-10)
 
 
