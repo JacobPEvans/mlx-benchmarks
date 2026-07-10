@@ -1,17 +1,16 @@
 # RUNBOOK — benchmark any model on any host
 
-The end-to-end procedure for taking **any** model (any size, quant, or
-architecture) on **either** Apple Silicon host and producing a complete,
-published benchmark that lands in the
+The end-to-end procedure for benchmarking **any** model on **either** Apple
+Silicon host, publishing to the
 [HF dataset](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks) and
-updates [`../RANKINGS.md`](../RANKINGS.md). Written so a fresh agent with zero
+updating [`../RANKINGS.md`](../RANKINGS.md). Written so a fresh agent with zero
 prior context can run it top to bottom.
 
 This repo owns the **result contract and the publisher** — it does not run
 models. The run commands (`mlx-eval`, `mlx-bench`, `vllm-mlx serve`) are thin
 wrappers from the serving stack; this document says *which* to run, *in what
-order*, and *which traps to avoid* (the traps and the serving parser map live in
-[`benchmark-traps.md`](benchmark-traps.md)), then how to publish the output.
+order*, and how to publish (traps + parser map:
+[`benchmark-traps.md`](benchmark-traps.md)).
 
 ## What "fully benchmarked" means
 
@@ -26,13 +25,11 @@ shard:
 | Reasoning | `lm-eval` | `reasoning` | `arc_challenge_chat` / `gsm8k` |
 | Agentic | `agentic` | `tool-calling` | Valid structured tool calls under load |
 
-A model may be **disqualified for a role** before every suite runs — a 0% agentic
-brain is not a brain no matter its throughput — but the catalog row in
-`RANKINGS.md` is only "complete" when all five are present.
-
-A "complete" row is still **provisional**: a verdict is final only after the
-[verdict policy](verdict-policy.md) — **≥4 runs ≥5 days apart, each a validated
-pair, in both environment classes**. Read it before any "best/worst" claim.
+A model may be **disqualified for a role** before every suite runs, but the
+catalog row in `RANKINGS.md` is "complete" only with all five present — and
+still **provisional**: a verdict is final only per the
+[verdict policy](verdict-policy.md) (**≥4 runs ≥5 days apart, validated pairs,
+both environment classes**). Read it before any "best/worst" claim.
 
 ## Decision tree
 
@@ -127,10 +124,10 @@ what else was running (`llama-swap` `/running` + load avg) with the run.
 
 ### Option A — existing `llama-swap` slot (no downtime) = under-load class
 
-If the model is already a `llama-swap` model on the host, target the endpoint;
-`llama-swap` loads it on first request. Default on the MacBook and for any Studio
-run that does not need a solo model. Do not edit the swap config mid-run. Running
-here **with production live** is the under-load class — no window needed.
+If the model is already in `llama-swap`, target the endpoint; it loads on first
+request. Default on the MacBook and for any Studio run not needing a solo model.
+Don't edit the swap config mid-run. With production live this is the under-load
+class — no window needed.
 
 ### Option B — solo `vllm-mlx serve` in a managed window (Studio) = isolated class
 
@@ -147,12 +144,10 @@ production serving (the Hermes brain) offline, so:
 for a in vllm-mlx.server mlx-night.watcher mlx-night.rank mlx-night.prefetch; do
   launchctl bootout "gui/501/dev.$a" 2>/dev/null || true
 done
-# Rotation (00:00Z/12:00Z router flips) needs no pause for a same-day
-# window: its warm/evict curls fail harmlessly against a booted-out proxy.
-# To freeze across flips, touch the rotation-paused sentinel per router —
-# the designed toggle (litellm-rotate ConditionPathExists, apps
-# docs/BRAIN_ROTATION.md); converges don't manage it. Permanent policy =
-# the committed ai_rotation_enabled var.
+# Rotation flips (00:00Z/12:00Z) need no pause: their curls fail harmlessly
+# against a booted-out proxy. To freeze across flips, touch the per-router
+# rotation-paused sentinel (the designed toggle, apps docs/BRAIN_ROTATION.md;
+# converges don't manage it). Permanent policy = ai_rotation_enabled.
 
 # 2. Serve the target model solo (parser flags from the parser map + Step 2)
 vllm-mlx serve <model-id> \
@@ -173,19 +168,16 @@ done
 curl -s http://127.0.0.1:11434/running
 ```
 
-Pick `--tool-call-parser` / `--reasoning-parser` from the
-[parser map](benchmark-traps.md#parser-map); mind the
-[serving flags that bite](benchmark-traps.md#serving-flags-that-bite)
-(`--timeout 3600`, `--gpu-memory-utilization ≤0.85`, gpt-oss needs
-`--disable-prefix-cache`). On the Studio, HF auth may be unset — `export
-HF_TOKEN=…` if the model needs downloading (cache on `/Volumes/HuggingFace`).
+Parser flags come from the [parser map](benchmark-traps.md#parser-map); mind
+the [serving flags that bite](benchmark-traps.md#serving-flags-that-bite). On
+the Studio, HF auth may be unset — `export HF_TOKEN=…` if the model needs
+downloading (cache on `/Volumes/HuggingFace`).
 
 ## Step 4 — Run the required suites
 
-Run against the served endpoint. Timings below are **one** run of a 30B-A3B-class
-model — but each suite runs as a **replicated pair** (×2), repeated in **both**
-environment classes, so budget ~**4×**; discard + re-run a diverging pair. Full
-trap detail: [`benchmark-traps.md`](benchmark-traps.md).
+Run against the served endpoint. Timings are **one** 30B-A3B-class run — each
+suite runs as a **replicated pair** (×2) in **both** environment classes, so
+budget ~**4×**; discard + re-run a diverging pair.
 
 ### 4a. Throughput (`--kind vllm --suite throughput`)
 
@@ -199,9 +191,8 @@ Two ways, never at the same time as anything else:
 
 ### 4b. Coding (`--kind lm-eval --suite coding`) — ~3 h
 
-Chat-served models answer in prose + fenced code, so the **plain** `humaneval`
-/`mbpp` extractors score ~0 as an artifact. **Always use the overlay**
-([trap 1](benchmark-traps.md#trap-1-coding-overlay-is-mandatory)):
+Plain `humaneval`/`mbpp` score ~0 on chat-served models. **Always use the
+overlay** ([trap 1](benchmark-traps.md#trap-1-coding-overlay-is-mandatory)):
 
 ```sh
 HF_ALLOW_CODE_EVAL=1 MLX_EVAL_CONCURRENT=2 mlx-eval \
@@ -226,8 +217,8 @@ Read the **`math_verify`** metric, not `exact_match`
 ### 4d. Reasoning (`--kind lm-eval --suite reasoning`) — ~2.5–4 h full
 
 `arc_challenge_chat` (`--limit 15` ≈ 10 min) for a quick pass, `gsm8k` for the
-canonical run. lm-eval (0.4.x) needs `--tasks a,b` — positional names select zero
-tasks ([trap 3](benchmark-traps.md#trap-3-lm-eval-tasks-flag)). Excluded-task
+canonical run. Use `--tasks a,b`
+([trap 3](benchmark-traps.md#trap-3-lm-eval-tasks-flag)). Excluded-task
 rationale: [`../configs/lm-eval/reasoning.toml`](../configs/lm-eval/reasoning.toml).
 
 ### 4e. Agentic tool-calling (`--kind agentic --suite tool-calling`) — ~30 min
@@ -242,12 +233,10 @@ uv run harness/agentic/run.py \
   --output run-output/agentic_<slug>.json
 ```
 
-Run **both** thinking tracks and judge at the pass gate — concurrency 4, thinking
-ON, large context. Single-shot validity is not sufficient; the multi-turn
-degradation track is where quants fail
-([trap 5](benchmark-traps.md#trap-5-both-thinking-tracks)). The serving config
-you ship must match the winning track. Full grid + pass gate:
-[`agentic.md`](agentic.md).
+Run **both** thinking tracks; judge at the pass gate (concurrency 4, thinking
+ON, large context) — the multi-turn degradation track is where quants fail
+([trap 5](benchmark-traps.md#trap-5-both-thinking-tracks)). Ship the winning
+track's serving config. Full grid + pass gate: [`agentic.md`](agentic.md).
 
 ## Step 5 — Publish each shard
 
@@ -267,9 +256,8 @@ doppler run -p ai-ci-automation -c prd -- \
   --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host>
 ```
 
-`--hostname` records the producing machine even when you publish from another
-(e.g. a Studio run uploaded from the MacBook). Dataset: `JacobPEvans/mlx-benchmarks`.
-Never discard a completed run — publish it with `--tag caveat=<reason>` and file
+`--hostname` records the producing machine even when publishing from another.
+Never discard a completed run — publish with `--tag caveat=<reason>` and file
 an issue rather than throwing away benchmark time.
 
 ## Step 6 — Update RANKINGS.md
