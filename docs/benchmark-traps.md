@@ -49,7 +49,7 @@ on chat output).
 
 ### Trap 3: lm-eval tasks flag
 
-lm-eval 0.4.11 needs `--tasks a,b`. Positional task names silently select zero
+lm-eval (0.4.x) needs `--tasks a,b`. Positional task names silently select zero
 tasks and the run reports success with no data.
 
 ### Trap 4: mlx-bench loads directly
