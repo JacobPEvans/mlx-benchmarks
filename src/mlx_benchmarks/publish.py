@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import subprocess
+from pathlib import PurePosixPath
 from typing import Any
 
 import pyarrow as pa
@@ -177,4 +178,15 @@ def publish(
     except HfHubHTTPError as exc:
         raise PublishError(f"HF upload failed for {path}: {exc}") from exc
     log.info("published %d-byte parquet to %s", len(parquet_bytes), path)
+
+    # Local import: events reuses envelope_to_rows from this module.
+    from mlx_benchmarks.events import append_events
+
+    try:
+        # run_id = content-addressed shard basename, joinable back to HF.
+        append_events(envelope, run_id=PurePosixPath(path).stem)
+    except OSError as exc:
+        # The feed is derived state (replayable from the dataset); never fail
+        # a successful publish over it — but say so loudly.
+        log.warning("bench-events append failed (publish succeeded, replay later): %s", exc)
     return path
