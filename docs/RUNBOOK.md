@@ -142,25 +142,17 @@ production serving (the Hermes brain) offline, so:
 > Production Hermes is down for the duration.
 
 ```sh
-# 1. Stop the production serving LaunchAgent AND every agent that could
-#    relaunch or contend with it mid-window. dev.mlx-night.watcher runs every
-#    30s and dev.vllm-mlx.server has KeepAlive — a plain `kill` resurrects;
-#    bootout removes the job from the domain so nothing comes back.
-launchctl bootout gui/501/dev.vllm-mlx.server
-launchctl bootout gui/501/dev.mlx-night.watcher 2>/dev/null || true
-launchctl bootout gui/501/dev.mlx-night.rank 2>/dev/null || true
-launchctl bootout gui/501/dev.mlx-night.prefetch 2>/dev/null || true
-
-# NOTE on rotation: the router-side litellm-rotate flips at 00:00Z/12:00Z
-# (staggered) and curls this host's llama-swap to warm/evict. With the
-# serving stack booted out those calls fail harmlessly (connection refused;
-# routers fall back), so no router-side pause is required for a same-day
-# window. To hold the fabric on the optimized brain across flips, touch the
-# rotation-paused sentinel on each router — that IS the designed wiring
-# point (litellm-rotate.service ConditionPathExists, see apps
-# docs/BRAIN_ROTATION.md); remove it to resume. Converges do not manage the
-# sentinel. Permanent policy changes go through the committed
-# ai_rotation_enabled var instead.
+# 1. Bootout serving AND everything that could relaunch it mid-window
+#    (the 30s night watcher; KeepAlive resurrects a plain `kill`).
+for a in vllm-mlx.server mlx-night.watcher mlx-night.rank mlx-night.prefetch; do
+  launchctl bootout "gui/501/dev.$a" 2>/dev/null || true
+done
+# Rotation (00:00Z/12:00Z router flips) needs no pause for a same-day
+# window: its warm/evict curls fail harmlessly against a booted-out proxy.
+# To freeze across flips, touch the rotation-paused sentinel per router —
+# the designed toggle (litellm-rotate ConditionPathExists, apps
+# docs/BRAIN_ROTATION.md); converges don't manage it. Permanent policy =
+# the committed ai_rotation_enabled var.
 
 # 2. Serve the target model solo (parser flags from the parser map + Step 2)
 vllm-mlx serve <model-id> \
@@ -172,16 +164,13 @@ vllm-mlx serve <model-id> \
 
 # 3. ... run your suites against http://127.0.0.1:11434/v1 ...
 
-# 4. Restore production serving when done (server first, then warmup +
-#    night agents; the warmup agent re-faults the residents)
-launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.vllm-mlx.server.plist
-launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.vllm-mlx.warmup.plist 2>/dev/null || true
-launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.mlx-night.watcher.plist 2>/dev/null || true
-launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.mlx-night.rank.plist 2>/dev/null || true
-launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.mlx-night.prefetch.plist 2>/dev/null || true
+# 4. Restore (server first; the warmup agent re-faults the residents)
+for a in vllm-mlx.server vllm-mlx.warmup mlx-night.watcher mlx-night.rank mlx-night.prefetch; do
+  launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.$a.plist 2>/dev/null || true
+done
 
-# 5. Verify residents are warm again before closing the window:
-#    curl -s http://127.0.0.1:11434/running   # every resident "ready"
+# 5. Verify before closing the window: every resident "ready"
+curl -s http://127.0.0.1:11434/running
 ```
 
 Pick `--tool-call-parser` / `--reasoning-parser` from the
