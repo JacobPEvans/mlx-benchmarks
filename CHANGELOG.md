@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.6...v0.11.0) (2026-07-10)
+
+
+### Features
+
+* **publish:** emit flat bench-events JSONL feed for log-pipeline ingest ([#121](https://github.com/dryvist/mlx-benchmarks/issues/121)) ([292e731](https://github.com/dryvist/mlx-benchmarks/commit/292e7315a14fa414cab5a87a4a5069f04aaa87bb)), closes [#119](https://github.com/dryvist/mlx-benchmarks/issues/119)
+
 ## [0.10.6](https://github.com/dryvist/mlx-benchmarks/compare/v0.10.5...v0.10.6) (2026-07-09)
 
 
