@@ -97,8 +97,8 @@ read it before running anything. The essentials an agent must not get wrong:
   [`RANKINGS.md`](RANKINGS.md) until all five have a published shard (or one
   suite is decisive enough to disqualify a role).
 - **Host constraints:**
-  - MacBook `llama-swap` caps at `concurrencyLimit=2` → **`MLX_EVAL_CONCURRENT=2`
-    is mandatory** or lm-eval 0.4.11 crashes (`Session is closed`) on a 429 burst.
+  - MacBook `llama-swap` caps at `concurrencyLimit=4` (nix-ai#1190; was 2) →
+    **`MLX_EVAL_CONCURRENT` must equal the deployed cap** or lm-eval 0.4.11 crashes (`Session is closed`) on a 429 burst.
   - Studio `jevans-ms` (128 GB, wired ceiling ~118 GB) serves production on
     `127.0.0.1:11434` IPv4 plain HTTP — **always `curl -s4 127.0.0.1`** (caddy
     holds the same port on IPv6/TLS).

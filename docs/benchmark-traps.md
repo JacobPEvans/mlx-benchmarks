@@ -1,6 +1,6 @@
 # Benchmark traps + serving reference
 
-The serving parser map, the serving flags that bite, and the 10-item traps
+The serving parser map, the serving flags that bite, and the 12-item traps
 checklist that [`RUNBOOK.md`](RUNBOOK.md) links into. If a result looks wrong,
 walk the checklist before blaming the model. Per-model-class failure modes live
 in [`model-notes.md`](model-notes.md).
@@ -97,3 +97,30 @@ Results land in `~/bench-runs*/` per host. Chain long runs with `nohup` and a
 `===== <date> START/DONE <model> =====` log convention, and monitor those marker
 lines to know where a chain is. Approximate suite timings (30B-A3B class):
 coding ~3 h, math ~45 min, reasoning ~2.5–4 h, agentic full grid ~30 min.
+
+### Trap 11: concurrency cascade masquerades as a serving failure
+
+A driver run against a local llama-swap/MLX endpoint that returns a flood of
+`429 {"error":"Too many requests"}` is **over-concurrency**, not a broken
+model. llama-swap accepts `concurrencyLimit` in-flight requests; exceeding it
+returns 429, the aiohttp session dies (`Session is closed` /
+`ServerDisconnected`), and lm-eval's exception handler then throws
+`UnboundLocalError: ... 'outputs'` — masking the real 429. Symptom on disk:
+crashed tasks and invalid/zero results (the 2026-07-08 campaign: 9,262×429).
+
+Fix: cap client concurrency to the endpoint's limit (`MLX_EVAL_CONCURRENT` /
+`num_concurrent` / `--max-concurrency` = the endpoint's `concurrencyLimit`).
+Verify: `grep -c 'Too many requests' <queue-log>` on a good run is 0.
+Also expect **bimodal** concurrency scaling (2026-07-11 sweep): concurrent
+requests either join one continuous batch (1.6–2.3× aggregate) or serialize
+(~1.0×) — never assume a single c2 sample characterizes the endpoint.
+
+### Trap 12: cold start folds into row 1 — warm before measuring
+
+The first request after a model (re)load carries the whole cold-load cost
+(measured: an 8.55 s 32-token first request vs 0.55 s warm — a +8 s artifact).
+A naive sweep silently folds that into its first row. Always fire a throwaway
+warm-up request before the measured run, and guard two-point decode math with
+`dt > 0` (a cold row makes the slope negative). For TTFT, count the first SSE
+`data:` chunk with content — `time_starttransfer` only measures header
+arrival (llama-swap flushes SSE headers immediately).

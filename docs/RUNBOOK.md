@@ -54,18 +54,19 @@ Pick a host by fit and by who else needs the machine.
 | | MacBook (workstation) | Mac Studio `jevans-ms` |
 | --- | --- | --- |
 | Memory | (workstation) | 128 GB unified, **wired ceiling ~118 GB** |
-| Serving | `llama-swap`, `concurrencyLimit=2` | nix `dev.vllm-mlx.server` LaunchAgent |
+| Serving | `llama-swap`, `concurrencyLimit=4` (nix-ai#1190; was 2) | nix `dev.vllm-mlx.server` LaunchAgent |
 | Endpoint | `http://localhost:11434/v1` | `http://127.0.0.1:11434/v1` (IPv4 plain HTTP) |
-| Concurrency | **`MLX_EVAL_CONCURRENT=2` required** | up to 4 |
+| Concurrency | **`MLX_EVAL_CONCURRENT` = the endpoint's `concurrencyLimit` (4)** | up to 4 |
 | HF cache | default | `/Volumes/HuggingFace` (`HF_HOME`) |
 | Role | benches compete with your work | production serving host (Hermes) |
 
 Two host rules that silently ruin a run if missed:
 
-- **MacBook: `MLX_EVAL_CONCURRENT=2` is mandatory.** `llama-swap` caps at
-  `concurrencyLimit=2`; a higher lm-eval `num_concurrent` triggers a 429 burst
-  that crashes it (`Session is closed`), losing hours. Match eval concurrency to
-  the cap.
+- **MacBook: `MLX_EVAL_CONCURRENT` must match the endpoint cap.** `llama-swap`
+  caps in-flight requests at `concurrencyLimit` (**4** since nix-ai#1190, was 2 —
+  check the deployed value, not this doc, if in doubt); a higher lm-eval
+  `num_concurrent` triggers a 429 burst that crashes it (`Session is closed`),
+  losing hours (trap 11). Match eval concurrency to the cap.
 - **Studio: always `curl -s4 127.0.0.1`, never a hostname.** Caddy holds the
   *same* port on IPv6 with TLS; the plain-HTTP vllm-mlx server is on IPv4. Force
   IPv4 with `-4` and the literal `127.0.0.1`.
@@ -195,7 +196,7 @@ Plain `humaneval`/`mbpp` score ~0 on chat-served models. **Always use the
 overlay** ([trap 1](benchmark-traps.md#trap-1-coding-overlay-is-mandatory)):
 
 ```sh
-HF_ALLOW_CODE_EVAL=1 MLX_EVAL_CONCURRENT=2 mlx-eval \
+HF_ALLOW_CODE_EVAL=1 MLX_EVAL_CONCURRENT=4 mlx-eval \
   --include_path configs/lm-eval/qwen3-tasks \
   --tasks humaneval_instruct_qwen3,mbpp_instruct_qwen3 \
   --confirm_run_unsafe_code --log_samples \
@@ -208,7 +209,7 @@ Coding benchmarks **execute model-generated code** — read
 ### 4c. Math (`--kind lm-eval --suite math-hard`) — ~45 min
 
 ```sh
-MLX_EVAL_CONCURRENT=2 mlx-eval minerva_math500 --output_path ./run-output/<slug>
+MLX_EVAL_CONCURRENT=4 mlx-eval minerva_math500 --output_path ./run-output/<slug>
 ```
 
 Read the **`math_verify`** metric, not `exact_match`
