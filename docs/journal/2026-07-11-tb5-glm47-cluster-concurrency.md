@@ -33,8 +33,12 @@ Findings (as of this single session — provisional, not a verdict):
   but serializes (flat ~65-67 aggregate).
 - The overnight "c2 = 0.71×" result was a long-decode artifact of a different
   workload shape, not a law. Short-request aggregate improves at c2.
-- Re-measure after the `concurrencyLimit` 2→4 change deploys: does the knee
-  move to c4, and does anything batch rather than serialize?
+- A/B after the `concurrencyLimit` 2→4 deploy (same host, same cells):
+  c1 42.9 · c2 90.6 · **c4 105.9 (0 429s)** · c8 113.8 (6/10 429). The knee
+  moved to the new limit: c4 is absorbed at ~2.5× c1 aggregate, but scaling
+  past c2 is sub-linear (+17%), so this stack saturates around ~110 agg
+  tok/s for short requests. Past-the-limit requests still hard-429 — the
+  remaining gap is a queue at the router tier, not a bigger limit.
 
 ## RDMA link redesign — validated live
 
