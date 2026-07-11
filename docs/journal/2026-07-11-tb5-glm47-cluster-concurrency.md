@@ -57,8 +57,46 @@ Findings (as of this single session — provisional, not a verdict):
   the intended recovery. Torn down for the merged-stack redeploy rather than
   ridden out; watch for it on re-bring-up.
 
-## Cluster measurements
+## Cluster measurements — BLOCKED this session (JACCL PD exhaustion)
 
-(To be appended after re-bring-up on the merged stack: single-stream
-two-point warm decode, c1→c8 aggregate on `:11440`, RDMA-transport evidence,
-thermal soak, degradation drill, ideal-overnight-config recommendation.)
+The second bring-up also failed rank rendezvous with `[jaccl] Couldn't
+connect (error: 60)` despite: TCP 11441 reachable across the link, RDMA
+ports `PORT_ACTIVE` on both ends, correct auto-detected env on both ranks.
+Root cause matches the known upstream failure: **each `mx.distributed.init()`
+leaks kernel RDMA Protection Domains; enough init/teardown cycles in one
+boot exhaust them, and reboot is the only recovery** (exo-explore/exo#1847,
+ml-explore/mlx#3207). The watcher's crash-loop retries burned dozens of
+inits before the pattern was recognized.
+
+Operational lessons (now in the trap set):
+
+- Never let the rank crash-loop: stop kickstarting after 2 consecutive rank
+  failures — every retry consumes a PD. Follow-up: bake a retry cap into the
+  night watcher.
+- Do not probe the rendezvous socket (`nc` to the JACCL port can consume the
+  peer slot).
+- Bring up synchronized: coordinator first, confirm LISTEN, then worker.
+
+Cluster numbers (single-stream reference, c1→c8 on `:11440`, thermal soak,
+degradation drill) move to the post-reboot continuation of this session.
+
+## Batching / queue recommendation (per model class, from today's data)
+
+1. **Interactive 30B class (both hosts):** run the serving proxy at
+   `concurrencyLimit=4` (deployed today). Evidence: c4 absorbed at ~2.5× c1
+   aggregate with zero 429s. Do not raise further — c2→c4 gained only +17%
+   and c8 still rejects; the backend saturates ~110 agg tok/s on short
+   requests. The remaining gap is **queueing, not limits**: past-the-limit
+   requests must queue at the router tier instead of hard-429 (router
+   retry-backoff shipped today addresses exactly this).
+2. **Aggregate-vs-single-stream:** concurrency pays on this stack (~1.7× at
+   c2 on both hosts, ~2.5× at c4). The earlier "MLX doesn't batch,
+   single-stream optimal" conclusion is retired — it was a long-decode
+   artifact.
+3. **Continuous-batching backend (vLLM-style) evaluation** stays the top
+   follow-up for the heavy-multi-agent case: today's stack parallelizes but
+   sub-linearly; a true continuous-batching backend is the candidate to
+   push past the ~110 ceiling. File with this data attached.
+4. **Cluster class (353B):** recommendation deferred to the post-reboot
+   measurements; until then the 353B endpoint should be treated as c1-class
+   (deep single requests), not a fleet endpoint.
