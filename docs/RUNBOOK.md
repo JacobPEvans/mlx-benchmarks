@@ -64,7 +64,7 @@ Two host rules that silently ruin a run if missed:
 
 - **MacBook: `MLX_EVAL_CONCURRENT` must match the endpoint cap** —
   `llama-swap`'s `concurrencyLimit` (**4** since nix-ai#1190; check the
-  deployed value if in doubt). Driving higher 429-bursts and crashes lm-eval
+  deployed value). Driving higher 429-bursts and crashes lm-eval
   (`Session is closed`), losing hours (trap 11).
 - **Studio: always `curl -s4 127.0.0.1`, never a hostname.** Caddy holds the
   *same* port on IPv6 with TLS; the plain-HTTP vllm-mlx server is on IPv4. Force
