@@ -54,9 +54,9 @@ Pick a host by fit and by who else needs the machine.
 | | MacBook (workstation) | Mac Studio `jevans-ms` |
 | --- | --- | --- |
 | Memory | (workstation) | 128 GB unified, **wired ceiling ~118 GB** |
-| Serving | `llama-swap`, `concurrencyLimit=4` (nix-ai#1190; was 2) | nix `dev.vllm-mlx.server` LaunchAgent |
+| Serving | `llama-swap`, `concurrencyLimit=4` (nix-ai#1190) | nix `dev.vllm-mlx.server` LaunchAgent |
 | Endpoint | `http://localhost:11434/v1` | `http://127.0.0.1:11434/v1` (IPv4 plain HTTP) |
-| Concurrency | **`MLX_EVAL_CONCURRENT` = the endpoint's `concurrencyLimit` (4)** | up to 4 |
+| Concurrency | **`MLX_EVAL_CONCURRENT` = `concurrencyLimit` (4)** | up to 4 |
 | HF cache | default | `/Volumes/HuggingFace` (`HF_HOME`) |
 | Role | benches compete with your work | production serving host (Hermes) |
 
