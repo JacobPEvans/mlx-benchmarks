@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.1...v0.11.2) (2026-07-11)
+
+
+### Documentation
+
+* **bench:** concurrency-cascade + cold-start traps, sweep journal, config guards ([#125](https://github.com/dryvist/mlx-benchmarks/issues/125)) ([5814278](https://github.com/dryvist/mlx-benchmarks/commit/5814278db55228912ba2ccb34e8997caecb56ad1))
+
 ## [0.11.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.0...v0.11.1) (2026-07-10)
 
 
