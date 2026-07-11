@@ -17,6 +17,7 @@ output_len = 256
 num_prompts = 100
 # Concurrency guard (trap 11): never drive above the endpoint's llama-swap
 # concurrencyLimit — excess requests 429 and cascade the client. 4 matches
-# the current limit (nix-ai#1190). Fire one warm-up request before the
-# measured run (trap 12: the first request after a load carries cold-load cost).
-max_concurrency = 4
+# the current limit (nix-ai#1190); vllm-mlx bench-serve's flag is
+# --concurrency (verified against the installed 0.4.0 CLI). Fire one warm-up
+# request before the measured run (trap 12: first request carries cold-load cost).
+concurrency = 4

@@ -109,7 +109,7 @@ returns 429, the aiohttp session dies (`Session is closed` /
 crashed tasks and invalid/zero results (the 2026-07-08 campaign: 9,262×429).
 
 Fix: cap client concurrency to the endpoint's limit (`MLX_EVAL_CONCURRENT` /
-`num_concurrent` / `--max-concurrency` = the endpoint's `concurrencyLimit`).
+`num_concurrent` / `--concurrency` = the endpoint's `concurrencyLimit`).
 Verify: `grep -c 'Too many requests' <queue-log>` on a good run is 0.
 Also expect **bimodal** concurrency scaling (2026-07-11 sweep): concurrent
 requests either join one continuous batch (1.6–2.3× aggregate) or serialize
