@@ -34,7 +34,7 @@ Findings (as of this single session — provisional, not a verdict):
 - The overnight "c2 = 0.71×" result was a long-decode artifact of a different
   workload shape, not a law. Short-request aggregate improves at c2.
 - A/B after the `concurrencyLimit` 2→4 deploy (same host, same cells):
-  c1 42.9 · c2 90.6 · **c4 105.9 (0 429s)** · c8 113.8 (6/10 429). The knee
+  c1 42.9 · c2 90.6 · **c4 105.9 (0 429s)** · c8 113.8 (6/10 429s). The knee
   moved to the new limit: c4 is absorbed at ~2.5× c1 aggregate, but scaling
   past c2 is sub-linear (+17%), so this stack saturates around ~110 agg
   tok/s for short requests. Past-the-limit requests still hard-429 — the
@@ -96,7 +96,7 @@ degradation drill) move to the post-reboot continuation of this session.
 3. **Continuous-batching backend (vLLM-style) evaluation** stays the top
    follow-up for the heavy-multi-agent case: today's stack parallelizes but
    sub-linearly; a true continuous-batching backend is the candidate to
-   push past the ~110 ceiling. File with this data attached.
+   push past the ~110 ceiling. File an issue with this data attached.
 4. **Cluster class (353B):** recommendation deferred to the post-reboot
    measurements; until then the 353B endpoint should be treated as c1-class
    (deep single requests), not a fleet endpoint.
