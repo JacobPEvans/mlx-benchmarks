@@ -31,6 +31,11 @@ still **provisional**: a verdict is final only per the
 [verdict policy](verdict-policy.md) (**≥4 runs ≥5 days apart, validated pairs,
 both environment classes**). Read it before any "best/worst" claim.
 
+A sixth suite, `promptstack` (`--kind promptstack --suite promptstack`), sits
+outside this set — it holds the model fixed and varies the **system prompt**
+instead, to gate prompt-surface adoption decisions. It does not feed
+`RANKINGS.md`. See [`promptstack.md`](promptstack.md).
+
 ## Decision tree
 
 ```text
@@ -272,7 +277,7 @@ Bump **Maturity** only for a validated pair ≥5 days out; keep the verdict
 
 - [`verdict-policy.md`](verdict-policy.md) — when a model may be called best/worst.
 - [`benchmark-traps.md`](benchmark-traps.md) — traps, parser map, serving flags.
-- [`agentic.md`](agentic.md) · [`model-notes.md`](model-notes.md) — suite depth,
-  per-class quirks.
+- [`agentic.md`](agentic.md) · [`promptstack.md`](promptstack.md) ·
+  [`model-notes.md`](model-notes.md) — suite depth, per-class quirks.
 - [`../configs/LAYOUT.md`](../configs/LAYOUT.md) · [`../RANKINGS.md`](../RANKINGS.md)
   · [`../examples/`](../examples/) — configs, leaderboard, walkthroughs.
