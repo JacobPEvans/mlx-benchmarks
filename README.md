@@ -106,10 +106,7 @@ flowchart LR
   linkStyle 0,1,2,3,4 stroke:#4FB3A9,stroke-width:2px;
 ```
 
-A raw results file from any wired-in evaluation tool is converted into the
-envelope, validated against `schema.json`, and published as a content-addressed
-parquet shard to the HF dataset, which the HF Space viewer renders. See
-[`docs/architecture.md`](docs/architecture.md) for the detailed component
+See [`docs/architecture.md`](docs/architecture.md) for the detailed component
 breakdown, data-flow, and CI diagrams.
 
 ## Upstream tools wired in
@@ -119,16 +116,18 @@ breakdown, data-flow, and CI diagrams.
 | [lm-evaluation-harness][lm-eval] | `reasoning`, `coding`, `math-hard` | Standard LLM accuracy evals (arc, gsm8k, humaneval, mbpp, minerva_math500) |
 | [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check serving throughput against vllm upstream |
 | [`harness/agentic/run.py`][agentic] (in-repo) | `tool-calling` | Many-tool tool-call reliability under load + multi-turn degradation |
+| [`harness/promptstack/run.py`][promptstack] (in-repo) | `promptstack` | System prompt as the independent variable — `base_plus_variant` vs. `current` |
 
 [lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
 [vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
 [agentic]: docs/agentic.md
+[promptstack]: docs/promptstack.md
 
 The lm-eval/vllm run commands are thin `uvx` wrappers in the serving stack
 (nix-ai `mlx-eval` / `mlx-bench`), not scripts in this repo — see
 [`configs/LAYOUT.md`](configs/LAYOUT.md), the single source of truth for the
-wired suites. The `agentic` runner is the exception: a standalone PEP 723
-script under `harness/`, documented in [`docs/agentic.md`](docs/agentic.md).
+wired suites. `agentic` and `promptstack` are the exceptions: standalone PEP
+723 scripts under `harness/`, documented in the pages linked in the table.
 
 ## Benchmarking playbook
 
@@ -150,11 +149,11 @@ and **agentic** (`tool-calling` via [`harness/agentic/run.py`](harness/agentic/r
 ├── examples/                 <- envelope fixtures + host walkthroughs
 ├── pyproject.toml            <- package + lint/type/test config
 ├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI,
-│                                converters/ (lm_eval, vllm, agentic)
+│                                converters/ (lm_eval, vllm, agentic, promptstack)
 ├── tests/                    <- package tests + fixtures
 ├── configs/                  <- one runbook per (tool, suite); see LAYOUT.md
-│                                (lm-eval/, vllm/, agentic/)
-├── harness/                  <- standalone PEP 723 runners (agentic/)
+│                                (lm-eval/, vllm/, agentic/, promptstack/)
+├── harness/                  <- standalone PEP 723 runners (agentic/, promptstack/)
 ├── scripts/                  <- schema validator
 ├── space/                    <- Gradio viewer (deployed to HF Space)
 ├── docs/                     <- RUNBOOK.md, architecture.md, schema.md, faq.md, journal/
@@ -163,9 +162,7 @@ and **agentic** (`tool-calling` via [`harness/agentic/run.py`](harness/agentic/r
 
 ## Installation
 
-Requires macOS on Apple Silicon (for inference) and Python 3.13+. The lm-eval
-configs assume a running OpenAI-compatible inference server on
-`http://localhost:11434/v1` (see [Requirements](#requirements)).
+Requires macOS on Apple Silicon (for inference) and Python 3.13+.
 
 ```sh
 git clone https://github.com/JacobPEvans/mlx-benchmarks.git

@@ -54,7 +54,8 @@
         "reasoning",
         "knowledge",
         "evalplus",
-        "math-hard"
+        "math-hard",
+        "promptstack"
       ],
       "description": "Which benchmark suite was executed"
     },

@@ -1,0 +1,113 @@
+{
+  "benchmark": "promptstack",
+  "model": "mlx-community/Qwen3.6-35B-A3B-4bit",
+  "surface": "hermes",
+  "timestamp": "2026-07-11T09:00:00Z",
+  "config": {
+    "base_url": "http://localhost:11434/v1",
+    "model": "mlx-community/Qwen3.6-35B-A3B-4bit",
+    "surface": "hermes",
+    "repeats": 3,
+    "thinking": ["on", "off"],
+    "thinking_kwarg": "enable_thinking",
+    "max_tokens": 1024,
+    "timeout": 120,
+    "probe_bank_version": "1"
+  },
+  "cells": [
+    {
+      "name": "variant-base_plus_variant_think-on",
+      "prompt_variant": "base_plus_variant",
+      "thinking": true,
+      "probe_results": [
+        {
+          "probe_class": "reasoning",
+          "n_tasks": 3,
+          "task_success_rate": 1.0,
+          "tokens_prompt_avg": 210.0,
+          "tokens_completion_avg": 12.0,
+          "latency_p50_ms": 850.0,
+          "latency_p95_ms": 1200.0
+        },
+        {
+          "probe_class": "tool_call",
+          "n_tasks": 4,
+          "task_success_rate": 0.75,
+          "valid_tool_call_rate": 0.75,
+          "unsupported_claim_rate": 0.0,
+          "tokens_prompt_avg": 340.0,
+          "tokens_completion_avg": 40.0,
+          "latency_p50_ms": 1100.0,
+          "latency_p95_ms": 1500.0
+        },
+        {
+          "probe_class": "instruction",
+          "n_tasks": 3,
+          "task_success_rate": 0.6667,
+          "instruction_adherence_rate": 0.8333,
+          "tokens_prompt_avg": 180.0,
+          "tokens_completion_avg": 8.0,
+          "latency_p50_ms": 620.0,
+          "latency_p95_ms": 900.0
+        },
+        {
+          "probe_class": "homelab_qa",
+          "n_tasks": 3,
+          "task_success_rate": 1.0,
+          "unsupported_claim_rate": 0.0,
+          "tokens_prompt_avg": 260.0,
+          "tokens_completion_avg": 30.0,
+          "latency_p50_ms": 780.0,
+          "latency_p95_ms": 1050.0
+        }
+      ]
+    },
+    {
+      "name": "variant-current_think-on",
+      "prompt_variant": "current",
+      "thinking": true,
+      "probe_results": [
+        {
+          "probe_class": "reasoning",
+          "n_tasks": 3,
+          "task_success_rate": 0.6667,
+          "tokens_prompt_avg": 200.0,
+          "tokens_completion_avg": 10.0,
+          "latency_p50_ms": 800.0,
+          "latency_p95_ms": 1150.0
+        },
+        {
+          "probe_class": "tool_call",
+          "n_tasks": 4,
+          "task_success_rate": 0.5,
+          "valid_tool_call_rate": 0.5,
+          "unsupported_claim_rate": 0.5,
+          "tokens_prompt_avg": 330.0,
+          "tokens_completion_avg": 38.0,
+          "latency_p50_ms": 1050.0,
+          "latency_p95_ms": 1400.0
+        },
+        {
+          "probe_class": "instruction",
+          "n_tasks": 3,
+          "task_success_rate": 0.3333,
+          "instruction_adherence_rate": 0.5,
+          "tokens_prompt_avg": 175.0,
+          "tokens_completion_avg": 9.0,
+          "latency_p50_ms": 600.0,
+          "latency_p95_ms": 870.0
+        },
+        {
+          "probe_class": "homelab_qa",
+          "n_tasks": 3,
+          "task_success_rate": 0.6667,
+          "unsupported_claim_rate": 0.3333,
+          "tokens_prompt_avg": 255.0,
+          "tokens_completion_avg": 28.0,
+          "latency_p50_ms": 760.0,
+          "latency_p95_ms": 1020.0
+        }
+      ]
+    }
+  ]
+}
