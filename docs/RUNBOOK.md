@@ -3,8 +3,7 @@
 The end-to-end procedure for benchmarking **any** model on **either** Apple
 Silicon host, publishing to the
 [HF dataset](https://huggingface.co/datasets/JacobPEvans/mlx-benchmarks) and
-updating [`../RANKINGS.md`](../RANKINGS.md). Written so a fresh agent with zero
-prior context can run it top to bottom.
+updating [`../RANKINGS.md`](../RANKINGS.md).
 
 This repo owns the **result contract and the publisher** — it does not run
 models. The run commands (`mlx-eval`, `mlx-bench`, `vllm-mlx serve`) are thin
@@ -31,10 +30,9 @@ still **provisional**: a verdict is final only per the
 [verdict policy](verdict-policy.md) (**≥4 runs ≥5 days apart, validated pairs,
 both environment classes**). Read it before any "best/worst" claim.
 
-A sixth suite, `promptstack` (`--kind promptstack --suite promptstack`), sits
-outside this set — it holds the model fixed and varies the **system prompt**
-instead, to gate prompt-surface adoption decisions. It does not feed
-`RANKINGS.md`. See [`promptstack.md`](promptstack.md).
+A sixth suite, `promptstack`, sits outside this set — it holds the model fixed
+and varies the **system prompt** to gate prompt-surface adoption. It does not
+feed `RANKINGS.md`; see [`promptstack.md`](promptstack.md).
 
 ## Decision tree
 
@@ -69,7 +67,7 @@ Two host rules that silently ruin a run if missed:
 
 - **MacBook: `MLX_EVAL_CONCURRENT` must match the endpoint cap** —
   `llama-swap`'s `concurrencyLimit` (**4** since nix-ai#1190; check the
-  deployed value). Driving higher 429-bursts and crashes lm-eval
+  deployed value). Driving higher causes 429 bursts that crash lm-eval
   (`Session is closed`), losing hours (trap 11).
 - **Studio: always `curl -s4 127.0.0.1`, never a hostname.** Caddy holds the
   *same* port on IPv6 with TLS; the plain-HTTP vllm-mlx server is on IPv4. Force
@@ -131,8 +129,7 @@ what else was running (`llama-swap` `/running` + load avg) with the run.
 
 If the model is already in `llama-swap`, target the endpoint; it loads on first
 request. Default on the MacBook and for any Studio run not needing a solo model.
-Don't edit the swap config mid-run. With production live this is the under-load
-class — no window needed.
+Don't edit the swap config mid-run.
 
 ### Option B — solo `vllm-mlx serve` in a managed window (Studio) = isolated class
 
@@ -149,10 +146,9 @@ production serving (the Hermes brain) offline, so:
 for a in vllm-mlx.server mlx-night.watcher mlx-night.rank mlx-night.prefetch; do
   launchctl bootout "gui/501/dev.$a" 2>/dev/null || true
 done
-# Rotation flips (00:00Z/12:00Z) need no pause: their curls fail harmlessly
-# against a booted-out proxy. To freeze across flips, touch the per-router
-# rotation-paused sentinel (the designed toggle, apps docs/BRAIN_ROTATION.md;
-# converges don't manage it). Permanent policy = ai_rotation_enabled.
+# Rotation flips (00:00Z/12:00Z) need no pause: their curls fail harmlessly.
+# To freeze across flips, touch the per-router rotation-paused sentinel
+# (apps docs/BRAIN_ROTATION.md). Permanent policy = ai_rotation_enabled.
 
 # 2. Serve the target model solo (parser flags from the parser map + Step 2)
 vllm-mlx serve <model-id> \
@@ -173,9 +169,8 @@ done
 curl -s http://127.0.0.1:11434/running
 ```
 
-Parser flags come from the [parser map](benchmark-traps.md#parser-map); mind
-the [serving flags that bite](benchmark-traps.md#serving-flags-that-bite). On
-the Studio, HF auth may be unset — `export HF_TOKEN=…` if the model needs
+Mind the [serving flags that bite](benchmark-traps.md#serving-flags-that-bite).
+On the Studio, HF auth may be unset — `export HF_TOKEN=…` if the model needs
 downloading (cache on `/Volumes/HuggingFace`).
 
 ## Step 4 — Run the required suites

@@ -106,10 +106,7 @@ flowchart LR
   linkStyle 0,1,2,3,4 stroke:#4FB3A9,stroke-width:2px;
 ```
 
-A raw results file from any wired-in evaluation tool is converted into the
-envelope, validated against `schema.json`, and published as a content-addressed
-parquet shard to the HF dataset, which the HF Space viewer renders. See
-[`docs/architecture.md`](docs/architecture.md) for the detailed component
+See [`docs/architecture.md`](docs/architecture.md) for the detailed component
 breakdown, data-flow, and CI diagrams.
 
 ## Upstream tools wired in
@@ -130,9 +127,7 @@ The lm-eval/vllm run commands are thin `uvx` wrappers in the serving stack
 (nix-ai `mlx-eval` / `mlx-bench`), not scripts in this repo — see
 [`configs/LAYOUT.md`](configs/LAYOUT.md), the single source of truth for the
 wired suites. `agentic` and `promptstack` are the exceptions: standalone PEP
-723 scripts under `harness/`, documented in
-[`docs/agentic.md`](docs/agentic.md) and
-[`docs/promptstack.md`](docs/promptstack.md).
+723 scripts under `harness/`, documented in the pages linked in the table.
 
 ## Benchmarking playbook
 
@@ -167,9 +162,7 @@ and **agentic** (`tool-calling` via [`harness/agentic/run.py`](harness/agentic/r
 
 ## Installation
 
-Requires macOS on Apple Silicon (for inference) and Python 3.13+. The lm-eval
-configs assume a running OpenAI-compatible inference server on
-`http://localhost:11434/v1` (see [Requirements](#requirements)).
+Requires macOS on Apple Silicon (for inference) and Python 3.13+.
 
 ```sh
 git clone https://github.com/JacobPEvans/mlx-benchmarks.git

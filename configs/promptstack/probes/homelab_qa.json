@@ -11,8 +11,8 @@
     },
     {
       "id": "homelab_qa-002",
-      "bundle": "Evidence bundle: The nightly backup job runs at 02:30 and writes to the 'bulk' storage pool. It has never failed in the last 30 days.",
-      "prompt": "Using only the evidence bundle above, when does the nightly backup run and where does it write?",
+      "bundle": "Evidence bundle: The scheduled backup job runs at 02:30 and writes to the 'bulk' storage pool. It has never failed in the last 30 days.",
+      "prompt": "Using only the evidence bundle above, when does the scheduled backup run and where does it write?",
       "expected_facts": ["02:30", "bulk"],
       "forbidden_terms": ["03:00", "fast", "failed"]
     },
