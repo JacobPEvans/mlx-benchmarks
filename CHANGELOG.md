@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.2...v0.11.3) (2026-07-12)
+
+
+### Documentation
+
+* **journal:** TB5 cluster session — concurrency curves, link redesign verdicts, batching recommendation ([#128](https://github.com/dryvist/mlx-benchmarks/issues/128)) ([b0850b6](https://github.com/dryvist/mlx-benchmarks/commit/b0850b6c14e75b31e055c9ea4f3913344eaac916))
+
 ## [0.11.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.1...v0.11.2) (2026-07-11)
 
 
