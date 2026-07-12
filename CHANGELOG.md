@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.3...v0.12.0) (2026-07-12)
+
+
+### Features
+
+* **promptstack:** add system-prompt-as-independent-variable eval suite ([#130](https://github.com/dryvist/mlx-benchmarks/issues/130)) ([922b44d](https://github.com/dryvist/mlx-benchmarks/commit/922b44d143906b1953a8cd550cd595390ce833f0))
+
 ## [0.11.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.2...v0.11.3) (2026-07-12)
 
 
