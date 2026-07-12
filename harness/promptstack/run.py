@@ -101,7 +101,7 @@ def score_tool_call(task: Mapping[str, Any], tool_calls: Sequence[Mapping[str, A
         return False
     if not isinstance(args, dict):
         return False
-    return all(key in args and args[key] for key in task["expected_required"])
+    return all(key in args and args[key] is not None for key in task["expected_required"])
 
 
 def _check_constraint(constraint: Mapping[str, Any], text: str) -> bool:
@@ -234,7 +234,7 @@ async def one_request(
     }
     start = time.monotonic()
     try:
-        response = await client.post("/chat/completions", json=body)
+        response = await client.post("chat/completions", json=body)
         record["http_status"] = response.status_code
         response.raise_for_status()
         data = response.json()
@@ -275,7 +275,17 @@ async def run_probe_class(
                 "prompt_tokens": req["prompt_tokens"],
                 "completion_tokens": req["completion_tokens"],
             }
-            if probe_class == "reasoning":
+            if req.get("error") or req.get("http_status") != 200:
+                # A network/timeout error or non-200 response is a scored
+                # failure — never let it fall through to a scorer that reads
+                # None as "no output" and mistakes that for a passing probe
+                # (e.g. score_tool_call treats tool_calls=None as an empty
+                # call list, which a negative tool-call task would count as
+                # a correct refusal).
+                record["success"] = False
+                if probe_class == "tool_call":
+                    record["kind"] = task["kind"]
+            elif probe_class == "reasoning":
                 record["success"] = score_reasoning(task, req["content"])
             elif probe_class == "tool_call":
                 record["kind"] = task["kind"]
@@ -369,10 +379,12 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
+    # httpx resolves a relative request path against base_url only when base_url
+    # ends with "/" — otherwise it drops base_url's last path segment (e.g. a
+    # "/v1" prefix). Keep the trailing slash here and post a relative path below.
+    base_url = args.base_url if args.base_url.endswith("/") else args.base_url + "/"
     cells: list[dict[str, Any]] = []
-    async with httpx.AsyncClient(
-        base_url=args.base_url.rstrip("/"), headers=headers, timeout=args.timeout
-    ) as client:
+    async with httpx.AsyncClient(base_url=base_url, headers=headers, timeout=args.timeout) as client:
         for prompt_variant, system_prompt in variants.items():
             for thinking in thinking_modes:
                 name = cell_name(prompt_variant, thinking)
