@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.12.0...v0.13.0) (2026-07-13)
+
+
+### Features
+
+* **agentic:** add --temperature and --repetition-penalty flags ([#136](https://github.com/dryvist/mlx-benchmarks/issues/136)) ([4424311](https://github.com/dryvist/mlx-benchmarks/commit/442431127ea2642ccf66fa08e3ceaa11ef0cc5a8))
+
 ## [0.12.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.11.3...v0.12.0) (2026-07-12)
 
 
