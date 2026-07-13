@@ -81,7 +81,7 @@ the isolated pass and the under-load failure are both required before a verdict.
 **80B addendum (2026-07-13):** the 80B's round-17 slip is token-budget
 truncation (`finish_reason: length`), not tool-format. At an 8192 budget
 it runs 20/20 with `repetition_penalty 1.05` (18/20 without), a guardrail its
-deep-brain alias now carries (ansible-proxmox-apps #891). Single unreplicated
+deep-brain alias now carries (JacobPEvans/ansible-proxmox-apps#891). Single unreplicated
 runs — directional only; maturity stays 1/4.
 
 ## Full catalog
