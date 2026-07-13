@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.13.0...v0.13.1) (2026-07-13)
+
+
+### Documentation
+
+* **rankings:** land 80B token-truncation finding (fits file-size gate) ([#138](https://github.com/dryvist/mlx-benchmarks/issues/138)) ([ff58d90](https://github.com/dryvist/mlx-benchmarks/commit/ff58d90d4945d98f0b74c1b520c445a785406138))
+
 ## [0.13.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.12.0...v0.13.0) (2026-07-13)
 
 
