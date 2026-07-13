@@ -587,11 +587,13 @@ async def one_request(
         "messages": messages,
         "tools": TOOLS,
         "tool_choice": "auto",
-        "temperature": 0,
+        "temperature": args.temperature,
         "max_tokens": args.max_tokens,
         "stream": stream,
         **thinking_body_kwargs(args.thinking_kwarg, thinking),
     }
+    if args.repetition_penalty is not None:
+        body["repetition_penalty"] = args.repetition_penalty
     if stream:
         body["stream_options"] = {"include_usage": True}
 
@@ -747,6 +749,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="chat_template_kwargs bool name, or 'reasoning_effort' for harmony models",
     )
     parser.add_argument("--max-tokens", type=int, default=8192)
+    parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument(
+        "--repetition-penalty",
+        type=float,
+        default=None,
+        help="Send repetition_penalty in the request body (omitted if unset)",
+    )
     parser.add_argument("--timeout", type=float, default=1200, help="Per-request timeout, seconds")
     parser.add_argument("--large-context-tokens", type=int, default=20000)
     parser.add_argument("--output", type=Path, help="Results JSON path (default: agentic_results_<ts>.json)")
@@ -815,6 +824,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "multiturn_rounds": args.multiturn_rounds,
             "thinking_kwarg": args.thinking_kwarg,
             "max_tokens": args.max_tokens,
+            "temperature": args.temperature,
+            "repetition_penalty": args.repetition_penalty,
             "timeout": args.timeout,
             "large_context_tokens": args.large_context_tokens,
         },
