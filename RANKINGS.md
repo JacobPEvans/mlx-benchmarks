@@ -53,24 +53,19 @@ all run through the identical 22-tool agentic grid on the Studio. Ranked by
 agentic fitness, then throughput. Single-stream tok/s is the agentic
 `conc1-large` effective rate from the selection run.
 
-Ordered by *provisional* agentic standing this cycle; every row is 1 validated
-run or fewer, so the order is a lead/lag as of now, not a final ranking.
-
 | Prov. rank | Model | Size GB | Maturity | Agentic valid% (conc4/on/large) | Degraded round (thinking ON) | conc1-large tok/s | Role (as of N runs) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | **Qwen3.6-35B-A3B-OptiQ-4bit** | ~19.5 | 1/4 | 100% | **clean (20/20)** | 7.4 | Leads this cycle — resident brain; thinking ON + rep-penalty guardrail |
 | 2 | Qwen3-Next-80B-A3B-Thinking-4bit | ~45 | 1/4 | 100% | round 17 | 12.0 | Runner-up; long-transcript pick, higher tok/s but heavier |
 | 3 | Qwen3.6-35B-A3B-4bit (stock) | ~19.5 | 1/4 | 100% | clean (20/20) | 4.1 | Clean but ~half the leader's speed |
 | 4 | Qwen3.6-35B-A3B-MLX-8bit (lmstudio) | ~35 | 1/4 | 100% | round 19 | 7.2 | Near-clean; 8-bit weight cost for one late slip |
-| 5 | Qwen3.6-35B-A3B-8bit (mlx) | ~35 | 1/4 | 100% | round 6 | 7.2 | Degrades early despite 8-bit — quant recipe matters more than bit width |
+| 5 | Qwen3.6-35B-A3B-8bit (mlx) | ~35 | 1/4 | 100% | round 6 | 7.2 | Degrades early despite 8-bit — quant recipe beats bit width |
 | 6 | GLM-4.7-Flash-4bit | ~18 | 1/4 | 100% single-shot | round 1 (tool-dead) | 15.1 | Fastest here; lags as a brain this cycle |
 | 7 | Qwen3-Coder-30B-A3B-Instruct-4bit | ~17 | 1/4 | 0% / 67% | round 1 | — | Coding sidecar this cycle; malformed calls under agentic load |
 | 8 | gpt-oss-120b-MXFP4-Q8 | ~63 | 1/4 | 0% | round 1 | 2.0 | Lags as a tool-calling brain this cycle |
 
-Some models have shards on several dates (Coder-30B and Qwen3.5-122B span four),
-but those are scattered single suites predating the replicated-pair + env-class
-protocol — each counts as one pre-protocol run, so every model is `1/4`. Date
-count alone does not mature a verdict.
+Date count does not mature a verdict: Coder-30B and Qwen3.5-122B have shards on
+four dates but each is one pre-protocol suite, so both stay `1/4`.
 
 **Production addendum (winner):** OptiQ-4bit must be served with thinking ON
 and a repetition-penalty guardrail (`repetition_penalty ~1.05`, `temp 0.6–0.7`).
@@ -82,6 +77,12 @@ duplicate tool calls/turn) even though the bench cell passed — see the
 isolated-vs-under-load gap is the worked example behind
 [verdict-policy Gate 3](docs/verdict-policy.md#gate-3--both-environment-classes):
 the isolated pass and the under-load failure are both required before a verdict.
+
+**80B addendum (2026-07-13):** the 80B's round-17 slip is token-budget
+truncation (`finish_reason: length`), not tool-format. At an 8192 budget
+it runs 20/20 with `repetition_penalty 1.05` (18/20 without), a guardrail its
+deep-brain alias now carries (JacobPEvans/ansible-proxmox-apps#891). Single unreplicated
+runs — directional only; maturity stays 1/4.
 
 ## Full catalog
 
