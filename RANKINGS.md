@@ -83,6 +83,17 @@ isolated-vs-under-load gap is the worked example behind
 [verdict-policy Gate 3](docs/verdict-policy.md#gate-3--both-environment-classes):
 the isolated pass and the under-load failure are both required before a verdict.
 
+**80B addendum (2026-07-13, runner-up):** a direct-harness A/B (thinking ON,
+20-round multi-turn, `repetition_penalty`/`max_tokens` swept) shows the 80B's
+`round 17` degradation above is **token-budget truncation**
+(`finish_reason: length`), not tool-format failure. At an 8192-token budget the
+80B runs `20/20` clean with `repetition_penalty 1.05` versus `18/20` without;
+at a tight 3072 budget the penalty is inert. So the 80B **leads/lags as a
+runner-up as of 1/4 runs**, and its deep-brain alias now carries the same
+`1.05` guardrail as the winner (ansible-proxmox-apps #891). These are single
+**unreplicated** runs — directional only, they do **not** advance the maturity
+gate (still `1/4`). Shards published to the HF dataset, caveat-tagged.
+
 ## Full catalog
 
 Every model with at least one published metric. Blank = not yet run for that
