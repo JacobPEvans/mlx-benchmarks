@@ -59,13 +59,13 @@ agentic fitness, then throughput. Single-stream tok/s is the agentic
 | 2 | Qwen3-Next-80B-A3B-Thinking-4bit | ~45 | 1/4 | 100% | round 17 | 12.0 | Runner-up; long-transcript pick, higher tok/s but heavier |
 | 3 | Qwen3.6-35B-A3B-4bit (stock) | ~19.5 | 1/4 | 100% | clean (20/20) | 4.1 | Clean but ~half the leader's speed |
 | 4 | Qwen3.6-35B-A3B-MLX-8bit (lmstudio) | ~35 | 1/4 | 100% | round 19 | 7.2 | Near-clean; 8-bit weight cost for one late slip |
-| 5 | Qwen3.6-35B-A3B-8bit (mlx) | ~35 | 1/4 | 100% | round 6 | 7.2 | Degrades early despite 8-bit — quant recipe matters more than bit width |
+| 5 | Qwen3.6-35B-A3B-8bit (mlx) | ~35 | 1/4 | 100% | round 6 | 7.2 | Degrades early despite 8-bit — quant recipe beats bit width |
 | 6 | GLM-4.7-Flash-4bit | ~18 | 1/4 | 100% single-shot | round 1 (tool-dead) | 15.1 | Fastest here; lags as a brain this cycle |
 | 7 | Qwen3-Coder-30B-A3B-Instruct-4bit | ~17 | 1/4 | 0% / 67% | round 1 | — | Coding sidecar this cycle; malformed calls under agentic load |
 | 8 | gpt-oss-120b-MXFP4-Q8 | ~63 | 1/4 | 0% | round 1 | 2.0 | Lags as a tool-calling brain this cycle |
 
 Date count does not mature a verdict: Coder-30B and Qwen3.5-122B have shards on
-four dates but each is one scattered pre-protocol suite, so both stay `1/4`.
+four dates but each is one pre-protocol suite, so both stay `1/4`.
 
 **Production addendum (winner):** OptiQ-4bit must be served with thinking ON
 and a repetition-penalty guardrail (`repetition_penalty ~1.05`, `temp 0.6–0.7`).
