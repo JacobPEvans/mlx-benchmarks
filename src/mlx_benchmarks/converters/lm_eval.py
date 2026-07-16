@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, Protocol, cast
 
-from mlx_benchmarks.converters.base import ConverterContext
+from mlx_benchmarks.converters.base import ConverterContext, apply_optional_fields
 from mlx_benchmarks.envelope import Envelope, GenKwargs, Result, System
 
 log = logging.getLogger(__name__)
@@ -84,9 +84,6 @@ class LmEvalConverter:
             "errors": [],
         }
 
-        if ctx.pr_number is not None:
-            envelope["pr_number"] = ctx.pr_number
-
         gen_kwargs = _extract_gen_kwargs(raw)
         if gen_kwargs:
             envelope["gen_kwargs"] = gen_kwargs
@@ -101,7 +98,7 @@ class LmEvalConverter:
         if revision:
             envelope["model_revision"] = str(revision)
 
-        return envelope
+        return apply_optional_fields(envelope, ctx)
 
     def _iter_results(self, raw: dict[str, Any], ctx: ConverterContext) -> Iterator[Result]:
         raw_results: dict[str, dict[str, Any]] = raw.get("results") or {}

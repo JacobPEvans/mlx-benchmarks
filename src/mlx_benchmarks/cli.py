@@ -21,7 +21,7 @@ from typing import Any
 
 from mlx_benchmarks.converters import get_converter
 from mlx_benchmarks.converters.base import ConverterContext
-from mlx_benchmarks.envelope import EnvelopeValidationError
+from mlx_benchmarks.envelope import EnvelopeValidationError, Serving
 from mlx_benchmarks.publish import PublishError, current_git_sha, publish
 from mlx_benchmarks.system import detect_system
 
@@ -57,6 +57,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Envelope trigger field",
     )
     parser.add_argument("--pr-number", type=int, help="Pull request number when trigger=pr")
+    parser.add_argument(
+        "--env-class",
+        choices=["isolated", "under-load"],
+        help="Machine load class during the run (verdict-policy gate 3)",
+    )
+    parser.add_argument("--concurrency", type=int, help="In-flight request count the run drove (>=1)")
+    parser.add_argument("--serving-stack", help="Serving stack, e.g. 'mlx_lm.server' or 'vllm-mlx'")
+    parser.add_argument("--serving-port", type=int, help="Serving endpoint TCP port")
+    parser.add_argument("--serving-model", help="Model id as advertised by the serving endpoint")
     parser.add_argument("--timestamp", help="Override envelope timestamp (ISO 8601 UTC, rarely needed)")
     parser.add_argument(
         "--tag",
@@ -109,12 +118,23 @@ def main(argv: list[str] | None = None) -> int:
         # actually happened elsewhere so provenance stays correct.
         system = {**system, "hostname": args.hostname}
 
+    serving: Serving = {}
+    if args.serving_stack is not None:
+        serving["stack"] = args.serving_stack
+    if args.serving_port is not None:
+        serving["endpoint_port"] = args.serving_port
+    if args.serving_model is not None:
+        serving["served_model"] = args.serving_model
+
     ctx = ConverterContext(
         suite=args.suite,
         model=model,
         git_sha=git_sha,
         trigger=args.trigger,
         pr_number=args.pr_number,
+        env_class=args.env_class,
+        concurrency=args.concurrency,
+        serving=serving or None,
         timestamp_override=args.timestamp,
         system=system,
         extra_tags=extra_tags,

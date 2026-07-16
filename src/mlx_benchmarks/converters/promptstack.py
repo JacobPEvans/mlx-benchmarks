@@ -15,7 +15,7 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
-from mlx_benchmarks.converters.base import ConverterContext
+from mlx_benchmarks.converters.base import ConverterContext, apply_optional_fields
 from mlx_benchmarks.envelope import Envelope, Result, System
 
 # Per-probe-class rate metrics: raw key -> metric name. All are ratios in [0, 1].
@@ -66,9 +66,7 @@ class PromptstackConverter:
             "results": results,
             "errors": [],
         }
-        if ctx.pr_number is not None:
-            envelope["pr_number"] = ctx.pr_number
-        return envelope
+        return apply_optional_fields(envelope, ctx)
 
 
 def _cell_results(cell: dict[str, Any], probe_bank_version: str, ctx: ConverterContext) -> list[Result]:

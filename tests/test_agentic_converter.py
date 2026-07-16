@@ -112,6 +112,20 @@ def test_agentic_extra_tags(agentic_sample: dict) -> None:
     assert all(r["tags"]["host"] == "mac-studio" for r in envelope["results"])
 
 
+def test_agentic_passes_through_run_context(agentic_sample: dict) -> None:
+    # env_class / concurrency / serving flow from the context onto the envelope
+    # via the shared apply_optional_fields helper.
+    converter = get_converter("agentic")
+    envelope = converter.build_envelope(
+        agentic_sample,
+        _ctx(env_class="isolated", concurrency=4, serving={"stack": "mlx_lm.server"}),
+    )
+    validate_envelope(envelope)
+    assert envelope["env_class"] == "isolated"
+    assert envelope["concurrency"] == 4
+    assert envelope["serving"] == {"stack": "mlx_lm.server"}
+
+
 def test_agentic_empty_cells_is_an_error() -> None:
     converter = get_converter("agentic")
     with pytest.raises(ValueError, match="no cells and no multiturn"):
