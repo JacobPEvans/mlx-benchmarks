@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from mlx_benchmarks.envelope import EnvelopeValidationError
@@ -89,6 +91,27 @@ def test_publish_skipping_validation_still_rejects_empty(invalid_envelope: dict)
     # (not plain ValueError) so the CLI can catch it via a single exception type.
     with pytest.raises(PublishError, match="No result rows"):
         publish(invalid_envelope, dry_run=True, validate=False)
+
+
+def test_envelope_to_rows_flattens_all_system_fields(valid_envelope: dict) -> None:
+    # Every system field becomes its own column, not just os/chip/memory_gb.
+    [row] = envelope_to_rows(valid_envelope)
+    assert row["kernel"] == "25.4.0"
+    assert row["lm_eval_version"] == "0.4.11"
+    assert row["python_version"] == "3.11.9"
+    assert row["hostname"] == "macbook-pro"
+
+
+def test_envelope_to_rows_flattens_topology_and_new_top_level_fields(cluster_envelope: dict) -> None:
+    [row] = envelope_to_rows(cluster_envelope)
+    # Nested topology can't be a scalar cell, so it rides as a JSON string.
+    assert json.loads(row["topology"])["world_size"] == 2
+    # New top-level fields land as their own columns.
+    assert row["env_class"] == "isolated"
+    assert row["concurrency"] == 4
+    assert json.loads(row["serving"])["endpoint_port"] == 8080
+    # The JSON-string columns still serialize to parquet.
+    assert rows_to_parquet([row])[:4] == b"PAR1"
 
 
 def test_envelope_to_rows_promotes_tok_per_sec_fields(valid_envelope: dict) -> None:
