@@ -14,6 +14,19 @@ HF dataset, visualized at the
 [`mlx-benchmarks-viewer`](https://huggingface.co/spaces/JacobPEvans/mlx-benchmarks-viewer)
 HF Space.
 
+## Agent skills
+
+Repeatable procedures live as skills under `.claude/skills/` so any agent can
+follow them without reverse-engineering the docs. Read the one matching your
+task first; each `SKILL.md` is a thin router — it points at the canonical doc
+and flags the traps, it does not duplicate them.
+
+| Skill | Use when | Path |
+| --- | --- | --- |
+| `run-benchmark` | Running any suite or judging if a model counts | [`.claude/skills/run-benchmark/SKILL.md`](.claude/skills/run-benchmark/SKILL.md) |
+| `publish-results` | Publishing a shard or updating `RANKINGS.md` | [`.claude/skills/publish-results/SKILL.md`](.claude/skills/publish-results/SKILL.md) |
+| `agentic-suite` | Driving the agentic tool-calling benchmark specifically | [`.claude/skills/agentic-suite/SKILL.md`](.claude/skills/agentic-suite/SKILL.md) |
+
 ## Repository shape (short)
 
 ```text
