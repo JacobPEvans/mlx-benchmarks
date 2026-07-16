@@ -38,5 +38,10 @@ def valid_envelope() -> dict[str, Any]:
 
 
 @pytest.fixture
+def cluster_envelope() -> dict[str, Any]:
+    return json.loads((EXAMPLES / "envelope.cluster.json").read_text())
+
+
+@pytest.fixture
 def invalid_envelope() -> dict[str, Any]:
     return json.loads((EXAMPLES / "envelope.invalid.json").read_text())

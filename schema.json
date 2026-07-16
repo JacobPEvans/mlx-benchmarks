@@ -3,6 +3,7 @@
   "$id": "https://github.com/JacobPEvans/mlx-benchmarks/schema/v1.json",
   "title": "MLX Benchmark Result",
   "description": "Structured result envelope for a single benchmark suite run. Backwards-compatible v1 — optional fields may be added without bumping schema_version; breaking changes bump the version and change $id.",
+  "$comment": "v1 additive fields (no version bump): top-level env_class, concurrency, serving; system.topology for multi-node cluster runs.",
   "type": "object",
   "required": [
     "schema_version",
@@ -90,6 +91,35 @@
         "top_k": { "type": "integer" }
       }
     },
+    "env_class": {
+      "type": "string",
+      "enum": ["isolated", "under-load"],
+      "description": "Machine load class during the run: 'isolated' (nothing else contending for the box) or 'under-load' (other significant workloads present). Verdict policy gate 3 requires distinguishing these."
+    },
+    "concurrency": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of in-flight requests the run drove concurrently. 1 for serial runs; higher values contend and depress per-request throughput."
+    },
+    "serving": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Identity of the inference server the run targeted",
+      "properties": {
+        "stack": {
+          "type": "string",
+          "description": "Serving stack name (e.g. 'mlx_lm.server', 'vllm-mlx')"
+        },
+        "endpoint_port": {
+          "type": "integer",
+          "description": "TCP port the OpenAI-compatible endpoint listened on"
+        },
+        "served_model": {
+          "type": "string",
+          "description": "Model id as advertised by the endpoint (may differ from 'model')"
+        }
+      }
+    },
     "system": {
       "type": "object",
       "required": ["os", "chip", "memory_gb"],
@@ -138,6 +168,39 @@
         "kernel": {
           "type": "string",
           "description": "OS kernel release (uname -r)"
+        },
+        "topology": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Multi-node cluster topology when the run spanned more than one machine (e.g. a two-Mac TB5 pipeline). Absent for single-node runs.",
+          "properties": {
+            "world_size": {
+              "type": "integer",
+              "description": "Total number of nodes participating in the run"
+            },
+            "parallelism": {
+              "type": "string",
+              "enum": ["pipeline", "tensor", "none"],
+              "description": "How the model was split across nodes"
+            },
+            "interconnect": {
+              "type": "string",
+              "description": "Node-to-node interconnect (e.g. 'tb5-rdma')"
+            },
+            "nodes": {
+              "type": "array",
+              "description": "Per-node hardware identity",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "hostname": { "type": "string" },
+                  "chip": { "type": "string" },
+                  "memory_gb": { "type": "integer" }
+                }
+              }
+            }
+          }
         }
       }
     },

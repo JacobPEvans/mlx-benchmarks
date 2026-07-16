@@ -26,6 +26,9 @@ Closed suite set: `throughput`, `ttft`, `tool-calling`, `code-accuracy`,
 | Field | Type | Added when |
 | --- | --- | --- |
 | `pr_number` | integer \| null | `trigger == "pr"` |
+| `env_class` | `isolated \| under-load` | Machine load class during the run (verdict-policy gate 3). |
+| `concurrency` | integer (≥1) | The run drove more than a token's worth of parallelism (in-flight request count). |
+| `serving` | object | Inference-server identity: `stack` / `endpoint_port` / `served_model` (all optional). |
 | `model_revision` | string | Model provides HF revision or commit SHA. |
 | `quantization` | string | Runtime reports it (e.g. `mlx-4bit`, `mxfp4`). |
 | `skipped` | boolean | Suite intentionally skipped (CI without hardware). |
@@ -43,6 +46,12 @@ Optional (all populated automatically by `detect_system()`):
 chip/memory, e.g. a Mac Studio vs a MacBook Pro), `python_version`,
 `mlx_version`, `mlx_lm_version`, `lm_eval_version`, `kernel`,
 `runner` (for GitHub Actions), `vllm_mlx_version`.
+
+`topology` (object, multi-node runs only): `world_size`, `parallelism`
+(`pipeline` / `tensor` / `none`), `interconnect` (e.g. `tb5-rdma`), and
+`nodes[]` (`hostname` / `chip` / `memory_gb` per node). Populated from
+`MLX_BENCH_WORLD_SIZE` / `MLX_BENCH_PARALLELISM` / `MLX_BENCH_INTERCONNECT` /
+`MLX_BENCH_NODES` (JSON array); absent for single-node runs.
 
 ## `results[]` items
 
