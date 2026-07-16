@@ -110,6 +110,25 @@ def _cell_results(cell: dict[str, Any], ctx: ConverterContext) -> list[Result]:
                 "tags": dict(tags),
             }
         )
+
+    # Wall-clock aggregate throughput (sum of completion tokens / wall seconds),
+    # published alongside decode_tokens_per_second. decode_* carries the
+    # per-request MEAN and is depressed under concurrency; this row is the honest
+    # headline number. Kept as a distinct metric so neither value changes meaning
+    # across shards. See _attach_measurements.
+    aggregate = cell.get("aggregate_tokens_per_second")
+    if isinstance(aggregate, int | float) and aggregate >= 0:
+        aggregate_result: Result = {
+            "name": "tool_calling",
+            "metric": "aggregate_tokens_per_second",
+            "value": float(aggregate),
+            "unit": "tok/s",
+            "tags": dict(tags),
+        }
+        wall = cell.get("wall_seconds")
+        if isinstance(wall, int | float):
+            aggregate_result["duration_seconds"] = float(wall)
+        results.append(aggregate_result)
     return results
 
 
@@ -120,6 +139,12 @@ def _attach_measurements(result: Result, cell: dict[str, Any]) -> None:
         result["duration_seconds"] = float(wall)
     tps = cell.get("effective_tokens_per_second")
     if isinstance(tps, int | float) and tps >= 0:
+        # decode_tokens_per_second here is the per-request MEAN completion
+        # throughput (effective_tokens_per_second). Under concurrency > 1 it is
+        # depressed by contention and is NOT the wall-clock aggregate the schema
+        # description implies — but it is what every prior shard put here, so it
+        # stays put for cross-shard comparability. The honest wall-clock figure
+        # rides alongside as the aggregate_tokens_per_second metric row.
         result["decode_tokens_per_second"] = float(tps)
     ftl = cell.get("first_token_p50_ms")
     if isinstance(ftl, int | float) and ftl >= 0:
