@@ -306,7 +306,7 @@ MULTITURN_TASKS: list[str] = [
     *SCENARIOS,
     "Now list which Splunk indexes we actually have, so we know where else to look.",
     "Check what sourcetypes exist in the linux_secure index over the last 7 days.",
-    "List the files under /var/log/app so we can see which logs rotated overnight.",
+    "List the files under /var/log/app so we can see which logs rotated recently.",
     "Fetch https://status.example.com/api/incidents and summarize any open incidents.",
     "Store a memory note under key ssh-bruteforce-2026-07 describing what we found so far.",
     "Read the wiki page titled 'Runbook: SSH bruteforce response'.",
