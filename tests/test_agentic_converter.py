@@ -33,12 +33,13 @@ def test_agentic_round_trip(agentic_sample: dict) -> None:
     results = envelope["results"]
     assert all(r["name"] == "tool_calling" for r in results)
 
-    # 2 cells x (3 rate + 2 latency rows) + 2 multiturn rows
+    # 2 cells x (3 rate + 2 latency + 1 aggregate throughput) + 2 multiturn rows
     metric_names = [r["metric"] for r in results]
     assert metric_names.count("valid_tool_call_rate") == 2
     assert metric_names.count("finish_reason_tool_calls_rate") == 2
     assert metric_names.count("request_latency_p50_ms") == 2
     assert metric_names.count("request_latency_p95_ms") == 2
+    assert metric_names.count("aggregate_tokens_per_second") == 2
     assert metric_names.count("first_degraded_round") == 2
 
 
@@ -69,6 +70,30 @@ def test_agentic_cell_dimensions_and_measurements(agentic_sample: dict) -> None:
     assert result["duration_seconds"] == 184.2
     assert result["decode_tokens_per_second"] == 21.4
     assert result["first_token_latency_ms"] == 2410.2
+
+
+def test_agentic_publishes_both_throughput_numbers(agentic_sample: dict) -> None:
+    # decode_tokens_per_second keeps the per-request mean (effective, 21.4);
+    # the wall-clock aggregate (58.7) rides alongside as its own metric row so
+    # neither number silently changes meaning across shards.
+    converter = get_converter("agentic")
+    envelope = converter.build_envelope(agentic_sample, _ctx())
+    validate_envelope(envelope)
+
+    gate = "conc4_think-on_ctx-large_stream"
+    decode = next(
+        r for r in envelope["results"] if r["metric"] == "valid_tool_call_rate" and r["tags"]["cell"] == gate
+    )
+    assert decode["decode_tokens_per_second"] == 21.4
+
+    aggregate = next(
+        r
+        for r in envelope["results"]
+        if r["metric"] == "aggregate_tokens_per_second" and r["tags"]["cell"] == gate
+    )
+    assert aggregate["value"] == 58.7
+    assert aggregate["unit"] == "tok/s"
+    assert aggregate["duration_seconds"] == 184.2
 
 
 def test_agentic_nostream_cell_has_no_first_token_latency(agentic_sample: dict) -> None:

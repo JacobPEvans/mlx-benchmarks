@@ -3,7 +3,7 @@
 [![ci-gate][badge-ci]][workflow-ci]
 [![Release Please][badge-rp]][workflow-rp]
 [![Schema v1][badge-schema]][schema-file]
-[![Python 3.11+][badge-py]][python-downloads]
+[![Python 3.13+][badge-py]][python-downloads]
 [![License: Apache 2.0][badge-license]](LICENSE)
 [![HF Dataset][badge-hfds]][hf-dataset]
 [![HF Space][badge-hfsp]][hf-space]
@@ -14,7 +14,7 @@
 [workflow-rp]: https://github.com/JacobPEvans/mlx-benchmarks/actions/workflows/release-please.yml
 [badge-schema]: https://img.shields.io/badge/schema-v1-4FB3A9
 [schema-file]: schema.json
-[badge-py]: https://img.shields.io/badge/python-3.11%2B-blue
+[badge-py]: https://img.shields.io/badge/python-3.13%2B-blue
 [python-downloads]: https://www.python.org/downloads/
 [badge-license]: https://img.shields.io/badge/license-Apache--2.0-green.svg
 [badge-hfds]: https://img.shields.io/badge/%F0%9F%A4%97%20dataset-JacobPEvans%2Fmlx--benchmarks-yellow

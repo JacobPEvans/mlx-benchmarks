@@ -323,6 +323,7 @@ FAILURE_KINDS = (
     "bad_json_args",
     "unknown_tool",
     "http_error",
+    "bad_response_body",
     "timeout",
     "stream_truncated",
 )
@@ -641,6 +642,15 @@ async def one_request(
         record["outcome"] = "timeout"
         record["latency_ms"] = round((time.monotonic() - start) * 1000, 1)
         return record
+    except json.JSONDecodeError:
+        # Malformed/truncated body: a bad SSE chunk (json.loads on a stream
+        # fragment) or a non-JSON 200 (response.json()). Record the sample as
+        # failed instead of letting it bubble up and kill the whole matrix —
+        # results are only written after every cell finishes, so an uncaught
+        # decode error mid-run would lose every completed cell.
+        record["outcome"] = "bad_response_body"
+        record["latency_ms"] = round((time.monotonic() - start) * 1000, 1)
+        return record
     except httpx.HTTPError:
         record["latency_ms"] = round((time.monotonic() - start) * 1000, 1)
         return record
@@ -673,6 +683,12 @@ async def run_cell(
             record = await one_request(client, args, messages, thinking, stream, required)
         record.pop("message", None)  # keep the results JSON compact
         return record
+
+    # Untimed warm-up: one request excluded from every statistic. The first
+    # request after a context/thinking switch pays cold-start cost (prompt-cache
+    # miss, weight residency) that would otherwise skew this cell's numbers.
+    warmup = [*prefix, {"role": "user", "content": SCENARIOS[0]}]
+    await one_request(client, args, warmup, thinking, stream, required)
 
     start = time.monotonic()
     records = await asyncio.gather(*(bounded(i) for i in range(args.repeats)))
@@ -768,7 +784,19 @@ def _selected(name: str, cells_filter: str | None) -> bool:
     return any(part.strip() and part.strip() in name for part in cells_filter.split(","))
 
 
-async def _run(args: argparse.Namespace) -> dict[str, Any]:
+def _append_partial(path: Path, kind: str, obj: Mapping[str, Any]) -> None:
+    """Append one completed unit to a crash-recovery JSONL beside the output.
+
+    The final results JSON is only written after the whole matrix finishes, so
+    without this a late failure loses every completed cell. Each line is a
+    standalone JSON object tagged by ``kind`` (``cell`` or ``multiturn``); on a
+    clean run the file is deleted and the canonical JSON supersedes it.
+    """
+    with path.open("a") as f:
+        f.write(json.dumps({"kind": kind, **obj}) + "\n")
+
+
+async def _run(args: argparse.Namespace, timestamp: str, partial_path: Path) -> dict[str, Any]:
     import httpx
 
     required = required_params(TOOLS)
@@ -796,22 +824,24 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                         if not _selected(name, args.cells):
                             continue
                         print(f"cell {name} ...", file=sys.stderr)
-                        cells.append(
-                            await run_cell(
-                                client, args, concurrency, thinking, context, stream, required, history
-                            )
+                        cell = await run_cell(
+                            client, args, concurrency, thinking, context, stream, required, history
                         )
+                        cells.append(cell)
+                        _append_partial(partial_path, "cell", cell)
         for thinking in thinking_modes:
             name = f"multiturn_think-{'on' if thinking else 'off'}"
             if not _selected(name, args.cells):
                 continue
             print(f"track {name} ...", file=sys.stderr)
-            multiturn.append(await run_multiturn(client, args, thinking, required))
+            track = await run_multiturn(client, args, thinking, required)
+            multiturn.append(track)
+            _append_partial(partial_path, "multiturn", track)
 
     return {
         "benchmark": "agentic",
         "model": args.model,
-        "timestamp": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "timestamp": timestamp,
         "config": {
             "base_url": args.base_url,
             "model": args.model,
@@ -836,10 +866,13 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    results = asyncio.run(_run(args))
-    ts = results["timestamp"].replace(":", "").replace("-", "")
+    timestamp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ts = timestamp.replace(":", "").replace("-", "")
     out: Path = args.output or Path(f"agentic_results_{ts}.json")
+    partial_path = Path(f"{out}.partial.jsonl")
+    results = asyncio.run(_run(args, timestamp, partial_path))
     out.write_text(json.dumps(results, indent=2) + "\n")
+    partial_path.unlink(missing_ok=True)  # clean run: canonical JSON supersedes the crash log
     print(f"wrote {out}", file=sys.stderr)
     return 0
 

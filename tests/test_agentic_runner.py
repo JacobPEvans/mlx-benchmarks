@@ -8,10 +8,15 @@ these pure-function tests — importable in the plain dev environment.
 
 from __future__ import annotations
 
+import argparse
+import asyncio
 import importlib.util
 import json
 from pathlib import Path
 from types import ModuleType
+
+import httpx
+import pytest
 
 
 def _load_runner() -> ModuleType:
@@ -242,3 +247,144 @@ def test_cell_name_and_thinking_kwargs() -> None:
         "chat_template_kwargs": {"enable_thinking": True}
     }
     assert runner.thinking_body_kwargs("reasoning_effort", False) == {"reasoning_effort": "low"}
+
+
+# --- runner robustness: warm-up, malformed body, incremental persistence -------
+#
+# These drive the real request path through httpx.MockTransport (no live
+# endpoint): the fake transport returns canned or deliberately-malformed bodies
+# so one_request / run_cell exercise their actual error handling.
+
+
+def _args(**overrides: object) -> argparse.Namespace:
+    defaults: dict = {
+        "model": "test-model",
+        "temperature": 0.0,
+        "max_tokens": 128,
+        "thinking_kwarg": "enable_thinking",
+        "repetition_penalty": None,
+        "repeats": 3,
+    }
+    defaults.update(overrides)
+    return argparse.Namespace(**defaults)
+
+
+def _mock_client(handler) -> httpx.AsyncClient:
+    return httpx.AsyncClient(base_url="http://test/v1", transport=httpx.MockTransport(handler), timeout=5)
+
+
+_VALID_TOOL_CALL: dict = {
+    "choices": [
+        {
+            "message": {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": "c1",
+                        "type": "function",
+                        "function": {
+                            "name": "run_splunk_query",
+                            "arguments": '{"query": "search index=main"}',
+                        },
+                    }
+                ],
+            },
+            "finish_reason": "tool_calls",
+        }
+    ],
+    "usage": {"completion_tokens": 10},
+}
+
+
+def test_run_cell_fires_one_untimed_warmup() -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, json=_VALID_TOOL_CALL)
+
+    async def go() -> dict:
+        async with _mock_client(handler) as client:
+            return await runner.run_cell(
+                client, _args(repeats=3), 1, False, "small", False, REQUIRED, history=[]
+            )
+
+    cell = asyncio.run(go())
+    # 3 timed repeats are summarized; the warm-up is the 4th request nobody counts.
+    assert cell["n_requests"] == 3
+    assert calls == 4
+
+
+def test_one_request_malformed_stream_body_is_recorded_not_raised() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        # Truncated SSE data line: json.loads used to raise straight through
+        # one_request and abort the whole matrix.
+        return httpx.Response(200, content=b'data: {"choices": [\n\n')
+
+    async def go() -> dict:
+        async with _mock_client(handler) as client:
+            return await runner.one_request(
+                client, _args(), [{"role": "user", "content": "hi"}], False, True, REQUIRED
+            )
+
+    record = asyncio.run(go())
+    assert record["outcome"] == "bad_response_body"
+    assert record["latency_ms"] is not None
+
+
+def test_run_cell_survives_malformed_bodies() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"{not json")
+
+    async def go() -> dict:
+        async with _mock_client(handler) as client:
+            return await runner.run_cell(
+                client, _args(repeats=3), 1, False, "small", False, REQUIRED, history=[]
+            )
+
+    cell = asyncio.run(go())
+    # Every request fails on the bad body, yet the cell still summarizes cleanly.
+    assert cell["failures"]["bad_response_body"] == 3
+    assert cell["valid_tool_call_rate"] == 0.0
+
+
+def test_run_persists_each_cell_incrementally(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_run_cell(client, args, concurrency, thinking, context, stream, required, history):
+        return {"name": runner.cell_name(concurrency, thinking, context, stream), "n_requests": args.repeats}
+
+    async def fake_run_multiturn(client, args, thinking, required):
+        return {"thinking": thinking, "rounds": [], "first_degraded_round": None}
+
+    monkeypatch.setattr(runner, "run_cell", fake_run_cell)
+    monkeypatch.setattr(runner, "run_multiturn", fake_run_multiturn)
+
+    partial = tmp_path / "out.json.partial.jsonl"
+    args = runner.build_parser().parse_args(
+        [
+            "--base-url",
+            "http://test/v1",
+            "--model",
+            "m",
+            "--concurrency",
+            "1",
+            "--thinking",
+            "off",
+            "--context",
+            "small",
+            "--stream",
+            "nostream",
+            "--repeats",
+            "2",
+            "--multiturn-rounds",
+            "1",
+        ]
+    )
+    results = asyncio.run(runner._run(args, "2026-07-16T00:00:00Z", partial))
+
+    # Each completed unit was flushed as it finished, so a late crash keeps them.
+    kinds = [json.loads(line)["kind"] for line in partial.read_text().splitlines()]
+    assert kinds == ["cell", "multiturn"]
+    assert results["timestamp"] == "2026-07-16T00:00:00Z"
+    assert len(results["cells"]) == 1
+    assert len(results["multiturn"]) == 1
