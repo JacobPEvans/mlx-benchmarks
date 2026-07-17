@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.13.1...v0.13.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **agentic:** runner robustness + honest throughput reporting ([#144](https://github.com/dryvist/mlx-benchmarks/issues/144)) ([fa86427](https://github.com/dryvist/mlx-benchmarks/commit/fa86427e87dbc3239f07d1b4e9bcbd2ab74bd775))
+
 ## [0.13.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.13.0...v0.13.1) (2026-07-13)
 
 
