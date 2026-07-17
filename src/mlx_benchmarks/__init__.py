@@ -16,4 +16,4 @@ __all__ = [
     "validate_envelope",
 ]
 
-__version__ = "0.13.2"  # x-release-please-version
+__version__ = "0.14.0"  # x-release-please-version
