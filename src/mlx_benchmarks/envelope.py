@@ -19,6 +19,19 @@ import jsonschema
 from jsonschema import Draft7Validator
 
 
+class TopologyNode(TypedDict, total=False):
+    hostname: str
+    chip: str
+    memory_gb: int
+
+
+class Topology(TypedDict, total=False):
+    world_size: int
+    parallelism: str
+    interconnect: str
+    nodes: list[TopologyNode]
+
+
 class System(TypedDict, total=False):
     os: str
     chip: str
@@ -31,6 +44,13 @@ class System(TypedDict, total=False):
     mlx_lm_version: str
     lm_eval_version: str
     kernel: str
+    topology: Topology
+
+
+class Serving(TypedDict, total=False):
+    stack: str
+    endpoint_port: int
+    served_model: str
 
 
 class Result(TypedDict, total=False):
@@ -64,6 +84,9 @@ class Envelope(TypedDict, total=False):
     git_sha: Required[str]
     trigger: Required[str]
     pr_number: int | None
+    env_class: str
+    concurrency: int
+    serving: Serving
     suite: Required[str]
     model: Required[str]
     model_revision: str

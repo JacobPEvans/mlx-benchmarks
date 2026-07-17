@@ -36,6 +36,46 @@ def test_invalid_envelope_fails(invalid_envelope: dict) -> None:
     assert len(excinfo.value.errors) >= 2
 
 
+def test_cluster_envelope_validates(cluster_envelope: dict) -> None:
+    # A full two-node TB5 pipeline envelope: env_class + concurrency + serving +
+    # system.topology all populated.
+    validate_envelope(cluster_envelope)
+
+
+def test_new_optional_top_level_fields_validate(valid_envelope: dict) -> None:
+    env = {
+        **valid_envelope,
+        "env_class": "under-load",
+        "concurrency": 8,
+        "serving": {"stack": "vllm-mlx", "endpoint_port": 8000, "served_model": "m"},
+    }
+    validate_envelope(env)
+
+
+def test_env_class_enum_is_enforced(valid_envelope: dict) -> None:
+    with pytest.raises(EnvelopeValidationError):
+        validate_envelope({**valid_envelope, "env_class": "chaotic"})
+
+
+def test_concurrency_minimum_is_enforced(valid_envelope: dict) -> None:
+    with pytest.raises(EnvelopeValidationError):
+        validate_envelope({**valid_envelope, "concurrency": 0})
+
+
+def test_serving_rejects_unknown_key(valid_envelope: dict) -> None:
+    with pytest.raises(EnvelopeValidationError):
+        validate_envelope({**valid_envelope, "serving": {"stack": "x", "bogus": 1}})
+
+
+def test_topology_parallelism_enum_is_enforced(valid_envelope: dict) -> None:
+    env = {
+        **valid_envelope,
+        "system": {**valid_envelope["system"], "topology": {"parallelism": "quantum"}},
+    }
+    with pytest.raises(EnvelopeValidationError):
+        validate_envelope(env)
+
+
 def test_format_checker_rejects_non_iso_timestamp(valid_envelope: dict) -> None:
     """Targeted test: without format_checker=, jsonschema accepts any string
     for ``format: date-time``. The publisher contract — and the viewer's

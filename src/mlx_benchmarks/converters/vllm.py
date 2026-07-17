@@ -6,7 +6,7 @@ import datetime
 import logging
 from typing import Any
 
-from mlx_benchmarks.converters.base import ConverterContext
+from mlx_benchmarks.converters.base import ConverterContext, apply_optional_fields
 from mlx_benchmarks.envelope import Envelope, Result, System
 
 log = logging.getLogger(__name__)
@@ -48,10 +48,7 @@ class VllmConverter:
             "errors": [],
         }
 
-        if ctx.pr_number is not None:
-            envelope["pr_number"] = ctx.pr_number
-
-        return envelope
+        return apply_optional_fields(envelope, ctx)
 
     def _iter_results(self, raw: dict[str, Any], ctx: ConverterContext) -> list[Result]:
         results: list[Result] = []

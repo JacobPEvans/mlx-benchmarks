@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from mlx_benchmarks.envelope import Envelope
+from mlx_benchmarks.envelope import Envelope, Serving
 
 
 @dataclass(slots=True)
@@ -18,6 +18,12 @@ class ConverterContext:
     git_sha: str
     trigger: str = "local"
     pr_number: int | None = None
+    # Run-provenance fields common to every suite; ``None`` -> omitted from the
+    # envelope. env_class = machine load class (isolated / under-load),
+    # concurrency = in-flight request count, serving = inference-server identity.
+    env_class: str | None = None
+    concurrency: int | None = None
+    serving: Serving | None = None
     timestamp_override: str | None = None
     system: dict[str, Any] | None = None
     extra_tags: dict[str, str] = field(default_factory=dict)
@@ -27,6 +33,25 @@ class ConverterContext:
     # Optional so library callers that already have the raw dict in memory can
     # keep working unchanged.
     source_path: Path | None = None
+
+
+def apply_optional_fields(envelope: Envelope, ctx: ConverterContext) -> Envelope:
+    """Copy optional run-context fields onto a built envelope, in place.
+
+    Centralizes the ``pr_number`` / ``env_class`` / ``concurrency`` / ``serving``
+    pass-through so every converter shares one omission rule: a field left unset
+    on the context is absent from the envelope. Returns the same envelope for
+    convenient ``return apply_optional_fields(...)`` use.
+    """
+    if ctx.pr_number is not None:
+        envelope["pr_number"] = ctx.pr_number
+    if ctx.env_class is not None:
+        envelope["env_class"] = ctx.env_class
+    if ctx.concurrency is not None:
+        envelope["concurrency"] = ctx.concurrency
+    if ctx.serving is not None:
+        envelope["serving"] = ctx.serving
+    return envelope
 
 
 class Converter(Protocol):

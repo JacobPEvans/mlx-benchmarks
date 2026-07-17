@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import logging
 import os
 import re
 import subprocess
 from pathlib import PurePosixPath
-from typing import Any
+from typing import Any, cast
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -70,17 +71,21 @@ def envelope_to_rows(envelope: Envelope) -> list[dict[str, Any]]:
         "trigger": envelope.get("trigger"),
         "suite": envelope.get("suite"),
         "model": envelope.get("model"),
-        "os": system.get("os"),
-        "chip": system.get("chip"),
-        "memory_gb": system.get("memory_gb"),
-        "hostname": system.get("hostname"),
     }
-    if "model_revision" in envelope:
-        base["model_revision"] = envelope["model_revision"]
-    if "quantization" in envelope:
-        base["quantization"] = envelope["quantization"]
-    if "seed" in envelope:
-        base["seed"] = envelope["seed"]
+    # Flatten every system field (os/chip/memory_gb, versions, kernel, runner,
+    # hostname, ...) into its own column. Nested fields (topology) can't be a
+    # scalar parquet cell, so they ride as a JSON string.
+    for key, value in system.items():
+        base[key] = json.dumps(value) if isinstance(value, dict | list) else value
+
+    # Dynamic-key access over a plain mapping view — these optional top-level
+    # scalars are copied through verbatim; envelope is a JSON object at runtime.
+    env_map = cast("dict[str, Any]", envelope)
+    for key in ("model_revision", "quantization", "seed", "env_class", "concurrency"):
+        if key in env_map:
+            base[key] = env_map[key]
+    if "serving" in envelope:
+        base["serving"] = json.dumps(envelope["serving"])
 
     results = envelope.get("results", [])
     present_optionals = {col for col in _OPTIONAL_RESULT_COLUMNS if any(col in r for r in results)}

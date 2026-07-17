@@ -7,6 +7,8 @@ contributor not using a specific M4 Max.
 
 from __future__ import annotations
 
+import json
+import logging
 import os
 import platform
 import subprocess
@@ -14,6 +16,8 @@ import sys
 from functools import lru_cache
 from importlib import metadata
 from typing import Any
+
+log = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -27,6 +31,11 @@ def detect_system() -> dict[str, Any]:
     and the package versions below) are only added when actually detected.
     Consumers should treat everything except ``os`` / ``chip`` /
     ``memory_gb`` as best-effort metadata.
+
+    Cached (``lru_cache``) since the hardware facts are fixed for a process, so
+    the subprocess/``sysctl`` probes run once. Env-driven topology is resolved by
+    the uncached :func:`_detect_topology`, so a caller setting ``MLX_BENCH_*``
+    late (or a test) does not need a fresh interpreter to pick it up.
     """
     data: dict[str, Any] = {
         "os": _detect_os(),
@@ -56,6 +65,10 @@ def detect_system() -> dict[str, Any]:
     runner = os.environ.get("RUNNER_NAME") or os.environ.get("GITHUB_RUNNER_LABEL")
     if runner:
         data["runner"] = runner
+
+    topology = _detect_topology()
+    if topology:
+        data["topology"] = topology
 
     return data
 
@@ -95,6 +108,43 @@ def _detect_memory_gb() -> int:
         return round(psutil.virtual_memory().total / (1024**3))
     except ImportError:
         return 0
+
+
+def _detect_topology() -> dict[str, Any] | None:
+    """Cluster topology from ``MLX_BENCH_*`` env vars — env-driven, no probing.
+
+    Read fresh on every call (unlike the lru_cached :func:`detect_system`) so a
+    caller that sets the vars can pick them up without a cold interpreter.
+    Returns ``None`` unless at least one topology var is set, keeping
+    single-node runs topology-free.
+    """
+    topology: dict[str, Any] = {}
+
+    world_size = os.environ.get("MLX_BENCH_WORLD_SIZE", "")
+    if world_size.isdigit():
+        topology["world_size"] = int(world_size)
+
+    parallelism = os.environ.get("MLX_BENCH_PARALLELISM")
+    if parallelism in ("pipeline", "tensor", "none"):
+        topology["parallelism"] = parallelism
+
+    interconnect = os.environ.get("MLX_BENCH_INTERCONNECT")
+    if interconnect:
+        topology["interconnect"] = interconnect
+
+    nodes_raw = os.environ.get("MLX_BENCH_NODES")
+    if nodes_raw:
+        try:
+            nodes = json.loads(nodes_raw)
+        except json.JSONDecodeError:
+            log.warning("MLX_BENCH_NODES is not valid JSON; ignoring")
+        else:
+            if isinstance(nodes, list):
+                topology["nodes"] = nodes
+            else:
+                log.warning("MLX_BENCH_NODES must be a JSON array; ignoring")
+
+    return topology or None
 
 
 def _detect_kernel() -> str:

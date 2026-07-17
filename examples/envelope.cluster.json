@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "timestamp": "2026-07-16T00:00:00Z",
+  "git_sha": "abc1234",
+  "trigger": "local",
+  "env_class": "isolated",
+  "concurrency": 4,
+  "serving": {
+    "stack": "mlx_lm.server",
+    "endpoint_port": 8080,
+    "served_model": "mlx-community/Qwen3.5-122B-A10B-4bit"
+  },
+  "suite": "throughput",
+  "model": "mlx-community/Qwen3.5-122B-A10B-4bit",
+  "system": {
+    "os": "macOS 26.0",
+    "chip": "Apple M3 Ultra",
+    "memory_gb": 256,
+    "topology": {
+      "world_size": 2,
+      "parallelism": "pipeline",
+      "interconnect": "tb5-rdma",
+      "nodes": [
+        { "hostname": "node-0", "chip": "Apple M3 Ultra", "memory_gb": 256 },
+        { "hostname": "node-1", "chip": "Apple M3 Ultra", "memory_gb": 256 }
+      ]
+    }
+  },
+  "results": [
+    {
+      "name": "decode_throughput",
+      "metric": "throughput",
+      "value": 41.2,
+      "unit": "tok/s",
+      "duration_seconds": 120.0,
+      "decode_tokens_per_second": 41.2
+    }
+  ],
+  "errors": []
+}
