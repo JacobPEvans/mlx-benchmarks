@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.13.2...v0.14.0) (2026-07-17)
+
+
+### Features
+
+* **schema:** env-class, concurrency, serving identity, cluster topology ([#150](https://github.com/dryvist/mlx-benchmarks/issues/150)) ([e4afe60](https://github.com/dryvist/mlx-benchmarks/commit/e4afe60d73d6c1def30fb39a31c1fb8b5648f0ce))
+
 ## [0.13.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.13.1...v0.13.2) (2026-07-17)
 
 
