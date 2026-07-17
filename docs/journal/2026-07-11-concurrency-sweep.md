@@ -1,7 +1,7 @@
 # 2026-07-11 — MBP concurrency sweep: batching is real but bimodal; 429 wall moves 2→4
 
 **Question.** The 2026-07-08 campaign collapsed in a 429 cascade (9,262×429 →
-`Session is closed` → lm-eval `UnboundLocalError`), and an overnight two-point
+`Session is closed` → lm-eval `UnboundLocalError`), and a prior two-point
 probe (2026-07-11) measured c2 = 0.71× aggregate, concluding "MLX doesn't
 batch". Is that true, and should the llama-swap `concurrencyLimit=2` cap move?
 
@@ -27,7 +27,7 @@ three times at `concurrencyLimit=4`.
 
 1. **Continuous batching works — sometimes.** Scheduling is bimodal: parallel
    requests either join one batch (c2 → 1.58×, c4 → up to 2.34×) or serialize
-   (c2 → 0.74×, c4 → ~1.0×). The overnight "0.71×, MLX doesn't batch" claim
+   (c2 → 0.74×, c4 → ~1.0×). The prior "0.71×, MLX doesn't batch" claim
    sampled the serialized mode once; both modes are real (trap 11).
 2. **Within the limit, nothing errors.** Worst case equals queueing —
    strictly better than the 429 the proxy returns above the limit.

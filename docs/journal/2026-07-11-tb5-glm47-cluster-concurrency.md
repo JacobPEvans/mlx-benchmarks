@@ -31,7 +31,7 @@ Findings (as of this single session — provisional, not a verdict):
   measurement — raised to 4 the same day) hard-429s everything past 2
   in-flight with no queueing; `jevans-ms` absorbs 8 in-flight without erroring
   but serializes (flat ~65-67 aggregate).
-- The overnight "c2 = 0.71×" result was a long-decode artifact of a different
+- The prior "c2 = 0.71×" result was a long-decode artifact of a different
   workload shape, not a law. Short-request aggregate improves at c2.
 - A/B after the `concurrencyLimit` 2→4 deploy (same host, same cells):
   c1 42.9 · c2 90.6 · **c4 105.9 (0 429s)** · c8 113.8 (6/10 429s). The knee
@@ -71,8 +71,8 @@ inits before the pattern was recognized.
 Operational lessons (now in the trap set):
 
 - Never let the rank crash-loop: stop kickstarting after 2 consecutive rank
-  failures — every retry consumes a PD. Follow-up: bake a retry cap into the
-  night watcher.
+  failures — every retry consumes a PD. Follow-up: bake a retry cap into
+  mlx-night.watcher.
 - Do not probe the rendezvous socket (`nc` to the JACCL port can consume the
   peer slot).
 - Bring up synchronized: coordinator first, confirm LISTEN, then worker.

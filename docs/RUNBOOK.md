@@ -142,7 +142,7 @@ production serving (the Hermes brain) offline, so:
 
 ```sh
 # 1. Bootout serving AND everything that could relaunch it mid-window
-#    (the 30s night watcher; KeepAlive resurrects a plain `kill`).
+#    (the 30s mlx-night.watcher agent; KeepAlive resurrects a plain `kill`).
 for a in vllm-mlx.server mlx-night.watcher mlx-night.rank mlx-night.prefetch; do
   launchctl bootout "gui/501/dev.$a" 2>/dev/null || true
 done
