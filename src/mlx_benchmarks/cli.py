@@ -39,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--kind",
         default="lm-eval",
-        choices=["agentic", "lm-eval", "vllm"],
+        choices=["agentic", "bench-serve", "lm-eval", "vllm"],
         help="Source format of results_json",
     )
     parser.add_argument("--suite", required=True, help="Envelope suite (must be in schema enum)")
@@ -169,7 +169,13 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _extract_model(raw: dict[str, Any]) -> str:
+def _extract_model(raw: dict[str, Any] | list[Any]) -> str:
+    if isinstance(raw, list):
+        # bench-serve emits a list of per-run records, each carrying model_id.
+        for run in raw:
+            if isinstance(run, dict) and isinstance(run.get("model_id"), str) and run["model_id"]:
+                return run["model_id"]
+        return "unknown"
     cfg = raw.get("config") or {}
     model_args = cfg.get("model_args") or {}
     for candidate in (raw.get("model_name"), model_args.get("model"), raw.get("model")):
