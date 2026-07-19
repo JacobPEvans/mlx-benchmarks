@@ -131,7 +131,7 @@ read it before running anything. The essentials an agent must not get wrong:
 - **Publish flow + token:** the ambient `HF_TOKEN` is **read-only**. Publishing
   needs the Doppler write token:
   `doppler run -p ai-ci-automation -c prd -- .venv/bin/mlx-bench-publish <json>
-  --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host>`. Dry-run
+  --kind <lm-eval|agentic|promptstack|vllm> --suite <suite> --hostname <host>`. Dry-run
   first. Dataset: `JacobPEvans/mlx-benchmarks`.
 - **Ranking duty:** after every publish, update the model's row in
   [`RANKINGS.md`](RANKINGS.md) in the **same PR**, pulling the numbers back from
