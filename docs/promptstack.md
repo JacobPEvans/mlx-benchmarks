@@ -1,5 +1,12 @@
 # promptstack suite — system prompt as the independent variable
 
+> **Superseded.** Prompt evaluation is moving to the promptfoo-based
+> `dryvist/llm-prompt-evals` repo — see
+> [`prompt-eval-framework.md`](prompt-eval-framework.md) for the decision
+> record and migration path. promptstack remains runnable and its published
+> shards stay valid history in the dataset, but new prompt A/B work should
+> start in `llm-prompt-evals`. Its probe banks migrate there as test datasets.
+
 Every other suite in this repo holds the system prompt fixed and varies the
 model. `promptstack` does the opposite: it holds the **model** fixed and
 varies the **system prompt** — `base_plus_variant` (the shared behavioral
