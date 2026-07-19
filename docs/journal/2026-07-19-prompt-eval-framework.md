@@ -117,9 +117,9 @@ the dryvist prompt-eval framework it describes:
 ## Follow-on phases (run later, each in its owning repo)
 
 - `ansible-proxmox-apps`: `langfuse_docker` role (web, worker, postgres,
-  clickhouse, redis, minio; follow the `n8n_docker` compose pattern, traefik
-  + OpenBao secrets), then a homelab GitHub runner for the fabric CI job via
-  the existing `github_runner` role.
+  clickhouse, redis, minio; follow the `n8n_docker` compose pattern, with
+  traefik and OpenBao secrets), then a homelab GitHub runner for the fabric
+  CI job via the existing `github_runner` role.
 - API apps: wire the Galileo free tier as the observability/eval lane.
 - This repo: retire `harness/promptstack/` once `llm-prompt-evals` covers
   all four probe classes.
