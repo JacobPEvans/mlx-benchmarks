@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.14.0...v0.15.0) (2026-07-19)
+
+
+### Features
+
+* **converters:** add bench-serve converter for vllm-mlx bench-serve JSON ([#154](https://github.com/dryvist/mlx-benchmarks/issues/154)) ([b599b52](https://github.com/dryvist/mlx-benchmarks/commit/b599b526296516228297bf5cd4963ee4d6de6b14))
+
 ## [0.14.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.13.2...v0.14.0) (2026-07-17)
 
 
