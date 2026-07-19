@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.15.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.15.0...v0.15.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **cli:** accept --kind promptstack in mlx-bench-publish ([abfa91c](https://github.com/dryvist/mlx-benchmarks/commit/abfa91caf8cf9deda40fe3af1798df561f3a4437))
+
+
+### Documentation
+
+* adopt promptfoo-based prompt-eval framework, supersede promptstack ([e1c8a2c](https://github.com/dryvist/mlx-benchmarks/commit/e1c8a2c1a5d8ec9ec603a887a934245271990915))
+* rewrap journal list item that markdownlint read as a plus bullet ([7c9731c](https://github.com/dryvist/mlx-benchmarks/commit/7c9731ca9cc1de99f4d1af6d5d143ab1c36d1723))
+
 ## [0.15.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.14.0...v0.15.0) (2026-07-19)
 
 
