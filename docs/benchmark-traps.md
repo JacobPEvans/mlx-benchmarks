@@ -88,8 +88,8 @@ gpt-oss → `harmony` (+ `--disable-prefix-cache`). Full map [above](#parser-map
 ### Trap 9: publish token
 
 Ambient `HF_TOKEN` is read-only. Publishing needs Doppler
-`ai-ci-automation/prd` `HF_TOKEN_REPOS_ADMIN` via `doppler run -p
-ai-ci-automation -c prd -- .venv/bin/mlx-bench-publish …`.
+the locally selected Doppler project/config's `HF_TOKEN_REPOS_ADMIN` via
+`doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- .venv/bin/mlx-bench-publish …`.
 
 ### Trap 10: run hygiene
 

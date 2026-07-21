@@ -251,7 +251,7 @@ publishing needs the Doppler write token
   --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host> --dry-run
 
 # Publish with the write token injected
-doppler run -p ai-ci-automation -c prd -- \
+doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- \
   .venv/bin/mlx-bench-publish run-output/<...>.json \
   --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host>
 ```

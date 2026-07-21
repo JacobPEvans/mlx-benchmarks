@@ -26,7 +26,7 @@ Turns a raw suite JSON into a validated Parquet shard on the
    publishing needs the Doppler write token:
 
    ```bash
-   doppler run -p ai-ci-automation -c prd -- \
+   doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- \
      .venv/bin/mlx-bench-publish <results.json> --kind <...> --suite <...> --hostname <host>
    ```
 
