@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.15.2...v0.15.3) (2026-07-21)
+
+
+### Documentation
+
+* **benchmarks:** parameterize Doppler selection ([dc9cc05](https://github.com/dryvist/mlx-benchmarks/commit/dc9cc05eba990178065ed3dd5a739b9b8e772289))
+* **benchmarks:** parameterize Doppler selection ([#160](https://github.com/dryvist/mlx-benchmarks/issues/160)) ([d95e1b2](https://github.com/dryvist/mlx-benchmarks/commit/d95e1b22473795063f71ee48151d84eb366a8d98))
+
 ## [0.15.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.15.1...v0.15.2) (2026-07-19)
 
 
