@@ -207,7 +207,7 @@ lm_eval --model local-chat-completions \
   --kind lm-eval --suite reasoning --dry-run
 
 # 3. Publish — the ambient HF_TOKEN is read-only, so inject a write token
-doppler run -p ai-ci-automation -c prd -- \
+doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- \
   .venv/bin/mlx-bench-publish ./run-output/<model-dir>/results_*.json \
   --kind lm-eval --suite reasoning
 ```

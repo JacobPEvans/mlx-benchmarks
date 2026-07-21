@@ -39,7 +39,7 @@ Publish (dry-run, then real — note the Doppler write token):
 .venv/bin/mlx-bench-publish ./run-output/$SLUG/results_*.json \
   --kind lm-eval --suite reasoning --dry-run
 
-doppler run -p ai-ci-automation -c prd -- \
+doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- \
   .venv/bin/mlx-bench-publish ./run-output/$SLUG/results_*.json \
   --kind lm-eval --suite reasoning
 ```

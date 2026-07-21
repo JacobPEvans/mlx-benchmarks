@@ -130,7 +130,7 @@ read it before running anything. The essentials an agent must not get wrong:
   detail: [`docs/benchmark-traps.md`](docs/benchmark-traps.md#traps-checklist).
 - **Publish flow + token:** the ambient `HF_TOKEN` is **read-only**. Publishing
   needs the Doppler write token:
-  `doppler run -p ai-ci-automation -c prd -- .venv/bin/mlx-bench-publish <json>
+  `doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- .venv/bin/mlx-bench-publish <json>
   --kind <lm-eval|agentic|promptstack|vllm> --suite <suite> --hostname <host>`. Dry-run
   first. Dataset: `JacobPEvans/mlx-benchmarks`.
 - **Ranking duty:** after every publish, update the model's row in
