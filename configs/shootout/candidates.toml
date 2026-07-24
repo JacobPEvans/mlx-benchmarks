@@ -16,9 +16,12 @@
 # on the larger of the two is the safe direction.
 
 [fit]
-# Studio jevans-ms: 128 GB unified, iogpu wired limit 104000 MiB (~109 GB
-# decimal), set in nix-darwin hosts/mac-studio/default.nix.
-wired_limit_mb = 104000
+# Studio jevans-ms: 128 GB unified. nix-darwin hosts/mac-studio/default.nix
+# sets maxLocalLlmGb = 100 -> wired limit 102400 MiB (100 GiB) with a 28 GiB OS
+# reserve, and a 99 GiB cap beneath that ceiling. (An earlier 104000 MiB /
+# ~13 GB-reserve posture was superseded after WindowServer-starvation
+# incidents showed a headless auto-login session still needs OS headroom.)
+wired_limit_mb = 102400
 # Measured Metal allocation wall at --gpu-memory-utilization 0.80, from the
 # 2026-07-09 flagship session (RANKINGS.md "Flagship investigation").
 metal_alloc_ceiling_gb = 92
@@ -44,8 +47,8 @@ weight_gb = 44.8
 catalogued = true
 arch = "qwen3_next MoE, A3B, hybrid attention"
 thinking_kwarg = "enable_thinking"
-role = "baseline-incumbent"
-why = "The model actually serving as the Studio's resident fleet brain today. Every other candidate has to beat what is already deployed, so it anchors the slate."
+role = "former-fleet-brain"
+why = "Won the 2026-07-17 agentic bench and held the fleet-brain role under the >=75B mandate, but is now swap-class with NO roles: single-model mode routes everything to the Coder-30B instead. Configured, not deleted. The strongest previously-measured contender, and the obvious model to reinstate if it wins."
 
 [[candidate]]
 id = "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit"
@@ -54,8 +57,8 @@ weight_gb = 17.2
 catalogued = true
 arch = "qwen3_moe MoE, A3B, standard attention"
 thinking_kwarg = "enable_thinking"
-role = "baseline-requested"
-why = "Currently the swap-class coding model. Its 2026-07-08 agentic result was 0-67% valid with round-1 multi-turn collapse; re-running it holds the floor of the slate honest and re-tests that result under the verdict policy."
+role = "baseline-incumbent"
+why = "THE incumbent. The Studio runs programs.mlx.singleModel pinned to this id (single-model mode, 2026-07-23): it is the only resident, carries every logical role including tool-calling and goal-judge, and every other catalog model's id aliases onto it. Its 2026-07-08 agentic result was 0-67% valid with round-1 multi-turn collapse, so the model currently serving the fleet is the one the slate most needs to re-measure."
 
 [[candidate]]
 id = "mlx-community/MiniMax-M2-REAP-139B-A10B-mxfp4"
@@ -105,7 +108,7 @@ catalogued = false
 arch = "qwen3_next MoE, A3B, hybrid attention"
 thinking_kwarg = "enable_thinking"
 role = "challenger"
-why = "Coder-tuned sibling of the incumbent on identical architecture, so its serving flags are already known (paged cache off for qwen3_next). Isolates tuning from architecture against candidate 1."
+why = "Coder-tuned sibling of the former fleet brain on identical qwen3_next architecture, so its serving flags are already known (paged cache off). Isolates tuning from architecture against that entry — and against the Coder-30B incumbent, it isolates scale within the same coder tuning."
 
 [[candidate]]
 id = "mlx-community/Kimi-Dev-72B-4bit-DWQ"

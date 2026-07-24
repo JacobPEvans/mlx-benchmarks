@@ -104,25 +104,26 @@ not ranked.
 
 ## Memory ceiling
 
-The Studio is 128 GB unified with `iogpu.wired_limit_mb = 104000` (~109 GB
-decimal), set in nix-darwin's `mac-studio` host config. The 2026-07-09 flagship
-session measured the practical Metal allocation wall at **~92 GB** with
-`--gpu-memory-utilization 0.80`.
+nix-darwin's `mac-studio` config sets `maxLocalLlmGb = 100` — wired limit
+102400 MiB (100 GiB), a 28 GiB OS reserve, and a 99 GiB cap beneath it. The
+binding constraint is tighter: the 2026-07-09 session measured the Metal
+allocation wall at **~92 GB** at `--gpu-memory-utilization 0.80`.
 
-The slate therefore caps candidate **weights at 75 GB**, leaving ~17 GB for the
-KV cache, framework, and activation scratch. A 64K-token KV cache costs ~1.6 GB
-on a `qwen3_next`-class hybrid but several times that on a dense 70B, so the
-headroom is sized for the dense worst case.
+The slate caps **weights at 75 GB**. The largest candidate,
+`MiniMax-M2-REAP-139B-A10B-mxfp4`, measures **73.9 GB** — **~18 GB** under that
+wall for KV, framework, and activation scratch. A 64K KV cache costs ~1.6 GB on
+a `qwen3_next`-class hybrid and several times that on a dense 70B, so the
+headroom is sized for the dense worst case. Every candidate fits alone.
 
 Two things this budget is **not**:
 
-- It is not the resident-fleet budget. Today the Studio holds an 80B brain plus
-  a 27B judge simultaneously; the shootout evaluates one model alone, so it has
-  materially more room than the deployed configuration.
-- It is not the concurrency-4 budget that produced the 2026-07-09 negative
-  result on the 50–90 GB tier. That wall was weights + **four** concurrent 20K
-  KV caches. Every 40B+ model here is served single-slot, so the shootout runs
-  at concurrency 1 and a 70 GB model is not disqualified by it.
+- It is not the deployed budget. The Studio runs **single-model mode** — one
+  resident plus a small always-available swap tier — so the shootout's
+  one-model-alone assumption matches how it serves today.
+- It is not the concurrency-4 budget behind the 2026-07-09 negative result on
+  the 50–90 GB tier. That wall was weights + **four** concurrent 20K KV caches.
+  Every 40B+ model here is served single-slot, so the shootout runs at
+  concurrency 1 and a 70 GB model is not disqualified by it.
 
 ## Running the sweep
 
@@ -234,9 +235,10 @@ Plan accordingly. Two ways to cut it that do not break the protocol:
 
 ## Adopting a winner
 
-A shootout result is an input to a decision, not the decision. Adoption means
-changing the `class`/`roles` of a catalog entry in nix-ai's
-`lib/hosts/mac-studio.nix`, and it needs the model's serve args validated into
+A shootout result is an input to a decision, not the decision. The Studio is in
+single-model mode, so adoption means repointing `programs.mlx.singleModel` and
+the role set in nix-darwin's `lib/hosts/mac-studio.nix`, and it needs the
+model's serve args validated into nix-ai's
 `modules/mlx/catalog-data.nix` first. Physical model ids belong in that catalog
 and in this repo's candidate list — **never in a nix module option or option
 example**, which a CI check rejects.
