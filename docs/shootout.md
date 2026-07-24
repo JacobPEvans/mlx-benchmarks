@@ -4,13 +4,9 @@ Which single model, running **alone** on the Studio, is the most accurate brain
 for an autonomous agent that makes MCP tool calls, reads the results, and writes
 factual digests?
 
-This document is the operator procedure. It composes two existing pieces rather
-than inventing a third: the [`agentic`](agentic.md) suite already measures
-tool-call fidelity and latency, and the `factual` suite added alongside it
-measures what the model does with what the tool returned. The
-`mlx-bench-shootout` ranker combines them.
-
-Candidate slate, with measured weights and rejection reasons:
+The operator procedure. It composes two suites — [`agentic`](agentic.md) and
+`factual` — and ranks them with `mlx-bench-shootout`. Candidate slate, measured
+weights, and rejections:
 [`../configs/shootout/candidates.toml`](../configs/shootout/candidates.toml).
 
 > Everything this procedure produces is **PROVISIONAL**. One sweep cannot mature
@@ -37,17 +33,11 @@ human to read a transcript, and none uses a model as a judge.
 The agentic runner sends a **22-tool registry** of realistic MCP-shaped
 schemas (Splunk query/index/sourcetype, filesystem, shell, memory, wiki, Slack,
 cron, web fetch) including near-duplicate distractors that force a choice
-between similar names. A response is `valid` only when **all** of these hold:
+between similar names. The validity rules and the failure taxonomy are in
+[`agentic.md`](agentic.md) and not repeated here.
 
-- at least one structured `tool_calls` entry is present,
-- the function name is non-empty **and in the registry**,
-- the arguments parse as a JSON object carrying **every required key** for that
-  tool,
-- `finish_reason == "tool_calls"`.
-
-Anything else lands in a failure taxonomy (`no_tool_call`, `empty_function_name`,
-`bad_json_args`, `unknown_tool`, `stream_truncated`, …). Note what this already
-covers: a model that emits `[Tool call: ...]` as prose instead of a structured
+One consequence is worth stating, because it answers a question the shootout
+raises: a model that emits `[Tool call: ...]` as prose instead of a structured
 call produces no `tool_calls` and scores `no_tool_call`. **Leaking raw tool
 syntax into prose is therefore already a scored failure**, and the 20-round
 multi-turn track is what exposes it — stock 4-bit quants degrade into that
@@ -69,22 +59,18 @@ Four deterministic checks per response:
   as a normalized number, so `1,284` satisfies `1284`).
 - **fabricated numbers** — the metric the suite exists for. Every numeric token
   in the response must appear in the evidence, in the prompt, or in the case's
-  declared `allowed_derived` list (a correct total, a row count — figures a
-  faithful summary computes rather than copies). **Any residue is a
-  fabrication.** Extraction is deliberately punctuation-blind and runs
-  identically over evidence and response, so reformatting (`July 23, 2026` for
-  an ISO timestamp) never reads as invention.
+  declared `allowed_derived` list (a correct total, a row count). **Any residue
+  is a fabrication.** Extraction is punctuation-blind and runs identically over
+  evidence and response, so reformatting (`July 23, 2026` for an ISO timestamp)
+  never reads as invention.
 - **forbidden claims** — the plausible-but-wrong answer for that case:
-  transposed digits on a large count, an inverted status, a retention figure for
-  a case where the evidence carries none.
+  transposed digits, an inverted status, a retention figure the evidence lacks.
 - **tool-syntax leak** — raw call syntax in prose that should carry none.
 
-One case (`digest-004-absent-field`) has **no correct value to state**: the field
-is missing from the evidence. A model that invents one fails; a model that says
-so passes. That is the abstention behavior a digest-writing agent needs.
-
-A response passes only on all four counts; `grounded_accuracy` is the share that
-does.
+A response passes only on all four; `grounded_accuracy` is the share that does.
+One case (`digest-004-absent-field`) has **no correct value to state** — a model
+that invents one fails, one that says so passes. That abstention is what a
+digest-writing agent needs.
 
 ### 3. Latency
 
@@ -134,12 +120,17 @@ Two things this budget is **not**:
    B](RUNBOOK.md#step-3--serve-the-model) is the canonical bootout/restore
    sequence, including the watcher agents that will otherwise relaunch serving
    mid-window.
-2. **One actor per host.** Confirm no other bench is in flight.
+2. **One actor per host, and never during a cluster drill.** Confirm no other
+   bench is in flight. The two-Mac cluster drill is a separate operator
+   activity on this same hardware, and it **re-pins `iogpu.wired_limit_mb`**
+   while a rank is serving (nix-darwin `cluster-link-prep.nix`). That moves the
+   ceiling every fit decision below is derived from, out from under a running
+   sweep. The two must not overlap in either direction.
 3. **Pre-fetch weights** into `/Volumes/HuggingFace` (`HF_HOME`) *before* the
-   window. Downloading ~500 GB of candidates inside the window wastes the
-   window; `hf download <id>` per candidate, outside it.
-4. **Check the served name against the live catalog** once serving is up:
-   `curl -s4 http://127.0.0.1:11434/v1/models`. Never trust a filename.
+   window — `hf download <id>` per candidate. ~500 GB downloaded inside the
+   window is window wasted.
+4. **Check served names against `/v1/models`** once serving is up, never a
+   filename.
 
 ### Per candidate
 
@@ -170,12 +161,11 @@ uv run harness/factual/run.py \
   --output "run-output/factual_${SLUG}.json"
 ```
 
-Parser flags come from the [parser map](benchmark-traps.md#parser-map). Two that
-bite on this slate: **gpt-oss needs `--reasoning-parser gpt_oss`** or its harmony
-channel markers leak into `message.content` (and it needs
-`--thinking-kwarg reasoning_effort` on both runners); **`qwen3_next` models need
-the paged KV cache off**, because paged-block reconstruction fails on every
-multi-turn request.
+Parser flags: [parser map](benchmark-traps.md#parser-map). Two bite on this
+slate. **gpt-oss needs `--reasoning-parser gpt_oss`** or harmony channel markers
+leak into `message.content`, plus `--thinking-kwarg reasoning_effort` on both
+runners. **`qwen3_next` models need the paged KV cache off** — paged-block
+reconstruction fails on every multi-turn request.
 
 Then rank:
 
@@ -194,38 +184,53 @@ Per candidate, at concurrency 1:
 | Factual (5 cases × 5 repeats × 2 thinking modes) | ~10–20 min |
 | **Subtotal** | **~1.5–2 h** |
 
-For 11 candidates: **~17–22 h of serving time for a single pass.** The verdict
-policy requires a **validated consecutive pair** — every suite run twice with
-identical config, both discarded if they diverge past the threshold — so a
-protocol-valid sweep is **~35–45 h**, and that is one run of the four the policy
-needs before any verdict stops being provisional.
+For 11 candidates: **~17–22 h of serving time per pass.** The verdict policy
+requires a **validated consecutive pair** (each suite run twice, both discarded
+if they diverge), so a protocol-valid sweep is **~35–45 h** — one run of the
+four needed before any verdict stops being provisional.
 
-Plan accordingly. Two ways to cut it that do not break the protocol:
+Two ways to cut that without breaking the protocol:
 
 - **Screen first, then replicate.** Run one unreplicated pass over all 11 to
   find the top ~4, then run validated pairs on those only. The screening pass is
   directional and must not be published or scored as a verdict.
 - **Smoke before committing.** `--cells conc1_think-on_ctx-large_stream
-  --repeats 3` on the agentic runner and `--thinking off --repeats 1` on the
-  factual runner takes minutes per model and catches a wrong parser, a bad
-  thinking kwarg, or a model that will not load — before you spend two hours on
-  it.
+  --repeats 3` (agentic) and `--thinking off --repeats 1` (factual) take minutes
+  per model and catch a wrong parser, a bad thinking kwarg, or a model that will
+  not load — before you spend two hours on it.
 
 ### Afterwards
 
-1. **Restore production first**, before any analysis:
-   `launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.vllm-mlx.server.plist`
-   plus the warmup and watcher agents ([RUNBOOK Step 3](RUNBOOK.md#step-3--serve-the-model)),
-   then verify every resident reads `ready` at
-   `curl -s4 http://127.0.0.1:11434/running`. **The incumbent brain is restored
-   whether or not a challenger won** — adopting a new brain is a separate,
-   deliberate change to the nix-ai catalog selection, never a side effect of
-   benchmarking.
+1. **Restore production first**, before any analysis. The sweep never edits nix
+   config, so restore is a restart, not a reconfigure — the posture comes back
+   from what nix already declares. Kill the solo server, then bring the agents
+   back:
+
+   ```sh
+   pkill -f 'vllm-mlx serve' || true          # the sweep's solo server
+   for a in vllm-mlx.server vllm-mlx.warmup \
+            mlx-night.watcher mlx-night.rank mlx-night.prefetch; do
+     launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.$a.plist || true
+   done
+   curl -s4 http://127.0.0.1:11434/v1/models | grep -o '"id":"[^"]*"'
+   curl -s4 http://127.0.0.1:11434/running
+   ```
+
+   **The observable:** single-model mode means `/v1/models` lists exactly two
+   ids — the resident `Qwen3-Coder-30B-A3B-Instruct-4bit` and the
+   `Qwen3.5-9B-MLX-4bit` swap tier — and `/running` shows the Coder-30B
+   `ready`. Anything else (a candidate still listed, more than two ids, nothing
+   ready) means the window is not closed. If config was somehow touched,
+   `darwin-rebuild switch` restores it from nix; do not hand-edit to recover.
+
+   **The incumbent is restored whether or not a challenger won.** Adoption is a
+   separate, deliberate change, never a side effect of benchmarking.
+
 2. **Publish every run.** Never discard completed benchmark time — publish with
    `--tag caveat=<reason>` and file an issue instead.
 
    ```sh
-   doppler run -p ai-ci-automation -c prd -- \
+   doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- \
      .venv/bin/mlx-bench-publish run-output/factual_<slug>.json \
      --kind factual --suite grounded-summary --hostname jevans-ms
    ```
@@ -237,19 +242,13 @@ Plan accordingly. Two ways to cut it that do not break the protocol:
 
 A shootout result is an input to a decision, not the decision. The Studio is in
 single-model mode, so adoption means repointing `programs.mlx.singleModel` and
-the role set in nix-darwin's `lib/hosts/mac-studio.nix`, and it needs the
-model's serve args validated into nix-ai's
-`modules/mlx/catalog-data.nix` first. Physical model ids belong in that catalog
-and in this repo's candidate list — **never in a nix module option or option
-example**, which a CI check rejects.
+the role set in nix-darwin's `lib/hosts/mac-studio.nix`, after the model's serve
+args are validated into nix-ai's `modules/mlx/catalog-data.nix`. Physical model
+ids belong in that catalog and in this repo's candidate list — **never in a nix
+module option or option example**, which a CI check rejects.
 
-Two adoption traps this fabric has already hit:
-
-- **Sampling parity.** The 2026-07-08 winner passed every bench cell and then
-  degenerated into repetition loops under production defaults, needing a
-  `repetition_penalty` guardrail. Bench numbers are only valid at the sampling
-  settings that produced them — ship the winning track's config, or re-bench at
-  the config you intend to ship.
-- **Environment class.** An isolated-window result says nothing about behavior
-  under concurrent production load. The verdict policy requires both classes;
-  the gap between them is itself a finding.
+Two traps this fabric has already hit: **sampling parity** — the 2026-07-08
+winner passed every cell and then degenerated into repetition loops under
+production defaults, so bench numbers are only valid at the sampling settings
+that produced them; and **environment class** — an isolated result says nothing
+about behavior under concurrent load, and the verdict policy requires both.
