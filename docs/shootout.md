@@ -2,17 +2,13 @@
 
 Which single model, running **alone** on the Studio, is the most accurate brain
 for an autonomous agent that makes MCP tool calls, reads the results, and writes
-factual digests?
-
-The operator procedure. It composes two suites — [`agentic`](agentic.md) and
-`factual` — and ranks them with `mlx-bench-shootout`. Candidate slate, measured
-weights, and rejections:
+factual digests? This composes the [`agentic`](agentic.md) and `factual` suites
+and ranks them with `mlx-bench-shootout`. Slate, measured weights, rejections:
 [`../configs/shootout/candidates.toml`](../configs/shootout/candidates.toml).
 
-> Everything this procedure produces is **PROVISIONAL**. One sweep cannot mature
-> a verdict — see [`verdict-policy.md`](verdict-policy.md). The output gates
-> *this cycle's* choice of brain, not a permanent judgment, and the wording rule
-> ("leads/lags as of N runs", never "best") applies to every artifact from it.
+> Output is **PROVISIONAL** — one sweep cannot mature a verdict
+> ([`verdict-policy.md`](verdict-policy.md)). It gates *this cycle's* choice,
+> and the "leads/lags as of N runs" wording rule applies to every artifact.
 
 ## The three criteria, and how each is scored
 
@@ -30,16 +26,15 @@ human to read a transcript, and none uses a model as a judge.
 
 ### 1. Tool-call fidelity — programmatic pass/fail per call
 
-The agentic runner sends a **22-tool registry** of realistic MCP-shaped
-schemas (Splunk query/index/sourcetype, filesystem, shell, memory, wiki, Slack,
-cron, web fetch) including near-duplicate distractors that force a choice
-between similar names. The validity rules and the failure taxonomy are in
-[`agentic.md`](agentic.md) and not repeated here.
+The agentic runner sends a **22-tool registry** of realistic MCP-shaped schemas
+(Splunk, filesystem, shell, memory, wiki, Slack, cron, web fetch) plus
+near-duplicate distractors that force a choice between similar names. Validity
+rules and failure taxonomy: [`agentic.md`](agentic.md).
 
-One consequence is worth stating, because it answers a question the shootout
-raises: a model that emits `[Tool call: ...]` as prose instead of a structured
-call produces no `tool_calls` and scores `no_tool_call`. **Leaking raw tool
-syntax into prose is therefore already a scored failure**, and the 20-round
+One consequence answers a question the shootout raises: a model that emits
+`[Tool call: ...]` as prose produces no `tool_calls` and scores `no_tool_call`.
+**Leaking raw tool syntax into prose is therefore already a scored failure**,
+and the 20-round
 multi-turn track is what exposes it — stock 4-bit quants degrade into that
 fallback around round 5 while looking perfect on single-shot.
 
@@ -80,13 +75,11 @@ suite, measured at concurrency 1 — the shootout is a single-user question.
 ### How the ranking combines them
 
 `mlx-bench-shootout` sorts **lexicographically by the priority above**, never by
-a weighted sum (a weighted sum would smuggle in importance numbers nobody
-agreed). Rates are quantized to **0.10** before comparison, which is the verdict
-policy's own Gate 2 divergence threshold for a bounded-[0,1] metric: two rates
-closer than that are inside run-to-run drift, so they tie and the next criterion
-decides. Latency — the one criterion where a small difference is real and
-repeatable — is the final tiebreak. A model missing either suite is listed but
-not ranked.
+a weighted sum (which would smuggle in importance numbers nobody agreed). Rates
+quantize to **0.10** first — the verdict policy's own Gate 2 divergence
+threshold for a bounded-[0,1] metric — so two rates closer than that tie and the
+next criterion decides. Latency, where a small difference is real and
+repeatable, is the final tiebreak. A model missing either suite is not ranked.
 
 ## Memory ceiling
 
@@ -115,17 +108,17 @@ Two things this budget is **not**:
 
 ### Before you start
 
-1. **Take a maintenance window.** This procedure takes the Studio's production
-   serving offline. Notify first, restore after — [`RUNBOOK.md` Step 3 Option
-   B](RUNBOOK.md#step-3--serve-the-model) is the canonical bootout/restore
-   sequence, including the watcher agents that will otherwise relaunch serving
-   mid-window.
+1. **Take a maintenance window.** This takes production serving offline.
+   Notify first — [`RUNBOOK.md` Step 3 Option B](RUNBOOK.md#step-3--serve-the-model)
+   is the canonical bootout sequence, including the watcher agents that would
+   otherwise relaunch serving mid-window.
 2. **One actor per host, and never during a cluster drill.** Confirm no other
    bench is in flight. The two-Mac cluster drill is a separate operator
-   activity on this same hardware, and it **re-pins `iogpu.wired_limit_mb`**
-   while a rank is serving (nix-darwin `cluster-link-prep.nix`). That moves the
-   ceiling every fit decision below is derived from, out from under a running
-   sweep. The two must not overlap in either direction.
+   activity on this same hardware. Its link watcher **quiesces normal serving**
+   (sweeping away agents, model server included) and **re-pins
+   `iogpu.wired_limit_mb`** while a rank is serving — moving the very ceiling
+   every fit decision below derives from. The two must never overlap, in either
+   direction.
 3. **Pre-fetch weights** into `/Volumes/HuggingFace` (`HF_HOME`) *before* the
    window — `hf download <id>` per candidate. ~500 GB downloaded inside the
    window is window wasted.
@@ -212,16 +205,22 @@ Two ways to cut that without breaking the protocol:
             mlx-night.watcher mlx-night.rank mlx-night.prefetch; do
      launchctl bootstrap gui/501 ~/Library/LaunchAgents/dev.$a.plist || true
    done
-   curl -s4 http://127.0.0.1:11434/v1/models | grep -o '"id":"[^"]*"'
-   curl -s4 http://127.0.0.1:11434/running
+
+   # The observable: a real completion from the restored resident.
+   curl -s4 http://127.0.0.1:11434/v1/chat/completions \
+     -H 'content-type: application/json' -d '{
+       "model":"mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit",
+       "messages":[{"role":"user","content":"reply with the word ready"}],
+       "max_tokens":8}' | jq -r '.choices[0].message.content'
    ```
 
-   **The observable:** single-model mode means `/v1/models` lists exactly two
-   ids — the resident `Qwen3-Coder-30B-A3B-Instruct-4bit` and the
-   `Qwen3.5-9B-MLX-4bit` swap tier — and `/running` shows the Coder-30B
-   `ready`. Anything else (a candidate still listed, more than two ids, nothing
-   ready) means the window is not closed. If config was somehow touched,
-   `darwin-rebuild switch` restores it from nix; do not hand-edit to recover.
+   That must return generated text. A process being up is not the check — the
+   Hermes agent depends on this brain continuously, so inference answering is
+   the only thing that proves the window is closed. Also confirm `/v1/models`
+   lists exactly two ids (single-model mode): the resident Coder-30B and the
+   `Qwen3.5-9B-MLX-4bit` swap tier. A candidate still listed, a third id, or a
+   non-answering endpoint means it is not. If config was somehow touched,
+   `darwin-rebuild switch` restores it from nix; never hand-edit to recover.
 
    **The incumbent is restored whether or not a challenger won.** Adoption is a
    separate, deliberate change, never a side effect of benchmarking.
