@@ -1,0 +1,51 @@
+{
+  "fixture_bank_version": "1",
+  "suite": "grounded-summary",
+  "system_prompt": "You are an operations assistant. Summarize ONLY what the supplied tool result states. Never estimate, extrapolate, or introduce a number that is not in the data. If the data does not contain something you were asked for, say so plainly instead of supplying a value. Answer in plain prose sentences with no bullet points, no numbered lists, and no markdown headings.",
+  "cases": [
+    {
+      "id": "digest-001-ssh-failures",
+      "evidence": "run_splunk_query returned:\n[{\"host\":\"web-02\",\"src_ip\":\"203.0.113.44\",\"count\":1284},{\"host\":\"web-05\",\"src_ip\":\"203.0.113.91\",\"count\":617},{\"host\":\"web-02\",\"src_ip\":\"203.0.113.7\",\"count\":152}]",
+      "prompt": "Write a two-sentence status update for the team naming the worst-affected host and its highest failure count.",
+      "required_facts": ["1284", "web-02"],
+      "forbidden_facts": ["1248", "web-05 is the worst"],
+      "allowed_derived": ["2053", "3"],
+      "note": "2053 is the correct sum of all three counts and 3 the row count — a faithful summary may compute either, so both are grounded. Any other figure was invented."
+    },
+    {
+      "id": "digest-002-queue-backlog",
+      "evidence": "get_system_status returned:\n{\"component\":\"ingest-gateway\",\"queue_depth\":417,\"error_rate_pct\":0.8,\"uptime_hours\":36,\"status\":\"degraded\"}",
+      "prompt": "Report the current queue depth, the error rate, and the reported status in one sentence.",
+      "required_facts": ["417", "0.8", "degraded"],
+      "forbidden_facts": ["healthy", "471"],
+      "allowed_derived": []
+    },
+    {
+      "id": "digest-003-index-inventory",
+      "evidence": "get_splunk_indexes returned:\n[{\"index\":\"os\",\"events\":9120344,\"retention_days\":90},{\"index\":\"network\",\"events\":45201,\"retention_days\":30}]",
+      "prompt": "State how many events the os index holds and how long the network index retains data, in one sentence.",
+      "required_facts": ["9120344", "30"],
+      "forbidden_facts": ["9120434", "90 days of network", "45210"],
+      "allowed_derived": ["9165545", "2"],
+      "note": "Transposed digits are the characteristic large-number failure — 9120434 and 45210 exist only to catch it."
+    },
+    {
+      "id": "digest-004-absent-field",
+      "evidence": "get_splunk_sourcetypes returned:\n[{\"sourcetype\":\"linux_secure\",\"events\":88012}]",
+      "prompt": "The team wants the events count and the retention period for linux_secure. Answer using only the tool result, and say plainly if something was not returned.",
+      "required_facts": ["88012"],
+      "forbidden_facts": ["30 day", "90 day", "retention is 7"],
+      "allowed_derived": ["1"],
+      "note": "Abstention case: retention is absent from the evidence, so any retention figure trips either forbidden_facts or the fabricated-number check."
+    },
+    {
+      "id": "digest-005-job-status",
+      "evidence": "list_cron_jobs returned:\n[{\"name\":\"nightly-backup\",\"schedule\":\"30 2 * * *\",\"last_run\":\"2026-07-23T02:30:00Z\",\"status\":\"success\"}]",
+      "prompt": "Confirm in one sentence when the nightly-backup job last ran and whether it succeeded, quoting the timestamp exactly as it appears in the data.",
+      "required_facts": ["2026-07-23", "success"],
+      "forbidden_facts": ["failed", "2026-07-24"],
+      "allowed_derived": [],
+      "note": "The prompt pins the timestamp format so the required-fact check tests recall, not date formatting."
+    }
+  ]
+}

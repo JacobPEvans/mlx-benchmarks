@@ -30,9 +30,9 @@ still **provisional**: a verdict is final only per the
 [verdict policy](verdict-policy.md) (**≥4 runs ≥5 days apart, validated pairs,
 both environment classes**). Read it before any "best/worst" claim.
 
-A sixth suite, `promptstack`, sits outside this set — it holds the model fixed
-and varies the **system prompt** to gate prompt-surface adoption. It does not
-feed `RANKINGS.md`; see [`promptstack.md`](promptstack.md).
+Two suites sit outside this set, feeding no `RANKINGS.md` row: `promptstack`
+varies the **system prompt** ([`promptstack.md`](promptstack.md)); `factual`
+scores invented numbers in summaries ([`shootout.md`](shootout.md)).
 
 ## Decision tree
 

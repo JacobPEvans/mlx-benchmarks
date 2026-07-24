@@ -117,17 +117,19 @@ breakdown, data-flow, and CI diagrams.
 | [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check serving throughput against vllm upstream |
 | [`harness/agentic/run.py`][agentic] (in-repo) | `tool-calling` | Many-tool tool-call reliability under load + multi-turn degradation |
 | [`harness/promptstack/run.py`][promptstack] (in-repo) | `promptstack` | System prompt as the independent variable — `base_plus_variant` vs. `current` |
+| [`harness/factual/run.py`][factual] (in-repo) | `grounded-summary` | Invented numbers when summarizing data |
 
 [lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
 [vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
 [agentic]: docs/agentic.md
 [promptstack]: docs/promptstack.md
+[factual]: docs/shootout.md
 
 The lm-eval/vllm run commands are thin `uvx` wrappers in the serving stack
 (nix-ai `mlx-eval` / `mlx-bench`), not scripts in this repo — see
 [`configs/LAYOUT.md`](configs/LAYOUT.md), the single source of truth for the
-wired suites. `agentic` and `promptstack` are the exceptions: standalone PEP
-723 scripts under `harness/`, documented in the pages linked in the table.
+wired suites. `agentic`, `promptstack`, and `factual` are the exceptions:
+standalone PEP 723 scripts under `harness/`, documented in the linked pages.
 
 ## Benchmarking playbook
 
@@ -149,11 +151,11 @@ and **agentic** (`tool-calling` via [`harness/agentic/run.py`](harness/agentic/r
 ├── examples/                 <- envelope fixtures + host walkthroughs
 ├── pyproject.toml            <- package + lint/type/test config
 ├── src/mlx_benchmarks/       <- publisher, envelope, system, CLI,
-│                                converters/ (lm_eval, vllm, agentic, promptstack)
+│                                shootout ranker, converters/ (per --kind)
 ├── tests/                    <- package tests + fixtures
 ├── configs/                  <- one runbook per (tool, suite); see LAYOUT.md
-│                                (lm-eval/, vllm/, agentic/, promptstack/)
-├── harness/                  <- standalone PEP 723 runners (agentic/, promptstack/)
+│                                (one per suite, plus shootout/)
+├── harness/                  <- standalone PEP 723 runners, per suite
 ├── scripts/                  <- schema validator
 ├── space/                    <- Gradio viewer (deployed to HF Space)
 ├── docs/                     <- RUNBOOK.md, architecture.md, schema.md, faq.md, journal/
@@ -287,6 +289,7 @@ publish(envelope, dry_run=False)  # validates + uploads
 
 ```python
 from datasets import load_dataset
+
 ds = load_dataset("JacobPEvans/mlx-benchmarks")
 print(ds["train"][0])
 ```
