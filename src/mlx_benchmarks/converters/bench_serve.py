@@ -22,6 +22,10 @@ log = logging.getLogger(__name__)
 # Map from bench-serve per-run key -> (metric_name, unit). Metric names match
 # the vllm benchmark_serving converter where semantics coincide, so both tools
 # land on comparable columns. Median over repetitions -> the *_p50 names.
+#
+# Headline metric policy (2026-07-27, see docs/schema.md): throughput_total_toks_per_s
+# (cumulative prompt+completion tok/s) is the PRIMARY figure — throughput_output_toks_per_s
+# (decode-only) is supporting detail that hides prefill-engine gains.
 _METRIC_MAP: dict[str, tuple[str, str]] = {
     "gen_tps": ("throughput_output_toks_per_s", "tok/s"),
     "throughput_tps": ("throughput_total_toks_per_s", "tok/s"),

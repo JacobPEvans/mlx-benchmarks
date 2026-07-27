@@ -26,10 +26,10 @@ tool-calling** — in **both** environment classes. See
 
 - **Size GB** — approximate resident weight footprint of the quant, not the
   file size. Nominal; the capacity math in the RUNBOOK is what gates fit.
-- **Throughput tok/s** — batched output tokens/sec from the `throughput` suite
-  (vllm `benchmark_serving`), at the listed concurrency. This is *not* the same
-  as the agentic single-stream tok/s — the two measure different things and are
-  not comparable cell-to-cell.
+- **Throughput tok/s** — batched tok/s from the `throughput` suite (vllm
+  `benchmark_serving`) at listed concurrency; not comparable to agentic
+  tok/s. Headline is now cumulative, not decode-only (see
+  [docs/schema.md](docs/schema.md)); cells here predate that policy.
 - **math_verify** — `minerva_math500`, the `math_verify` metric (read this, not
   `exact_match`, which is prose-depressed on chat-served models).
 - **Agentic** — `valid_tool_call_rate` at the pass gate cell

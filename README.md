@@ -135,7 +135,8 @@ To benchmark **any** model on either Apple Silicon host, follow
 **[`docs/RUNBOOK.md`](docs/RUNBOOK.md)**; traps and the serving parser map are in
 [`docs/benchmark-traps.md`](docs/benchmark-traps.md), the leaderboard in
 **[`RANKINGS.md`](RANKINGS.md)**. Benchmarks come in three kinds — **throughput**
-(batched tok/s), **accuracy** (`coding` / `math-hard` / `reasoning` via lm-eval),
+(headline: cumulative tok/s, not decode-only — see
+[docs/schema.md](docs/schema.md)), **accuracy** (`coding` / `math-hard` / `reasoning` via lm-eval),
 and **agentic** (`tool-calling` via [`harness/agentic/run.py`](harness/agentic/run.py))
 — a model is "fully benchmarked" with a published shard for each.
 
