@@ -1,0 +1,53 @@
+{
+  "benchmark": "factual",
+  "model": "mlx-community/Qwen3.6-35B-A3B-4bit",
+  "timestamp": "2026-07-24T12:00:00Z",
+  "config": {
+    "base_url": "http://127.0.0.1:11434/v1",
+    "model": "mlx-community/Qwen3.6-35B-A3B-4bit",
+    "fixtures": "configs/factual/fixtures/homelab-digest.json",
+    "fixture_bank_version": "1",
+    "n_cases": 5,
+    "repeats": 5,
+    "thinking": ["on", "off"],
+    "thinking_kwarg": "enable_thinking",
+    "max_tokens": 1024,
+    "temperature": 0.0,
+    "repetition_penalty": null,
+    "timeout": 600
+  },
+  "cells": [
+    {
+      "name": "factual_think-on",
+      "thinking": true,
+      "n_responses": 25,
+      "wall_seconds": 210.5,
+      "grounded_accuracy": 0.92,
+      "fact_recall_rate": 0.96,
+      "fabricated_number_rate": 0.04,
+      "forbidden_claim_rate": 0.04,
+      "tool_syntax_leak_rate": 0.0,
+      "error_rate": 0.0,
+      "latency_p50_ms": 7800.2,
+      "latency_p95_ms": 11400.9,
+      "tokens_completion_avg": 148.6,
+      "responses": []
+    },
+    {
+      "name": "factual_think-off",
+      "thinking": false,
+      "n_responses": 25,
+      "wall_seconds": 96.1,
+      "grounded_accuracy": 0.76,
+      "fact_recall_rate": 0.88,
+      "fabricated_number_rate": 0.2,
+      "forbidden_claim_rate": 0.12,
+      "tool_syntax_leak_rate": 0.04,
+      "error_rate": 0.0,
+      "latency_p50_ms": 3300.0,
+      "latency_p95_ms": 5200.4,
+      "tokens_completion_avg": 71.2,
+      "responses": []
+    }
+  ]
+}

@@ -14,9 +14,28 @@ configs/
 │   ├── coding.toml           # humaneval, mbpp
 │   ├── math-hard.toml        # minerva_math500
 │   └── qwen3-tasks/          # optional <think>-stripping overlay (see below)
-└── vllm/
-    └── benchmark_serving.toml # vllm throughput cross-check; no local install
+├── vllm/
+│   └── benchmark_serving.toml # vllm throughput cross-check; no local install
+├── agentic/
+│   └── tool-calling.toml     # in-repo runner: harness/agentic/run.py
+├── promptstack/
+│   ├── promptstack.toml      # in-repo runner: harness/promptstack/run.py
+│   ├── probes/               # frozen probe banks, one JSON per probe class
+│   └── prompts/              # composed system prompts under test
+├── factual/
+│   ├── grounded-summary.toml # in-repo runner: harness/factual/run.py
+│   └── fixtures/             # evidence bundles with known-correct answers
+└── shootout/
+    └── candidates.toml       # agent-brain slate: model ids, measured weights,
+                              # fit budget, and why each rejection was rejected
 ```
+
+Two files here break the "(tool, suite) runbook" rule, deliberately:
+`promptstack/probes/` and `factual/fixtures/` are **data read by their runners
+at run time**, not documentation — freezing them beside their config is what
+makes a score reproducible across runs. `shootout/candidates.toml` is a slate,
+not a suite; it records what will be run and what was excluded, so the next
+sweep does not re-litigate the same rejections.
 
 ## Where the run command lives (single source of truth)
 

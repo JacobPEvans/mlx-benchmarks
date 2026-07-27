@@ -33,6 +33,11 @@ def promptstack_sample() -> dict[str, Any]:
 
 
 @pytest.fixture
+def factual_sample() -> dict[str, Any]:
+    return json.loads((FIXTURES / "factual_sample.json").read_text())
+
+
+@pytest.fixture
 def valid_envelope() -> dict[str, Any]:
     return json.loads((EXAMPLES / "envelope.valid.json").read_text())
 

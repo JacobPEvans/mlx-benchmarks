@@ -3,6 +3,7 @@
 from mlx_benchmarks.converters.agentic import AgenticConverter
 from mlx_benchmarks.converters.base import Converter, ConverterContext
 from mlx_benchmarks.converters.bench_serve import BenchServeConverter
+from mlx_benchmarks.converters.factual import FactualConverter
 from mlx_benchmarks.converters.lm_eval import LmEvalConverter
 from mlx_benchmarks.converters.promptstack import PromptstackConverter
 from mlx_benchmarks.converters.vllm import VllmConverter
@@ -12,6 +13,7 @@ __all__ = [
     "BenchServeConverter",
     "Converter",
     "ConverterContext",
+    "FactualConverter",
     "LmEvalConverter",
     "PromptstackConverter",
     "VllmConverter",
@@ -28,6 +30,7 @@ def get_converter(kind: str) -> Converter:
     registry: dict[str, type[Converter]] = {
         "agentic": AgenticConverter,
         "bench-serve": BenchServeConverter,
+        "factual": FactualConverter,
         "lm-eval": LmEvalConverter,
         "promptstack": PromptstackConverter,
         "vllm": VllmConverter,

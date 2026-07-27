@@ -70,8 +70,7 @@ class that satisfies the `Converter` protocol from `base.py`:
 class MyConverter:
     kind = "my-tool"
 
-    def build_envelope(self, raw: dict, ctx: ConverterContext) -> Envelope:
-        ...
+    def build_envelope(self, raw: dict, ctx: ConverterContext) -> Envelope: ...
 ```
 
 Register it in `converters/__init__.py::get_converter`. Add tests in

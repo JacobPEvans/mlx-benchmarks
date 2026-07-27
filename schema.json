@@ -56,7 +56,8 @@
         "knowledge",
         "evalplus",
         "math-hard",
-        "promptstack"
+        "promptstack",
+        "grounded-summary"
       ],
       "description": "Which benchmark suite was executed"
     },

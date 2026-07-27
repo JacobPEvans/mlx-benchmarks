@@ -1,0 +1,223 @@
+# Agent-brain shootout — candidate slate.
+#
+# The question: which single model, running ALONE on the Studio, is the most
+# accurate brain for an autonomous agent that makes MCP tool calls, reads the
+# results, and writes factual digests. Procedure: docs/shootout.md.
+#
+# Physical model ids live here (and in the nix-ai catalog) — never in a nix
+# module option or option example, which a CI check rejects.
+#
+# weight_gb is the MEASURED sum of every *.safetensors blob in the HF repo,
+# queried 2026-07-24 via the public metadata API:
+#   curl -s "https://huggingface.co/api/models/<id>?blobs=true" \
+#     | jq '[.siblings[]|select(.rfilename|test("safetensors$")).size]|add'
+# It is the download footprint, which runs a little above the resident weight
+# figures in nix-ai's catalog (that catalog records observed residency). Sizing
+# on the larger of the two is the safe direction.
+
+[fit]
+# Studio jevans-ms: 128 GB unified. nix-darwin hosts/mac-studio/default.nix
+# sets maxLocalLlmGb = 100 -> wired limit 102400 MiB (100 GiB) with a 28 GiB OS
+# reserve, and a 99 GiB cap beneath that ceiling. (An earlier 104000 MiB /
+# ~13 GB-reserve posture was superseded after WindowServer-starvation
+# incidents showed a headless auto-login session still needs OS headroom.)
+wired_limit_mb = 102400
+# Measured Metal allocation wall at --gpu-memory-utilization 0.80, from the
+# 2026-07-09 flagship session (RANKINGS.md "Flagship investigation").
+metal_alloc_ceiling_gb = 92
+# Weight ceiling for the slate. Leaves ~17 GB over the Metal wall for the KV
+# cache, the framework, and the model's own activation scratch. A 64K-token KV
+# cache is ~1.6 GB on a qwen3_next-class hybrid and ~6 GB on a dense 70B, so the
+# headroom is sized for the dense worst case, not the cheap MoE case.
+weight_ceiling_gb = 75
+# One model resident at a time, one request in flight — the 40B+ single-slot
+# policy the catalog already enforces. The shootout measures single-user
+# behavior, so it never drives concurrency above 1.
+concurrency = 1
+
+# ---------------------------------------------------------------------------
+# Slate — 11 models. `catalogued` means the id already has validated serve args
+# in nix-ai modules/mlx/catalog-data.nix, so it costs no new parser research.
+# ---------------------------------------------------------------------------
+
+[[candidate]]
+id = "mlx-community/Qwen3-Next-80B-A3B-Instruct-4bit"
+quant = "4-bit"
+weight_gb = 44.8
+catalogued = true
+arch = "qwen3_next MoE, A3B, hybrid attention"
+thinking_kwarg = "enable_thinking"
+role = "former-fleet-brain"
+why = "Won the 2026-07-17 agentic bench and held the fleet-brain role under the >=75B mandate, but is now swap-class with NO roles: single-model mode routes everything to the Coder-30B instead. Configured, not deleted. The strongest previously-measured contender, and the obvious model to reinstate if it wins."
+
+[[candidate]]
+id = "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit"
+quant = "4-bit"
+weight_gb = 17.2
+catalogued = true
+arch = "qwen3_moe MoE, A3B, standard attention"
+thinking_kwarg = "enable_thinking"
+role = "baseline-incumbent"
+why = "THE incumbent. The Studio runs programs.mlx.singleModel pinned to this id (single-model mode, 2026-07-23): it is the only resident, carries every logical role including tool-calling and goal-judge, and every other catalog model's id aliases onto it. Its 2026-07-08 agentic result was 0-67% valid with round-1 multi-turn collapse, so the model currently serving the fleet is the one the slate most needs to re-measure."
+
+[[candidate]]
+id = "mlx-community/MiniMax-M2-REAP-139B-A10B-mxfp4"
+quant = "mxfp4"
+weight_gb = 73.9
+catalogued = false
+arch = "MoE, A10B"
+thinking_kwarg = "enable_thinking"
+role = "challenger"
+why = "The M2 family leads open-weight agentic benchmarks as of mid-2026; the REAP-pruned mxfp4 build is the only M2 variant under the weight ceiling. Largest model on the slate."
+
+[[candidate]]
+id = "mlx-community/NVIDIA-Nemotron-3-Super-120B-A12B-4bit"
+quant = "4-bit"
+weight_gb = 68.0
+catalogued = false
+arch = "MoE, A12B"
+thinking_kwarg = "enable_thinking"
+role = "challenger"
+why = "Nemotron 3 Super is trained explicitly for reasoning plus structured function calling, and 12B active params keep decode within reach of a single-user latency budget."
+
+[[candidate]]
+id = "mlx-community/gpt-oss-120b-MXFP4-Q8"
+quant = "MXFP4-Q8"
+weight_gb = 63.4
+catalogued = true
+arch = "MoE, harmony channels, sliding-window attention"
+thinking_kwarg = "reasoning_effort"
+role = "re-test"
+why = "Native harmony tool-call conventions. Scored 0% agentic on 2026-07-08, but the catalog notes an unset --reasoning-parser gpt_oss leaks harmony markers into content (nix-ai#1083) — a re-test with the parser set separates a serving bug from a model limit."
+
+[[candidate]]
+id = "mlx-community/Ling-2.6-flash-mlx-4bit-DWQ"
+quant = "4-bit DWQ"
+weight_gb = 58.6
+catalogued = false
+arch = "MoE"
+thinking_kwarg = "enable_thinking"
+role = "challenger"
+why = "InclusionAI's agentic flash MoE. DWQ recovers most 4-bit quality loss at no size cost, and quant recipe has beaten bit width on this fabric before (the 8-bit Qwen3.6 degraded at round 6 while a 4-bit OptiQ ran clean)."
+
+[[candidate]]
+id = "mlx-community/Qwen3-Coder-Next-4bit"
+quant = "4-bit"
+weight_gb = 44.8
+catalogued = false
+arch = "qwen3_next MoE, A3B, hybrid attention"
+thinking_kwarg = "enable_thinking"
+role = "challenger"
+why = "Coder-tuned sibling of the former fleet brain on identical qwen3_next architecture, so its serving flags are already known (paged cache off). Isolates tuning from architecture against that entry — and against the Coder-30B incumbent, it isolates scale within the same coder tuning."
+
+[[candidate]]
+id = "mlx-community/Kimi-Dev-72B-4bit-DWQ"
+quant = "4-bit DWQ"
+weight_gb = 40.9
+catalogued = false
+arch = "DENSE 72B"
+thinking_kwarg = "enable_thinking"
+role = "dense-control"
+why = "The slate's one dense model. The 2026-07-09 session measured dense 70B-class models as slow and KV-heavy on this hardware, but that was under concurrency 4; a single-slot run is the fair re-test of a measured negative without spending several slots on it."
+
+[[candidate]]
+id = "mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit"
+quant = "6-bit"
+weight_gb = 39.9
+catalogued = false
+arch = "MoE, A3B, linear attention"
+thinking_kwarg = "enable_thinking"
+role = "challenger"
+why = "6-bit fidelity inside the weight budget, and linear attention keeps the 64K KV cache cheap — the combination this hardware has repeatedly favoured."
+
+[[candidate]]
+id = "mlx-community/GLM-4.7-Flash-8bit"
+quant = "8-bit"
+weight_gb = 31.8
+catalogued = false
+arch = "MoE"
+thinking_kwarg = "enable_thinking"
+role = "quant-control"
+why = "GLM-4.7-Flash-4bit passed single-shot at 100% and then collapsed at multi-turn round 1. Running the near-lossless 8-bit of the same model tests whether that collapse was quantization damage or the model itself."
+
+[[candidate]]
+id = "mlx-community/Qwen3.6-35B-A3B-OptiQ-4bit"
+quant = "OptiQ 4-bit"
+weight_gb = 24.7
+catalogued = true
+arch = "qwen3_moe MoE, A3B"
+thinking_kwarg = "enable_thinking"
+role = "small-end-leader"
+why = "Led the 2026-07-08 agentic selection (100% valid, clean through 20 rounds) and needs a repetition-penalty guardrail under load. Cheapest way to find out whether any of the big challengers actually buy accuracy over it."
+
+# ---------------------------------------------------------------------------
+# Rejected — recorded so the next slate does not re-litigate them.
+# ---------------------------------------------------------------------------
+
+[[rejected]]
+id = "mlx-community/GLM-4.7-REAP-50-mxfp4"
+weight_gb = 98.2
+reason = "memory"
+detail = "Breaches the 75 GB weight ceiling and lands above the measured 92 GB Metal allocation wall once a KV cache is added. It is in the nix-ai catalog only as a PIPELINE-PARALLEL cluster model across two Macs, which is a different memory budget than running alone. GLM-4.7-Flash-8bit stands in for the family."
+
+[[rejected]]
+id = "mlx-community/MiniMax-M2.1-REAP-40-4bit"
+weight_gb = 78.2
+reason = "memory"
+detail = "Just over the ceiling; the REAP-139B-A10B-mxfp4 build at 73.9 GB is the fitting M2 representative."
+
+[[rejected]]
+id = "mlx-community/Nemotron-3-Super-120B-A12B-MLX-6bit"
+weight_gb = 98.1
+reason = "memory"
+detail = "Same model as the 4-bit candidate at a quant that does not fit."
+
+[[rejected]]
+id = "mlx-community/GLM-4.5-Air-6bit"
+weight_gb = 86.8
+reason = "memory"
+
+[[rejected]]
+id = "mlx-community/Llama-4-Scout-17B-16E-Instruct-6bit"
+weight_gb = 88.2
+reason = "memory"
+
+[[rejected]]
+id = "mlx-community/Devstral-2-123B-Instruct-2512-5bit"
+weight_gb = 85.9
+reason = "memory"
+
+[[rejected]]
+id = "mlx-community/Qwen3-Coder-Next-8bit"
+weight_gb = 84.6
+reason = "memory"
+detail = "The 4-bit build of the same model is on the slate."
+
+[[rejected]]
+id = "mlx-community/Mistral-Small-4-119B-2603-5bit"
+weight_gb = 82.6
+reason = "memory"
+
+[[rejected]]
+id = "mlx-community/Devstral-2-123B-Instruct-2512-4bit"
+weight_gb = 70.3
+reason = "latency"
+detail = "Fits the ceiling, but RANKINGS.md records 2.5 tok/s output on this host — an agent turn would take minutes. Rejected on criterion 3, not memory."
+
+[[rejected]]
+id = "mlx-community/c4ai-command-a-03-2025-3bit"
+weight_gb = 48.5
+reason = "quant"
+detail = "Fits, and Command A is explicitly tool-use tuned, but a March 2025 vintage at aggressive 3-bit is the wrong end of the quality/size trade when 6-bit and 8-bit builds of newer models fit the same budget."
+
+[[rejected]]
+id = "mlx-community/Qwen3.6-27B-MTP-4bit"
+weight_gb = 0.2
+reason = "not-a-model"
+detail = "A multi-token-prediction speculative-decode head, not a servable model. Listed only because its name pattern-matches the catalog's Qwen3.6-27B entry."
+
+# Also rejected on size without individual entries, all measured >100 GB:
+# Kimi-K2.7-Code-4bit (641), GLM-5.2-4bit (418), GLM-5.1/5-MXFP4-Q8 (405 each),
+# Qwen3.5-397B-A17B-4bit (224), command-a-reasoning-08-2025-bf16 (222),
+# MiniMax-M2.7/M2.5-5bit (157 each), DeepSeek-V4-Flash-6bit (153),
+# DeepSeek-V4-Flash-4bit (151), MiniMax-M2.1-4bit (129), MiniMax-M2.1-mxfp4 (122).
