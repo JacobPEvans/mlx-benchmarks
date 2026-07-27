@@ -62,8 +62,28 @@ chip/memory, e.g. a Mac Studio vs a MacBook Pro), `python_version`,
 | `value` | number (required) | The measurement. |
 | `unit` | string (required) | `ratio`, `tok/s`, `ms`, etc. |
 | `duration_seconds` | number | Wall-clock for this measurement (first-class replacement for `tags.total_eval_time_s`). |
+| `prompt_tokens_per_second` | number | Aggregate prefill throughput (prompt tokens / `duration_seconds`). Supporting detail. |
+| `decode_tokens_per_second` | number | Aggregate decode-only throughput (completion tokens / `duration_seconds`). Supporting detail — see below. |
+| `total_tokens_per_second` | number | **Headline throughput metric.** Cumulative (prompt + completion) tokens / `duration_seconds`. |
+| `first_token_latency_ms` | number | Time to first token, when measurable (streaming-aware harnesses). |
+| `peak_rss_mb` | number | Peak RSS observed during this result, when available at per-result granularity. |
 | `tags` | object\[string\] | Free-form string key-value metadata. |
 | `raw` | any | Original untransformed tool output (optional archive). |
+
+### Headline throughput metric: `total_tokens_per_second`
+
+As of 2026-07-27, `total_tokens_per_second` — cumulative (prompt + completion)
+tokens divided by wall-clock duration — is the **primary** throughput number
+to report and compare, not `decode_tokens_per_second`. A decode-only rate
+hides prefill-engine improvements entirely, even though a faster prefill is a
+real, felt latency win for any caller sending a non-trivial prompt: two models
+with identical decode speed but a 4-6x prefill gap are not equivalent in
+practice, and a decode-only headline reports them as if they were.
+`decode_tokens_per_second` and `prompt_tokens_per_second` are kept as
+supporting detail (useful for root-causing *why* the cumulative number moved)
+— this is purely a description/policy change, no schema fields were added,
+removed, or renamed, so older published rows remain fully valid and
+comparable.
 
 ## Validation
 

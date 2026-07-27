@@ -14,6 +14,13 @@ log = logging.getLogger(__name__)
 # Map from vllm benchmark_serving JSON key -> (metric_name, unit)
 # Only keys listed here are extracted; unknown keys are silently ignored so
 # the converter remains forward-compatible with new vllm output fields.
+#
+# Headline metric policy (2026-07-27, see docs/schema.md): throughput_total_toks_per_s
+# (cumulative prompt+completion tok/s, the envelope's total_tokens_per_second
+# concept) is the PRIMARY figure to report/compare. throughput_output_toks_per_s
+# (decode-only) is supporting detail — it hides prefill-engine gains that are a
+# real, felt latency win. vllm's benchmark_serving already reports both; only
+# which one is treated as headline downstream (RANKINGS.md, viewer) changes.
 _METRIC_MAP: dict[str, tuple[str, str]] = {
     "output_throughput": ("throughput_output_toks_per_s", "tok/s"),
     "total_token_throughput": ("throughput_total_toks_per_s", "tok/s"),

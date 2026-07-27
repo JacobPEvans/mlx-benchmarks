@@ -61,8 +61,15 @@ class Result(TypedDict, total=False):
     tags: dict[str, str]
     raw: Any
     duration_seconds: float
+    # Aggregate prefill throughput. Supporting detail — see schema.json for
+    # the full rationale on why this is not the headline number.
     prompt_tokens_per_second: float
+    # Aggregate decode-only throughput. Supporting detail, not the headline
+    # number: it hides prefill-engine improvements even though a faster
+    # prefill is a real, felt latency win. See total_tokens_per_second.
     decode_tokens_per_second: float
+    # PRIMARY / headline throughput metric: (prompt + response) tokens over
+    # duration_seconds. Prefer this field when reporting or comparing models.
     total_tokens_per_second: float
     first_token_latency_ms: float
     peak_rss_mb: float

@@ -117,6 +117,7 @@ breakdown, data-flow, and CI diagrams.
 | [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check serving throughput against vllm upstream |
 | [`harness/agentic/run.py`][agentic] (in-repo) | `tool-calling` | Many-tool tool-call reliability under load + multi-turn degradation |
 | [`harness/promptstack/run.py`][promptstack] (in-repo) | `promptstack` | System prompt as the independent variable — `base_plus_variant` vs. `current` |
+| [`harness/throughput/run.py`](harness/throughput/run.py) (in-repo) | `throughput` (ad hoc probe) | Streaming cumulative-throughput probe for direct/cluster endpoint checks; not yet wired to `mlx-bench-publish` |
 
 [lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
 [vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
@@ -138,6 +139,17 @@ To benchmark **any** model on either Apple Silicon host, follow
 (batched tok/s), **accuracy** (`coding` / `math-hard` / `reasoning` via lm-eval),
 and **agentic** (`tool-calling` via [`harness/agentic/run.py`](harness/agentic/run.py))
 — a model is "fully benchmarked" with a published shard for each.
+
+The **headline throughput number is cumulative**, `total_tokens_per_second` in
+the envelope schema: `(prompt_tokens + completion_tokens) / total_wall_clock_s`.
+Prefill (prompt-processing) improvements are a real, felt latency win for any
+caller sending a non-trivial prompt, and a decode-only rate hides them
+entirely — two models with identical decode speed but a 4-6x prefill gap are
+not equivalent in practice. `decode_tokens_per_second` and
+`prompt_tokens_per_second` remain published as supporting detail (useful for
+root-causing *why* the cumulative number moved), never as the lead figure.
+See [`docs/schema.md`](docs/schema.md#headline-throughput-metric-total_tokens_per_second)
+for the full rationale.
 
 ## Repository layout
 
@@ -287,6 +299,7 @@ publish(envelope, dry_run=False)  # validates + uploads
 
 ```python
 from datasets import load_dataset
+
 ds = load_dataset("JacobPEvans/mlx-benchmarks")
 print(ds["train"][0])
 ```
