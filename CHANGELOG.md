@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.15.3...v0.16.0) (2026-07-27)
+
+
+### Features
+
+* **throughput:** make cumulative tok/s the headline metric ([#169](https://github.com/dryvist/mlx-benchmarks/issues/169)) ([a3c49ce](https://github.com/dryvist/mlx-benchmarks/commit/a3c49ced9fc97d98901f77d47af46ebf05d23db3))
+
 ## [0.15.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.15.2...v0.15.3) (2026-07-21)
 
 
