@@ -111,25 +111,18 @@ breakdown, data-flow, and CI diagrams.
 
 ## Upstream tools wired in
 
-| Tool | Suite(s) | Purpose |
-| --- | --- | --- |
-| [lm-evaluation-harness][lm-eval] | `reasoning`, `coding`, `math-hard` | Standard LLM accuracy evals (arc, gsm8k, humaneval, mbpp, minerva_math500) |
-| [vllm `benchmark_serving`][vllm-bench] | `throughput` | Cross-check serving throughput against vllm upstream |
-| [`harness/agentic/run.py`][agentic] (in-repo) | `tool-calling` | Many-tool tool-call reliability under load + multi-turn degradation |
-| [`harness/promptstack/run.py`][promptstack] (in-repo) | `promptstack` | System prompt as the independent variable — `base_plus_variant` vs. `current` |
-| [`harness/factual/run.py`][factual] (in-repo) | `grounded-summary` | Invented numbers when summarizing data |
+Accuracy and throughput suites run on external tools —
+[lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) and
+[vllm `benchmark_serving`](https://docs.vllm.ai/en/latest/performance/benchmarks.html)
+— invoked through thin `uvx` wrappers in the serving stack (nix-ai `mlx-eval` /
+`mlx-bench`), not scripts in this repo. The `tool-calling`, `promptstack`, and
+`grounded-summary` suites are the exceptions: standalone PEP 723 runners under
+`harness/`, documented in [`docs/agentic.md`](docs/agentic.md),
+[`docs/promptstack.md`](docs/promptstack.md), and
+[`docs/shootout.md`](docs/shootout.md).
 
-[lm-eval]: https://github.com/EleutherAI/lm-evaluation-harness
-[vllm-bench]: https://docs.vllm.ai/en/latest/performance/benchmarks.html
-[agentic]: docs/agentic.md
-[promptstack]: docs/promptstack.md
-[factual]: docs/shootout.md
-
-The lm-eval/vllm run commands are thin `uvx` wrappers in the serving stack
-(nix-ai `mlx-eval` / `mlx-bench`), not scripts in this repo — see
-[`configs/LAYOUT.md`](configs/LAYOUT.md), the single source of truth for the
-wired suites. `agentic`, `promptstack`, and `factual` are the exceptions:
-standalone PEP 723 scripts under `harness/`, documented in the linked pages.
+[`configs/LAYOUT.md`](configs/LAYOUT.md) is the single source of truth for which
+suites are wired to which tool.
 
 ## Benchmarking playbook
 
@@ -256,13 +249,10 @@ backing every published shard. A minimal valid envelope:
 }
 ```
 
-Optional v1 fields (non-breaking additions): `seed`, `gen_kwargs`,
-`model_revision`, `quantization`, and on the `system` object: `hostname`,
-`python_version`, `mlx_version`, `mlx_lm_version`, `lm_eval_version`,
-`kernel`. The CLI auto-detects all of these at publish time —
-no hand-curation required.
+Envelope v1 also accepts a set of optional fields, which the CLI auto-detects
+at publish time — no hand-curation required.
 
-See [`docs/schema.md`](docs/schema.md) for fields,
+See [`docs/schema.md`](docs/schema.md) for every field, required and optional,
 [`docs/schema-migration.md`](docs/schema-migration.md) for version upgrades,
 [`docs/model-notes.md`](docs/model-notes.md) for per-model-class serving and
 tool-calling quirks, and [`docs/faq.md`](docs/faq.md) for ops questions and
