@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.16.0...v0.17.0) (2026-07-30)
+
+
+### Features
+
+* **shootout:** agent-brain comparison — factual suite, ranker, and candidate slate ([#164](https://github.com/dryvist/mlx-benchmarks/issues/164)) ([6f2c78c](https://github.com/dryvist/mlx-benchmarks/commit/6f2c78cedfc57e6874bd39cc8ae00e26c1ba85ec))
+
+
+### Documentation
+
+* **readme:** cut duplicated suite table to clear the file-size gate ([#172](https://github.com/dryvist/mlx-benchmarks/issues/172)) ([40b8b8c](https://github.com/dryvist/mlx-benchmarks/commit/40b8b8ca8c786de6d46a026b833e12a14a9baeac))
+
 ## [0.16.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.15.3...v0.16.0) (2026-07-27)
 
 
