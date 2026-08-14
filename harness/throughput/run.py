@@ -234,6 +234,18 @@ async def main():
     ap.add_argument("--concurrency", type=int, default=4, help="parallel probe width")
     ap.add_argument("--think-kwarg", default=None)
     ap.add_argument("--think", default="off", choices=["on", "off"])
+    # Escape hatch from the on/off binary. Reasoning-effort vocabularies differ
+    # per model family and are NOT interchangeable: gpt-oss takes low/medium/
+    # high, while Qwen3.8 takes xhigh (its default)/medium/low and raises a
+    # template exception on anything else — so the on->"high" mapping below is
+    # silently invalid for that family. Pass the literal the model documents.
+    ap.add_argument(
+        "--think-value",
+        default=None,
+        help="Literal value for --think-kwarg, overriding the on/off mapping "
+        "(e.g. 'low', 'medium', 'xhigh'). Use for models whose effort "
+        "vocabulary is not low/high.",
+    )
     ap.add_argument("--skip-concurrent", action="store_true")
     ap.add_argument("--output", required=True)
     a = ap.parse_args()
@@ -242,6 +254,8 @@ async def main():
     think_val = a.think == "on"
     if a.think_kwarg == "reasoning_effort":
         think_val = "high" if a.think == "on" else "low"
+    if a.think_value is not None:
+        think_val = a.think_value
 
     res = {
         "model": a.model,
@@ -249,6 +263,13 @@ async def main():
         "max_tokens": a.max_tokens,
         "thinking": a.think,
         "think_kwarg": a.think_kwarg,
+        # The value actually sent, not just the on/off switch. Without this the
+        # recorded regime is wrong in the most misleading direction: a run that
+        # passes no kwarg at all records thinking="off" while the model reasons
+        # at ITS OWN default, which for Qwen3.8 is reasoning_effort=xhigh. A
+        # measurement of maximum-effort reasoning was labelled "off".
+        "think_value": think_val if a.think_kwarg else None,
+        "think_kwarg_sent": bool(a.think_kwarg),
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
 
