@@ -251,11 +251,23 @@ done
 # human step — never a side effect of finishing a benchmark.
 if [ "$DRY_RUN" -eq 0 ]; then
   mark START publish-dryrun
-  for f in "$OUT_DIR"/*.json; do
-    [ -e "$f" ] || continue
-    echo "  $f"
-    mlx-bench-publish "$f" --dry-run --hostname "$(hostname -s)" 2>&1 | tail -3 || true
+  # mlx-bench-publish is a console script of THIS package, so it lives in the
+  # project venv and is not on a bare PATH. Resolve it explicitly; if it is
+  # genuinely absent, say so once instead of emitting "command not found" per
+  # artifact and still reporting the suite clean.
+  publish_bin=""
+  for cand in "$REPO_ROOT/.venv/bin/mlx-bench-publish" "$(command -v mlx-bench-publish 2>/dev/null || true)"; do
+    [ -n "$cand" ] && [ -x "$cand" ] && { publish_bin="$cand"; break; }
   done
+  if [ -z "$publish_bin" ]; then
+    echo "  SKIPPED: mlx-bench-publish not found (create the venv: uv sync)"
+  else
+    for f in "$OUT_DIR"/*.json; do
+      [ -e "$f" ] || continue
+      echo "  $f"
+      "$publish_bin" "$f" --dry-run --hostname "$(hostname -s)" 2>&1 | tail -3 || true
+    done
+  fi
   mark DONE publish-dryrun
 fi
 
