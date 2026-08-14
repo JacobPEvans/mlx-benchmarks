@@ -26,7 +26,7 @@
 set -euo pipefail
 
 BASE_URL="http://127.0.0.1:11434/v1"
-SUITES="throughput,coding,math,reasoning,agentic"
+SUITES="throughput,coding,math,reasoning,agentic,factual,promptstack"
 LIMIT=""
 DRY_RUN=0
 NO_WINDOW=0
@@ -111,7 +111,22 @@ fi
 
 # 4. Concurrency must match the endpoint's own limit. The mlx-eval wrapper
 #    defaults to 1, which silently multiplies every duration below.
-CONCURRENCY="${MLX_EVAL_CONCURRENT:-4}"
+#
+#    Default 2, not 4: the deployed --decode-concurrency is 2, and a probe
+#    wider than the endpoint collects HTTP 429 on the excess and averages the
+#    failures into the aggregate — it reads as a throughput regression when it
+#    is a probe error (benchmark-traps.md Trap 11, hit live 2026-08-14).
+#    Override only after confirming the endpoint's real limit.
+CONCURRENCY="${MLX_EVAL_CONCURRENT:-2}"
+
+# 5. Generation budget. MUST be large enough for a thinking model to finish
+#    reasoning AND emit an answer. The throughput probe's own default is 256,
+#    which a thinking-on model can spend entirely on reasoning — producing a
+#    healthy-looking tok/s row with zero answer characters. 4096 matches what
+#    the lm-eval qwen3 overlays already set for the same reason ("thinking text
+#    consumes 1-3k tokens before code"). Lower it only for a non-thinking model,
+#    and say so when you publish.
+SUITE_MAX_TOKENS="${SUITE_MAX_TOKENS:-4096}"
 
 # Optional flags as arrays so an empty LIMIT contributes zero words rather than
 # an empty string argument (which lm-eval parses as a bad value, not as absent).
@@ -186,6 +201,7 @@ suite_throughput() {
     --model "$MODEL" \
     --repeats "${THROUGHPUT_REPEATS:-4}" \
     --concurrency "$CONCURRENCY" \
+    --max-tokens "$SUITE_MAX_TOKENS" \
     --output "$OUT_DIR/throughput.json"
 }
 
@@ -225,6 +241,28 @@ suite_agentic() {
     --output "$OUT_DIR/agentic.json"
 }
 
+suite_factual() {
+  # Hallucination / grounding: fact recall, fabricated numbers, tool-syntax
+  # leakage. Scored by assertion, never by a model judge.
+  run_cmd uv run harness/factual/run.py \
+    --base-url "$BASE_URL" \
+    --api-key-env OPENAI_API_KEY \
+    --model "$MODEL" \
+    --max-tokens "$SUITE_MAX_TOKENS" \
+    --output "$OUT_DIR/factual.json"
+}
+
+suite_promptstack() {
+  # Prompt regression: format-constraint adherence and the negative tool-call
+  # probes (the model must NOT fabricate a call).
+  run_cmd uv run harness/promptstack/run.py \
+    --base-url "$BASE_URL" \
+    --api-key-env OPENAI_API_KEY \
+    --model "$MODEL" \
+    --max-tokens "$SUITE_MAX_TOKENS" \
+    --output "$OUT_DIR/promptstack.json"
+}
+
 # ------------------------------------------------------------------- driver --
 open_window
 
@@ -232,7 +270,7 @@ FAILED=""
 IFS=',' read -ra SUITE_LIST <<< "$SUITES"
 for suite in "${SUITE_LIST[@]}"; do
   case "$suite" in
-    throughput|coding|math|reasoning|agentic) ;;
+    throughput|coding|math|reasoning|agentic|factual|promptstack) ;;
     *) die "unknown suite: $suite" ;;
   esac
   mark START "$suite"
@@ -262,11 +300,34 @@ if [ "$DRY_RUN" -eq 0 ]; then
   if [ -z "$publish_bin" ]; then
     echo "  SKIPPED: mlx-bench-publish not found (create the venv: uv sync)"
   else
+    # --suite is required=True and --kind defaults to lm-eval, so invoking
+    # without both argparse-errors on every artifact. That failure used to be
+    # swallowed by `|| true` piped through tail, and the suite still reported
+    # clean — a check that cannot fail reporting success. Derive both from the
+    # filename. `set -o pipefail` (top of file) is what makes the `if !` below
+    # see the publisher's status and not tail's; without it this would be the
+    # same bug in a new place.
+    publish_failed=0
     for f in "$OUT_DIR"/*.json; do
       [ -e "$f" ] || continue
-      echo "  $f"
-      "$publish_bin" "$f" --dry-run --hostname "$(hostname -s)" 2>&1 | tail -3 || true
+      base="$(basename "$f" .json)"
+      case "$base" in
+        # throughput.json has no converter kind at all (see harness/throughput
+        # /run.py's module docstring). Say so once; do not fabricate a --kind
+        # that the publisher would reject.
+        throughput) echo "  SKIPPED $f: no mlx-bench-publish converter for this shape"; continue ;;
+        agentic)    kind="agentic" ;;
+        *)          kind="lm-eval" ;;
+      esac
+      echo "  $f (suite=$base kind=$kind)"
+      if ! "$publish_bin" "$f" --dry-run --suite "$base" --kind "$kind" \
+        --hostname "$(hostname -s)" 2>&1 | tail -5; then
+        publish_failed=1
+      fi
     done
+    if [ "$publish_failed" -ne 0 ]; then
+      echo "  WARNING: at least one dry-run publish failed (see output above)"
+    fi
   fi
   mark DONE publish-dryrun
 fi
