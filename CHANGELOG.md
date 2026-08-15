@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.17.0...v0.18.0) (2026-08-15)
+
+
+### Features
+
+* **scripts:** add run-suite.sh end-to-end benchmark runner ([#174](https://github.com/dryvist/mlx-benchmarks/issues/174)) ([5a5b501](https://github.com/dryvist/mlx-benchmarks/commit/5a5b501c213de76cc1cbe1a3d265263f34dbd10d))
+
 ## [0.17.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.16.0...v0.17.0) (2026-07-30)
 
 
