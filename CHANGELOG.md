@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.4...v0.18.5) (2026-08-16)
+
+
+### Documentation
+
+* add two traps on file splits and silent data absence ([#184](https://github.com/dryvist/mlx-benchmarks/issues/184)) ([14128fa](https://github.com/dryvist/mlx-benchmarks/commit/14128fa343009af7866e41d8d9ae237fcad78a96))
+
 ## [0.18.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.3...v0.18.4) (2026-08-16)
 
 
