@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.0...v0.18.1) (2026-08-16)
+
+
+### Documentation
+
+* **bench-traps:** fix trap 9, add traps 13-16 from Qwen3.8-27B sweep ([#176](https://github.com/dryvist/mlx-benchmarks/issues/176)) ([9307d36](https://github.com/dryvist/mlx-benchmarks/commit/9307d36df26ece2acbd909243b3862dcde1b02cf))
+
 ## [0.18.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.17.0...v0.18.0) (2026-08-15)
 
 
