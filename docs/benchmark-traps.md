@@ -187,3 +187,36 @@ per-item accuracy is a valid cross-arm comparison — temperature-0 greedy
 decode makes correctness robust to ambient load, but latency/throughput is
 not, so any timing delta between arms is within-arm descriptive only, never
 attributed to the quant.
+
+### Trap 17: a health gate that checks a claim, not an observation, can pass while false
+
+A standalone server's `/v1/models` is a **claim** the process makes about
+itself — an orphaned process from a prior run can keep answering that
+endpoint with a stale or unrelated catalog after the port it's bound to was
+meant to be freed. Health-gating on `grep <model-id> <(curl .../v1/models)`
+only proves the string appears somewhere in that claim, not that the model
+you asked for is the one actually generating. This nearly published a
+complete, plausible 8-bit result set that was actually the 4-bit model still
+resident from a prior phase — correct-looking sample counts, correct-looking
+accuracy, no error anywhere, and nothing downstream could have told the
+difference.
+
+Two compounding causes, both worth guarding against on this stack
+specifically:
+
+- **`pkill -f "mlx-lm-server --model ..."` does not match the real process.**
+  The actual binary launched is a wrapper, `mlx-lm-launch.py`, whose command
+  line does not contain the literal string `mlx-lm-server` — a pattern kill
+  aimed at the server name misses it, leaving an orphan alive on the port.
+  Kill by **port** (`lsof -nP -tiTCP:<port> -sTCP:LISTEN`), not by a guessed
+  process-name pattern.
+- **A model *list* can be a static/stale claim; only a completion is an
+  observation.** Verify readiness with a real chat completion and check the
+  response's own `model` field against what was requested — a single-model
+  server cannot lie about what it actually generated with, in the way a
+  `/v1/models` listing can be stale, cached, or (as here) foreign.
+
+The general lesson extends past this repo: a gate that asks the system what
+it *offers* can pass on a claim; a gate that checks what the system just
+*did* checks a fact. Prefer the latter for anything a wrong answer would
+silently corrupt.
