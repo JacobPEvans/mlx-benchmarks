@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.1...v0.18.2) (2026-08-16)
+
+
+### Documentation
+
+* add four traps to the benchmark-traps checklist ([#178](https://github.com/dryvist/mlx-benchmarks/issues/178)) ([e75c9ab](https://github.com/dryvist/mlx-benchmarks/commit/e75c9ab0f56048de004094fc7712430d09c99557))
+
 ## [0.18.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.0...v0.18.1) (2026-08-16)
 
 
