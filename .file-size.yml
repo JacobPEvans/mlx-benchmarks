@@ -11,4 +11,6 @@ defaults:
 extended:
   limit: 20480
   files:
-    - docs/benchmark-traps.md
+    # Matched by basename without extension (extended.files entries are not
+    # paths) — see the shared _file-size.yml check.
+    - benchmark-traps
