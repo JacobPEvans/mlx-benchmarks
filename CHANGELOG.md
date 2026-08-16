@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.6](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.5...v0.18.6) (2026-08-16)
+
+
+### Documentation
+
+* add trap on default() swallowing an error condition ([#186](https://github.com/dryvist/mlx-benchmarks/issues/186)) ([e0adc2f](https://github.com/dryvist/mlx-benchmarks/commit/e0adc2fe2425d12ace7b35fd71c1ee8a891c338f))
+
 ## [0.18.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.4...v0.18.5) (2026-08-16)
 
 
