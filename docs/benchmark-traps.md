@@ -1,9 +1,9 @@
 # Benchmark traps + serving reference
 
-The serving parser map, the serving flags that bite, and the 12-item traps
-checklist that [`RUNBOOK.md`](RUNBOOK.md) links into. If a result looks wrong,
-walk the checklist before blaming the model. Per-model-class failure modes live
-in [`model-notes.md`](model-notes.md).
+The serving parser map, the serving flags that bite, and the traps checklist
+that [`RUNBOOK.md`](RUNBOOK.md) links into. If a result looks wrong, walk the
+checklist before blaming the model. Per-model-class failure modes live in
+[`model-notes.md`](model-notes.md).
 
 ## Parser map
 
@@ -124,3 +124,63 @@ warm-up request before the measured run, and guard two-point decode math with
 `dt > 0` (a cold row makes the slope negative). For TTFT, count the first SSE
 `data:` chunk with content — `time_starttransfer` only measures header
 arrival (llama-swap flushes SSE headers immediately).
+
+### Trap 13: errno 65 vs errno 61 discriminates macOS Local Network Privacy from a real outage
+
+A near-instant connection failure to a same-subnet peer is not automatically
+"the network is down." **errno 65** (`EHOSTUNREACH`, "no route to host") fired
+in under 5 ms means macOS's Local Network Privacy gate blocked the probe
+before it left the host — a non-Apple-signed binary reached through a router
+is exempt, but an on-link peer is gated unless the calling process holds a
+grant. **errno 61** (`ECONNREFUSED`) means the probe reached the peer's TCP
+stack and got a real answer — the gate is clear, and any remaining failure is
+a real one. One PD-free plain-socket probe from the process that will
+actually make the request answers "is this the privacy gate" without
+spending anything. Do not diagnose a ~2 ms failure to an on-link host as an
+outage, cable fault, or DNS problem before checking which errno it returned.
+
+### Trap 14: a boot-scoped attempt ledger is not a kernel read
+
+A ledger that increments on every *attempt* at a scarce boot-scoped resource
+(an RDMA protection domain, a file descriptor, a lock) can overstate real
+consumption whenever some attempts fail before ever reaching the point that
+actually consumes the resource. Measured on the MLX cluster: a `pd-debt`
+ledger counting kickstart attempts read `domains=3` while the real, kernel-
+reported count was `0` — the counted attempts had all died before the domain-
+allocating call ever ran. Trust the direct kernel instrument
+(`ioclasscount <IOKit-class>` on macOS) over an attempt-counting ledger when a
+scarce, non-reclaimable-without-reboot resource's exhaustion decides whether
+to proceed.
+
+### Trap 15: a shared log file's write order is not its timestamp order
+
+A single log file fed by N concurrent writers (one process multiplexing
+several subprocesses' stdout, or several workers logging to one file) has no
+guaranteed relationship between line position and event time — two writers'
+output can interleave so a later-timestamped line lands before an
+earlier-timestamped one. Worse, **not every line class carries its own
+timestamp**: on `mlx-model-server`'s `server.log`, the `[INFO]`/`[WARN]`/
+`[ERROR]` access lines that carry every request's status code and duration
+have no timestamp at all — only the separate Python-logging lines from each
+worker do. Dating an access line by proximity to the nearest timestamped
+line is unsound under concurrency, which is exactly the condition under
+test when measuring serving load. Aggregate statistics over the whole file
+can still be valid (measured: <1% of lines affected, aggregate rejection
+rate unchanged) — dating any *specific* event this way is not. Also: this
+file prints local time, not UTC: confirm which before filtering a window by
+clock time.
+
+### Trap 16: a converge/run that exits 0 is not proof it changed anything
+
+At least three distinct causes produced a "success" exit with zero real
+effect in one session: a deploy running from a stale checkout that predated
+the commits it was meant to ship, an `--limit <group>` missing the
+`,localhost` the inventory loader needs and matching zero hosts, and a
+`--limit` naming a group the loader could not populate. All three reported
+`failed=0`, exited 0, and deployed nothing. **Verify a deploy by its effect on
+the target, never by its own exit code or by merge state in the source
+repo**: grep the guest for the new code's marker (a string, a config value, a
+file mtime), and prefer a two-part check — artifact present *and* some
+liveness counter (a `runs` counter, a process restart) advancing across two
+samples — over a single check, since a single check is exactly what each of
+the failure modes above still passes.
