@@ -1,0 +1,16 @@
+# Per-repo file-size config for dryvist/.github's shared file-size check.
+#
+# All files fit under the upstream defaults (warn: 6KB, error: 12KB) except
+# the traps checklist below, which is one running list by design — splitting
+# it would break the numbered cross-references RUNBOOK.md and other docs make
+# into it. Extend its own limit rather than split it.
+defaults:
+  warn: 6144
+  error: 12288
+
+extended:
+  limit: 20480
+  files:
+    # Matched by basename without extension (extended.files entries are not
+    # paths) — see the shared _file-size.yml check.
+    - benchmark-traps
