@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.3...v0.18.4) (2026-08-16)
+
+
+### Bug Fixes
+
+* **docs:** split the traps checklist by category instead of raising the file-size limit ([#182](https://github.com/dryvist/mlx-benchmarks/issues/182)) ([f29668a](https://github.com/dryvist/mlx-benchmarks/commit/f29668a65e06108d95aa172d09d651d1e6aa90b3))
+
 ## [0.18.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.2...v0.18.3) (2026-08-16)
 
 
