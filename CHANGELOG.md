@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.2...v0.18.3) (2026-08-16)
+
+
+### Documentation
+
+* add four more traps on confident-wrong-answer checks ([#180](https://github.com/dryvist/mlx-benchmarks/issues/180)) ([74b7068](https://github.com/dryvist/mlx-benchmarks/commit/74b7068b2e0aaca93610a054ba90b4a7a1e0884b))
+
 ## [0.18.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.1...v0.18.2) (2026-08-16)
 
 
