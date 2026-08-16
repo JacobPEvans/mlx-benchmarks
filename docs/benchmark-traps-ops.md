@@ -158,3 +158,29 @@ target with nothing to report — nothing alarms, because there is no signal
 to alarm on. Treat a suspiciously quiet data source as **unverified, not
 confirmed-idle**: check the listener/config side (is anything actually
 configured to receive this) before concluding the silence is real.
+
+### Trap 29: a `default()` on a value whose absence is an error condition turns a loud failure into a silent one
+
+`| default('')` (or any language's equivalent — `.get(key, '')`, `?? ''`) is
+correct when the value's absence is a legitimate, expected case: an optional
+field, a feature flag nobody set. It is a bug magnet when the value's
+absence means something upstream already broke, because the default doesn't
+just fill in a gap — it replaces what would have been a loud, first-run
+failure (an undefined-key error, a `KeyError`, a template render abort) with
+a quiet, downstream one. One real instance: a template gated a config
+stanza's emission on `{% if token_val | length > 0 %}`, where `token_val`
+came from `some_map[key] | default('')`. A pre-role variable-combine bug (a
+file split — see trap 27 — broke a lazy reference feeding that map) meant
+some keys were silently absent from the map. Without the default, the
+missing-key lookup would have raised on the very first run after the split,
+failing loud and pointing straight at the cause. With it, the lookup
+resolved to `''`, the `{% if %}` gate failed, and the config stanza simply
+never rendered — exit 0, no error, and the missing output looked like normal
+"not configured" state rather than a broken reference. It stayed
+undiscovered for multiple days, the same shape as trap 22 (an exit code that
+isn't proof) and trap 28 (missing output that reads as configured-absent
+rather than broken). **Before adding a default to satisfy an
+undefined-value error, ask whether the value's absence is expected or is
+itself the failure.** If it's the failure, use a `mandatory`/assertion form
+that fails loud at the point of absence, not a fallback that lets the gap
+propagate downstream as missing output with no error attached.
