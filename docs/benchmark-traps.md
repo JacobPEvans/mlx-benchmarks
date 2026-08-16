@@ -220,3 +220,15 @@ The general lesson extends past this repo: a gate that asks the system what
 it *offers* can pass on a claim; a gate that checks what the system just
 *did* checks a fact. Prefer the latter for anything a wrong answer would
 silently corrupt.
+
+### Trap 18: a handful of sequential samples cannot characterize a bursty tier
+
+Six sequential sub-second completions against a shared endpoint were read as
+"the tier is idle and fast" — it was concurrently rejecting ~47% of requests
+(measured from llama-swap's own request log: 12,075×429 vs 13,360×200, a
+sustained rate over the last 500 requests, not a burst). A quiet minute
+coexists fine with heavy contention on a `concurrencyLimit`-gated endpoint;
+a handful of samples just has a good chance of landing in a gap. To
+characterize load on a shared serving tier, read the server's own request
+log for status-code distribution over a real window, not a handful of your
+own latency probes.
