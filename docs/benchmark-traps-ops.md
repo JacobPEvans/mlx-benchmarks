@@ -124,3 +124,37 @@ summary just propagates the drift. Confirm state directly before relying on
 it: `gh pr view <number> --json state,mergedAt`. `state` and a non-null
 `mergedAt` are the only trustworthy signal; a PR number appearing in prose
 is not.
+
+### Trap 27: splitting a file to satisfy a limit can silently break a reference nothing tests
+
+Splitting an oversized file is the right fix for a size/token-limit
+violation (see traps 19-22's own history: the split that produced this
+file). But a split can sever a reference that nothing in the test suite
+exercises, and the result passes green while quietly doing less than
+before. Two real instances: a test that read an Ansible task **by name**
+lost half its assertions the moment the task moved to a different file — it
+kept passing, just against less; and a defaults file split to satisfy a size
+limit left a lazily-resolved Jinja reference pointing at a variable
+namespace that no longer had all the inputs it needed — latent until the
+next clean run. **Splitting to satisfy a limit is correct. Preserving every
+cross-reference across the split, and then verifying each one still
+resolves, is the other half of the job** — the way this repo's own traps
+splits kept every trap's numbering stable as an anchor and grepped the
+whole repo for existing references before calling the split done (traps
+19-22's split history). A split with no matching verification step is a
+regression waiting for a quiet moment.
+
+### Trap 28: absence of data is not evidence of absence of events
+
+A dead-looking feed, an empty index, a silent log — all read as "nothing is
+happening," and that reading is not always available to check independently
+against reality: a service can be sending zero events for reasons that have
+nothing to do with whether it has anything to say. On a config-driven
+listener/ingest layer (log shippers, syslog listeners, metrics scrapers),
+one common cause is a whole-file config template overwrite: a converge that
+deploys a partial list silently deletes every entry not in that run's list,
+and a target with no listener behaves identically, from the outside, to a
+target with nothing to report — nothing alarms, because there is no signal
+to alarm on. Treat a suspiciously quiet data source as **unverified, not
+confirmed-idle**: check the listener/config side (is anything actually
+configured to receive this) before concluding the silence is real.
