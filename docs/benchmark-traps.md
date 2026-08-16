@@ -6,12 +6,14 @@ checklist before blaming the model. Per-model-class failure modes live in
 [`model-notes.md`](model-notes.md).
 
 Traps 1-12 here are harness-usage traps (how to run lm-eval/mlx-bench
-correctly) — `RUNBOOK.md` links into these by anchor. Two further checklists
-continue the numbering without repeating it:
+correctly) — `RUNBOOK.md` links into these by anchor. Three further
+checklists continue the numbering without repeating it:
 [benchmark-traps-model.md](benchmark-traps-model.md) (traps 13-18,
-model/eval-specific failure modes) and
-[benchmark-traps-ops.md](benchmark-traps-ops.md) (traps 19-26,
-infrastructure/operational traps — not specific to benchmarking).
+model/eval-specific failure modes),
+[benchmark-traps-ops.md](benchmark-traps-ops.md) (traps 19-29,
+infrastructure/operational traps — not specific to benchmarking), and
+[benchmark-traps-consistency.md](benchmark-traps-consistency.md) (trap 30,
+multi-source-of-truth disagreement).
 
 ## Parser map
 

@@ -1,10 +1,11 @@
-# Benchmark traps — infrastructure/operational (19-26)
+# Benchmark traps — infrastructure/operational (19-29)
 
 Continues [benchmark-traps.md](benchmark-traps.md#traps-checklist) (traps
 1-12, harness-usage) and
 [benchmark-traps-model.md](benchmark-traps-model.md) (traps 13-18,
 model/eval-specific). These are not specific to benchmarking — they apply to
-any check against this stack's shared infrastructure.
+any check against this stack's shared infrastructure. Next:
+[benchmark-traps-consistency.md](benchmark-traps-consistency.md) (trap 30).
 
 ## Traps checklist
 

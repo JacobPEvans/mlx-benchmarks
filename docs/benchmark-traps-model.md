@@ -3,7 +3,7 @@
 Continues [benchmark-traps.md](benchmark-traps.md#traps-checklist) (traps
 1-12, harness-usage). These are failure modes specific to how a particular
 model or eval task behaves, not to running the harness itself. Next:
-[benchmark-traps-ops.md](benchmark-traps-ops.md) (traps 19-26).
+[benchmark-traps-ops.md](benchmark-traps-ops.md) (traps 19-29).
 
 ## Traps checklist
 
