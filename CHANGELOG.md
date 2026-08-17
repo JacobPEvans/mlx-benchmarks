@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.7](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.6...v0.18.7) (2026-08-17)
+
+
+### Documentation
+
+* add trap on multi-source-of-truth disagreement, fix stale trap ranges ([#188](https://github.com/dryvist/mlx-benchmarks/issues/188)) ([61e6a58](https://github.com/dryvist/mlx-benchmarks/commit/61e6a58b63881223c86f9210aa7a0788618e02ae))
+
 ## [0.18.6](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.5...v0.18.6) (2026-08-16)
 
 
