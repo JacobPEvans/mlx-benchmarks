@@ -42,10 +42,9 @@ tool-calling** — in **both** environment classes. See
 - **Role** — the provisional verdict ("leads/lags as of N runs"): what this model
   is good for *this cycle*, not a permanent judgment.
 
-All numbers below are **isolated-class** (or single-run legacy) measurements;
-the only published **under-load** rows so far are the 2026-08-23 jevans-mbp
-quick smokes marked with footnote ³. A full under-load counterpart is required
-before any verdict is final.
+All numbers below are **isolated-class** (or single-run legacy) measurements
+except the jevans-mbp quick smokes (footnote ³), which are **under-load**; an
+under-load counterpart is required before any verdict is final.
 
 ## Agent-brain leaderboard (tool-calling, `jevans-ms`, 2026-07-08)
 
