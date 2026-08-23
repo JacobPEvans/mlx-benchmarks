@@ -90,8 +90,8 @@ jobs:
     uses: dryvist/.github/.github/workflows/_ci-gate.yml@main
     with:
       python_ci: true
-      # mlx-benchmarks is an internal tool — Python 3.13 only.
-      python_ci_versions: '["3.13"]'
+      # Floor is 3.13; CI additionally validates 3.14 (stable since 2025-10).
+      python_ci_versions: '["3.13", "3.14"]'
       markdown_lint: true
       file_size: true
       filters: |
@@ -226,7 +226,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check all results
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # release/v1
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # release/v1
         with:
           allowed-skips: python-security, osv-scan, schema-validate, space-viewer-test, dry-run-publish
           jobs: ${{ toJSON(needs) }}
