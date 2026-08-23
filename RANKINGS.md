@@ -42,9 +42,10 @@ tool-calling** — in **both** environment classes. See
 - **Role** — the provisional verdict ("leads/lags as of N runs"): what this model
   is good for *this cycle*, not a permanent judgment.
 
-All numbers below are **isolated-class** (or single-run legacy) measurements; no
-model yet has a published **under-load** counterpart, which is required before
-any verdict is final.
+All numbers below are **isolated-class** (or single-run legacy) measurements;
+the only published **under-load** rows so far are the 2026-08-23 jevans-mbp
+quick smokes marked with footnote ³. A full under-load counterpart is required
+before any verdict is final.
 
 ## Agent-brain leaderboard (tool-calling, `jevans-ms`, 2026-07-08)
 
@@ -110,8 +111,9 @@ exists.
 | Qwen3.5-122B-A10B-4bit | ~63 | 1/4 | 24.6 | 0.08 | | Legacy flagship MoE |
 | Qwen3.5-35B-A3B-4bit | ~19.5 | 1/4 | 32.9 | | | Legacy A3B workhorse |
 | Qwen3.5-27B-4bit | ~15 | 1/4 | 22.9 | | | Legacy dense mid |
-| Qwen3.5-9B-MLX-4bit | ~5 | 1/4 | 68.5 | | | Small, fast |
+| Qwen3.5-9B-MLX-4bit | ~5 | 1/4 | 68.5 | | 100%³ | Small, fast |
 | DeepSeek-R1-0528-Qwen3-8B-4bit | ~5 | 1/4 | 58.7 | | | Small reasoning distill |
+| Qwen3-4B-Instruct-2507-4bit | ~2.5 | 1/4 | | | 80%³ | Resident `judge` alias on jevans-mbp; smoke only |
 | Seed-OSS-36B-Instruct-4bit | ~19 | 1/4 | 18.6 | | | Mid generalist |
 | gemma-4-31b-it-4bit | ~17 | 1/4 | 18.4 | | | Dense generalist |
 | gemma-4-e4b-it-4bit | ~3 | 1/4 | 59.9 | | | Tiny, fast |
@@ -127,6 +129,12 @@ exists to expose. Single-shot validity alone is not a passing agentic verdict.
 `throughput` suite — the two are not comparable. These two rows come from the
 2026-07-09 flagship isolated-window session
 ([journal](docs/journal/2026-07-09-flagship-isolated-window.md)).
+
+³ 2026-08-23 quick smoke on jevans-mbp (under-load, `mlx_lm.server`, conc 1):
+single unreplicated run, reduced matrix (conc1/think-on/small-ctx/stream,
+repeats 5, no multi-turn track), so NOT pass-gate comparable — published with
+`caveat=quick-smoke-*` tags. Reasoning smokes: `arc_challenge_chat_qwen3`
+limit 15 → 4B 86.7%, 9B 93.3% (single runs; overlay fix in same repo).
 
 Cloud baselines (`reasoning` suite, `arc`/`gsm8k`, limit 100): `gemini-2.5-flash`,
 `openrouter/auto`, `openai/gpt-4.1-mini` — reference points, not local candidates.
