@@ -130,11 +130,9 @@ exists to expose. Single-shot validity alone is not a passing agentic verdict.
 2026-07-09 flagship isolated-window session
 ([journal](docs/journal/2026-07-09-flagship-isolated-window.md)).
 
-³ 2026-08-23 quick smoke on jevans-mbp (under-load, `mlx_lm.server`, conc 1):
-single unreplicated run, reduced matrix (conc1/think-on/small-ctx/stream,
-repeats 5, no multi-turn track), so NOT pass-gate comparable — published with
-`caveat=quick-smoke-*` tags. Reasoning smokes: `arc_challenge_chat_qwen3`
-limit 15 → 4B 86.7%, 9B 93.3% (single runs; overlay fix in same repo).
+³ 2026-08-23 jevans-mbp quick smoke (under-load, conc 1): single unreplicated
+runs, reduced matrix — not pass-gate comparable. Details:
+[docs/journal/2026-08-23-jevans-mbp-quick-smokes.md](docs/journal/2026-08-23-jevans-mbp-quick-smokes.md).
 
 Cloud baselines (`reasoning` suite, `arc`/`gsm8k`, limit 100): `gemini-2.5-flash`,
 `openrouter/auto`, `openai/gpt-4.1-mini` — reference points, not local candidates.
