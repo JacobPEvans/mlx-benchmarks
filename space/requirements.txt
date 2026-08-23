@@ -1,7 +1,7 @@
-gradio>=6.12.0
-pandas>=2.0
-plotly>=6.7.0
-huggingface-hub>=1.0.0
+gradio>=6.25.0
+pandas>=3.0.5
+plotly>=6.9.0
+huggingface-hub>=1.28.0
 # Minimum-version pins for direct + transitive deps that have CVEs in
 # older versions. Lower-bound only — HF Spaces resolves the actual
 # installed version. Tighten to exact pins if reproducibility becomes
@@ -12,7 +12,7 @@ huggingface-hub>=1.0.0
 #   pyarrow 17.0.0  → PYSEC-2026-113 (CVSS 7.0 High) fixed in 23.0.1
 #   orjson  3.9.9   → GHSA-hx9q-6w63-j58v fixed in 3.11.6
 #   idna    3.9.0   → GHSA-65pc-fj4g-8rjx fixed in 3.15 (CVSS 6.9, transitive via requests/httpx)
-pyarrow>=24.0.0
-pillow>=12.2.0
-orjson>=3.11.6
-idna>=3.15
+pyarrow>=25.0.1
+pillow>=12.3.0
+orjson>=3.12.0
+idna>=3.19

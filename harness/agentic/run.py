@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.13"
-# dependencies = ["httpx>=0.27"]
+# dependencies = ["httpx>=0.28.1"]
 # ///
 """agentic — many-tool tool-call reliability benchmark.
 
