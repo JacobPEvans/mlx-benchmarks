@@ -31,3 +31,8 @@ task definition they were scored against.
   request errors in any kept shard.
 - Publish needed `HF_TOKEN_REPOS_ADMIN` (fine-grained write) from Doppler
   `ai-ci-automation/prd`; the config's plain `HF_TOKEN` is read-only and 403s.
+
+## Cloud baselines (moved from RANKINGS.md, size budget)
+
+`reasoning` suite (`arc`/`gsm8k`, limit 100) reference points, not local
+candidates: `gemini-2.5-flash`, `openrouter/auto`, `openai/gpt-4.1-mini`.

@@ -42,9 +42,8 @@ tool-calling** — in **both** environment classes. See
 - **Role** — the provisional verdict ("leads/lags as of N runs"): what this model
   is good for *this cycle*, not a permanent judgment.
 
-All numbers below are **isolated-class** (or single-run legacy) measurements
-except the jevans-mbp quick smokes (footnote ³), which are **under-load**; an
-under-load counterpart is required before any verdict is final.
+All numbers below are **isolated-class** (or single-run legacy) except the
+footnote-³ smokes (**under-load**); final verdicts need both classes.
 
 ## Agent-brain leaderboard (tool-calling, `jevans-ms`, 2026-07-08)
 
@@ -129,12 +128,11 @@ exists to expose. Single-shot validity alone is not a passing agentic verdict.
 2026-07-09 flagship isolated-window session
 ([journal](docs/journal/2026-07-09-flagship-isolated-window.md)).
 
-³ 2026-08-23 jevans-mbp quick smoke (under-load, conc 1): single unreplicated
-runs, reduced matrix — not pass-gate comparable. Details:
-[docs/journal/2026-08-23-jevans-mbp-quick-smokes.md](docs/journal/2026-08-23-jevans-mbp-quick-smokes.md).
+³ jevans-mbp quick smoke, 2026-08-23 (under-load, conc 1): single unreplicated
+runs, reduced matrix — not pass-gate comparable.
+[Journal](docs/journal/2026-08-23-jevans-mbp-quick-smokes.md).
 
-Cloud baselines (`reasoning` suite, `arc`/`gsm8k`, limit 100): `gemini-2.5-flash`,
-`openrouter/auto`, `openai/gpt-4.1-mini` — reference points, not local candidates.
+Cloud baselines: see the [quick-smokes journal](docs/journal/2026-08-23-jevans-mbp-quick-smokes.md).
 
 ## Flagship investigation (2026-07-09) — the 50–90 GB tier does not fit here
 
