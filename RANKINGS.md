@@ -18,9 +18,7 @@ tool-calling** — in **both** environment classes. See
 > classes**. The Maturity column counts **protocol-valid runs** (a validated
 > pair in one env class) toward the 4 needed. No historical shard was collected
 > under that protocol, so **every model currently sits at `1/4`** — one
-> pre-protocol run of four — and stays provisional until re-benched. Verdicts here
-> read "leads/lags as of N runs", and they gate *this cycle's* actions, not
-> permanent judgment.
+> pre-protocol run of four.
 
 ## How to read the columns
 
@@ -36,9 +34,8 @@ tool-calling** — in **both** environment classes. See
   (concurrency 4, thinking ON, large context), then the multi-turn
   `first_degraded_round` with **thinking ON** (`clean` = ran all 20 rounds).
   Multi-turn degradation, not single-shot validity, is the decisive signal.
-- **Maturity** — `N/4`: [protocol-valid runs](docs/verdict-policy.md) (a
-  validated pair in one env class, ≥5 days apart) toward the 4 needed. Historical
-  shards predate the protocol, so every row is currently `1/4` and provisional.
+- **Maturity** — `N/4`: [protocol-valid runs](docs/verdict-policy.md)
+  (validated pair, one env class, ≥5 days apart). All rows provisional.
 - **Role** — the provisional verdict ("leads/lags as of N runs"): what this model
   is good for *this cycle*, not a permanent judgment.
 
@@ -63,8 +60,7 @@ agentic fitness, then throughput. Single-stream tok/s is the agentic
 | 7 | Qwen3-Coder-30B-A3B-Instruct-4bit | ~17 | 1/4 | 0% / 67% | round 1 | — | Coding sidecar this cycle; malformed calls under agentic load |
 | 8 | gpt-oss-120b-MXFP4-Q8 | ~63 | 1/4 | 0% | round 1 | 2.0 | Lags as a tool-calling brain this cycle |
 
-Date count does not mature a verdict: Coder-30B and Qwen3.5-122B have shards on
-four dates but each is one pre-protocol suite, so both stay `1/4`.
+Date count alone matures nothing: both stay `1/4`.
 
 **Production addendum (winner):** OptiQ-4bit must be served with thinking ON
 and a repetition-penalty guardrail (`repetition_penalty ~1.05`, `temp 0.6–0.7`).
