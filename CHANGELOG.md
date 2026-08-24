@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.18.8](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.7...v0.18.8) (2026-08-24)
+
+
+### Bug Fixes
+
+* **lm-eval:** add arc_challenge_chat overlay without gen_prefix ([73c7054](https://github.com/dryvist/mlx-benchmarks/commit/73c705433804562a26cd02fdcc604e1ad0edbc1b))
+* **lm-eval:** arc chat overlay + record 2026-08-23 quick smokes ([5c79825](https://github.com/dryvist/mlx-benchmarks/commit/5c7982520486774359d008e1d5018f29a944bf67))
+
+
+### Documentation
+
+* **rankings:** fit under 12KB file-size gate ([e3fff21](https://github.com/dryvist/mlx-benchmarks/commit/e3fff21ac433ce56420b4cd2d9cb0f176d282c15))
+* **rankings:** record 2026-08-23 jevans-mbp quick smokes ([b74c9f5](https://github.com/dryvist/mlx-benchmarks/commit/b74c9f5841b571d49fd88baae4866210cd3b0f0a))
+* **rankings:** slim footnote to fit file-size limit ([750f822](https://github.com/dryvist/mlx-benchmarks/commit/750f8225104c7cbd28106affe420513d33e23877))
+* **rankings:** tighten under-load note further below 12KB ([d801e89](https://github.com/dryvist/mlx-benchmarks/commit/d801e89ed70a99d559e08f52659c310b9f144c66))
+* **rankings:** trim redundant prose under the 12KB byte gate ([a3c1ef0](https://github.com/dryvist/mlx-benchmarks/commit/a3c1ef038a6d5333c3636fb0786d550d49aae257))
+
 ## [0.18.7](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.6...v0.18.7) (2026-08-17)
 
 
