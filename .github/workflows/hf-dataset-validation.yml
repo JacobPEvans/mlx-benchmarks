@@ -1,0 +1,28 @@
+name: HF Dataset Validation
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - metadata/run-index-v1.json
+      - scripts/validate_run_index.py
+      - .github/workflows/hf-dataset-validation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate-public-dataset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Install index validator
+        run: python -m pip install --no-cache-dir "huggingface-hub>=1.28.0"
+      - name: Validate index and immutable dataset paths
+        run: python scripts/validate_run_index.py --remote
