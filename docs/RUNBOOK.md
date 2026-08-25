@@ -180,7 +180,7 @@ Run against the served endpoint. Timings are **one** 30B-A3B-class run — each
 suite runs as a **replicated pair** (×2) in **both** environment classes, so
 budget ~**4×**; discard + re-run a diverging pair.
 
-### 4a. Throughput (`--kind vllm --suite throughput`)
+### 4a. Throughput (`--kind vllm|throughput-probe --suite throughput`)
 
 Two ways, never at the same time as anything else:
 
@@ -189,6 +189,11 @@ Two ways, never at the same time as anything else:
   [`../configs/vllm/benchmark_serving.toml`](../configs/vllm/benchmark_serving.toml).
 - **Direct-load** — the nix-ai `mlx-bench` wrapper loads the model **itself**, so
   the server must be DOWN first ([trap 4](benchmark-traps.md#trap-4-mlx-bench-loads-directly)).
+- **Local probe** — `harness/throughput/run.py` emits its own repeated-request
+  summary. Publish that JSON with `--kind throughput-probe`; its cumulative
+  tok/s median is the headline, with decode/prefill and TTFT retained as
+  supporting metrics. A response that reaches its configured token cap must be
+  tagged as truncated and is not a quality result.
 
 ### 4b. Coding (`--kind lm-eval --suite coding`) — ~3 h
 
@@ -249,12 +254,12 @@ publishing needs the Doppler write token
 ```sh
 # Dry-run: validates + plans, no network
 .venv/bin/mlx-bench-publish run-output/<...>.json \
-  --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host> --dry-run
+  --kind <lm-eval|agentic|throughput-probe|vllm> --suite <suite> --hostname <host> --dry-run
 
 # Publish with the write token injected
 doppler run -p "$AI_DOPPLER_PROJECT" -c "$AI_DOPPLER_CONFIG" -- \
   .venv/bin/mlx-bench-publish run-output/<...>.json \
-  --kind <lm-eval|agentic|vllm> --suite <suite> --hostname <host>
+  --kind <lm-eval|agentic|throughput-probe|vllm> --suite <suite> --hostname <host>
 ```
 
 `--hostname` records the producing machine even when publishing from another.

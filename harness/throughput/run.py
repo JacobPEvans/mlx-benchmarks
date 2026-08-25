@@ -22,10 +22,8 @@ number moved — but neither is the figure to lead with.
 Run 1 of every sequence is a discarded warm-up (cold-start cost, per the
 measurement-discipline rule). Reports median + min/max over the measured runs.
 
-Output is one raw-results JSON. There is currently no ``mlx-bench-publish
---kind`` converter for this exact shape (it predates being tracked in the
-repo) — publishing it through the envelope pipeline is tracked as a
-follow-up, not done by this script.
+Output is one raw-results JSON. Publish it through the envelope pipeline with
+``mlx-bench-publish --kind throughput-probe --suite throughput``.
 """
 
 from __future__ import annotations
