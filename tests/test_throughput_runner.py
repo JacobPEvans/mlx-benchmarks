@@ -40,8 +40,16 @@ def test_prompt_for_context_defaults_to_the_canonical_short_prompt() -> None:
 
 def test_prompt_for_context_is_deterministic_and_contains_requested_repetitions() -> None:
     prompt = runner.prompt_for_context(3)
-    assert prompt.count("benchmark context evidence ") == 3
+    assert prompt.count("benchmark context variant-0 evidence ") == 3
     assert prompt.endswith("What is the shared theme?")
+
+
+def test_context_variants_change_every_repeated_unit_to_defeat_prefix_caching() -> None:
+    first = runner.prompt_for_context(3, variant=1)
+    second = runner.prompt_for_context(3, variant=2)
+    assert first != second
+    assert first.count("variant-1") == 3
+    assert second.count("variant-2") == 3
 
 
 # --- cumulative_tok_s arithmetic (known-good captured data) -------------------

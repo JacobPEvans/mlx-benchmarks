@@ -47,12 +47,15 @@ PROMPT = (
 )
 
 
-def prompt_for_context(context_tokens: int) -> str:
+def prompt_for_context(context_tokens: int, variant: int = 0) -> str:
     if context_tokens < 1:
         return PROMPT
     return (
         "Read the following operational notes and then state their shared theme.\n\n"
-        + ("benchmark context evidence " * context_tokens)
+        # The variant must appear in every repeated unit, not merely as a
+        # suffix: llama-swap caches prompt prefixes, and a suffix would turn a
+        # nominally cold long-context replicate into an almost-total cache hit.
+        + (f"benchmark context variant-{variant} evidence " * context_tokens)
         + "\n\nWhat is the shared theme?"
     )
 
@@ -268,7 +271,6 @@ async def main():
     url = a.base_url.rstrip("/") + "/chat/completions"
     if a.context_tokens < 0:
         ap.error("--context-tokens must be >= 0")
-    prompt = prompt_for_context(a.context_tokens)
     think_val = a.think == "on"
     if a.think_kwarg == "reasoning_effort":
         think_val = "high" if a.think == "on" else "low"
@@ -280,6 +282,7 @@ async def main():
         "base_url": a.base_url,
         "max_tokens": a.max_tokens,
         "context_tokens_target": a.context_tokens,
+        "context_cache_busting": a.context_tokens > 0,
         "thinking": a.think,
         "think_kwarg": a.think_kwarg,
         # The value actually sent, not just the on/off switch. Without this the
@@ -295,7 +298,14 @@ async def main():
     async with httpx.AsyncClient() as client:
         print("warm-up run (discarded)...", file=sys.stderr, flush=True)
         warm = await one_retry(
-            client, url, a.model, prompt, a.max_tokens, a.think_kwarg, think_val, label="warmup "
+            client,
+            url,
+            a.model,
+            prompt_for_context(a.context_tokens, variant=0),
+            a.max_tokens,
+            a.think_kwarg,
+            think_val,
+            label="warmup ",
         )
         res["warmup"] = warm
         print(f"  warmup: {warm}", file=sys.stderr, flush=True)
@@ -308,7 +318,14 @@ async def main():
         seq = []
         for i in range(a.repeats):
             r = await one_retry(
-                client, url, a.model, prompt, a.max_tokens, a.think_kwarg, think_val, label=f"seq[{i}] "
+                client,
+                url,
+                a.model,
+                prompt_for_context(a.context_tokens, variant=i + 1),
+                a.max_tokens,
+                a.think_kwarg,
+                think_val,
+                label=f"seq[{i}] ",
             )
             print(f"  seq[{i}]: {r}", file=sys.stderr, flush=True)
             seq.append(r)
@@ -320,8 +337,16 @@ async def main():
             t0 = time.perf_counter()
             conc = await asyncio.gather(
                 *[
-                    one(client, url, a.model, prompt, a.max_tokens, a.think_kwarg, think_val)
-                    for _ in range(a.concurrency)
+                    one(
+                        client,
+                        url,
+                        a.model,
+                        prompt_for_context(a.context_tokens, variant=a.repeats + 1 + i),
+                        a.max_tokens,
+                        a.think_kwarg,
+                        think_val,
+                    )
+                    for i in range(a.concurrency)
                 ]
             )
             wall = time.perf_counter() - t0
