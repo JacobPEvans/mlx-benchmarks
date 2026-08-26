@@ -65,13 +65,10 @@ Pick a host by fit and by who else needs the machine.
 
 Two host rules that silently ruin a run if missed:
 
-- **MacBook: `MLX_EVAL_CONCURRENT` must match the endpoint cap** —
-  `llama-swap`'s `concurrencyLimit` (**4** since nix-ai#1190; check the
-  deployed value). Driving higher causes 429 bursts that crash lm-eval
-  (`Session is closed`), losing hours (trap 11).
-- **Studio: always `curl -s4 127.0.0.1`, never a hostname.** Caddy holds the
-  *same* port on IPv6 with TLS; the plain-HTTP vllm-mlx server is on IPv4. Force
-  IPv4 with `-4` and the literal `127.0.0.1`.
+- **MacBook:** `MLX_EVAL_CONCURRENT` must equal deployed `concurrencyLimit`
+  (**4** since nix-ai#1190); higher values cause 429/lm-eval crashes (trap 11).
+- **Studio: use `curl -s4 127.0.0.1`, never a hostname.** Caddy owns IPv6/TLS;
+  vllm-mlx is IPv4 plain HTTP.
 
 **One actor at a time.** Never edit the `llama-swap` config, restart serving, or
 start a second `vllm-mlx serve` while a bench is in flight — the second loader
@@ -139,6 +136,10 @@ production serving (the Hermes brain) offline, so:
 
 > **Notify the user before opening a managed window, and restore after.**
 > Production Hermes is down for the duration.
+
+With session approval for benchmark priority, log approval, window start/end,
+services paused/restored, and readiness in the task. Approval never waives
+paired, context, concurrency, or environment rules.
 
 ```sh
 # 1. Bootout serving AND everything that could relaunch it mid-window

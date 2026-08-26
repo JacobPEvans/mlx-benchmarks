@@ -48,6 +48,17 @@ PROMPT = (
     "latched, requiring a reboot. Be specific and thorough."
 )
 
+
+def prompt_for_context(context_tokens: int) -> str:
+    if context_tokens < 1:
+        return PROMPT
+    return (
+        "Read the following operational notes and then state their shared theme.\n\n"
+        + ("benchmark context evidence " * context_tokens)
+        + "\n\nWhat is the shared theme?"
+    )
+
+
 # Order matters: this is also the order fields are reported in, and the
 # first entry is the headline metric.
 _SUMMARY_KEYS = (
@@ -82,10 +93,10 @@ def cumulative_tok_s(
     return round(((prompt_tokens or 0) + (completion_tokens or 0)) / total_s, 2)
 
 
-async def one(client, url, model, max_tokens, think_kwarg, think_val) -> dict[str, Any]:
+async def one(client, url, model, prompt, max_tokens, think_kwarg, think_val) -> dict[str, Any]:
     body = {
         "model": model,
-        "messages": [{"role": "user", "content": PROMPT}],
+        "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
         "temperature": 0,
         "stream": True,
@@ -162,7 +173,7 @@ async def _stream(client, url, body, t0) -> dict[str, Any]:
 
 
 async def one_retry(
-    client, url, model, max_tokens, think_kwarg, think_val, attempts=6, label=""
+    client, url, model, prompt, max_tokens, think_kwarg, think_val, attempts=6, label=""
 ) -> dict[str, Any]:
     """Retry around a shared, actively-churned endpoint (429 / worker restart).
 
@@ -172,7 +183,7 @@ async def one_retry(
     # raises TypeError instead of reporting the failure it was meant to carry.
     last: dict[str, Any] = {"error": f"no attempt made (attempts={attempts})"}
     for i in range(attempts):
-        r = await one(client, url, model, max_tokens, think_kwarg, think_val)
+        r = await one(client, url, model, prompt, max_tokens, think_kwarg, think_val)
         if "error" not in r:
             if i:
                 r["retries"] = i
@@ -230,6 +241,12 @@ async def main():
     ap.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
     ap.add_argument("--model", required=True)
     ap.add_argument("--max-tokens", type=int, default=256)
+    ap.add_argument(
+        "--context-tokens",
+        type=int,
+        default=0,
+        help="synthetic long-context target; actual prompt tokens come from server usage",
+    )
     ap.add_argument("--repeats", type=int, default=4, help="measured runs (plus 1 warm-up)")
     ap.add_argument("--concurrency", type=int, default=4, help="parallel probe width")
     ap.add_argument("--think-kwarg", default=None)
@@ -251,6 +268,9 @@ async def main():
     a = ap.parse_args()
 
     url = a.base_url.rstrip("/") + "/chat/completions"
+    if a.context_tokens < 0:
+        ap.error("--context-tokens must be >= 0")
+    prompt = prompt_for_context(a.context_tokens)
     think_val = a.think == "on"
     if a.think_kwarg == "reasoning_effort":
         think_val = "high" if a.think == "on" else "low"
@@ -261,6 +281,7 @@ async def main():
         "model": a.model,
         "base_url": a.base_url,
         "max_tokens": a.max_tokens,
+        "context_tokens_target": a.context_tokens,
         "thinking": a.think,
         "think_kwarg": a.think_kwarg,
         # The value actually sent, not just the on/off switch. Without this the
@@ -275,7 +296,9 @@ async def main():
 
     async with httpx.AsyncClient() as client:
         print("warm-up run (discarded)...", file=sys.stderr, flush=True)
-        warm = await one_retry(client, url, a.model, a.max_tokens, a.think_kwarg, think_val, label="warmup ")
+        warm = await one_retry(
+            client, url, a.model, prompt, a.max_tokens, a.think_kwarg, think_val, label="warmup "
+        )
         res["warmup"] = warm
         print(f"  warmup: {warm}", file=sys.stderr, flush=True)
         if "error" in warm:
@@ -287,7 +310,7 @@ async def main():
         seq = []
         for i in range(a.repeats):
             r = await one_retry(
-                client, url, a.model, a.max_tokens, a.think_kwarg, think_val, label=f"seq[{i}] "
+                client, url, a.model, prompt, a.max_tokens, a.think_kwarg, think_val, label=f"seq[{i}] "
             )
             print(f"  seq[{i}]: {r}", file=sys.stderr, flush=True)
             seq.append(r)
@@ -299,7 +322,7 @@ async def main():
             t0 = time.perf_counter()
             conc = await asyncio.gather(
                 *[
-                    one(client, url, a.model, a.max_tokens, a.think_kwarg, think_val)
+                    one(client, url, a.model, prompt, a.max_tokens, a.think_kwarg, think_val)
                     for _ in range(a.concurrency)
                 ]
             )
