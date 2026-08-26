@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.19.0...v0.19.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* align Space Gradio SDK version ([cfa53a3](https://github.com/dryvist/mlx-benchmarks/commit/cfa53a3a9770b72308d935c8e21fa1a59ee590a2))
+* align Space Gradio SDK version ([74ab334](https://github.com/dryvist/mlx-benchmarks/commit/74ab334fad5e1744db85b2ccd56978bc9f6e34d7))
+
 ## [0.19.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.8...v0.19.0) (2026-08-26)
 
 
