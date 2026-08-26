@@ -34,6 +34,16 @@ def _load_runner() -> ModuleType:
 runner = _load_runner()
 
 
+def test_prompt_for_context_defaults_to_the_canonical_short_prompt() -> None:
+    assert runner.prompt_for_context(0) == runner.PROMPT
+
+
+def test_prompt_for_context_is_deterministic_and_contains_requested_repetitions() -> None:
+    prompt = runner.prompt_for_context(3)
+    assert prompt.count("benchmark context evidence ") == 3
+    assert prompt.endswith("What is the shared theme?")
+
+
 # --- cumulative_tok_s arithmetic (known-good captured data) -------------------
 
 
