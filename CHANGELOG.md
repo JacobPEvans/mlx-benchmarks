@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.19.1...v0.20.0) (2026-08-26)
+
+
+### Features
+
+* probe synthetic long contexts ([#201](https://github.com/dryvist/mlx-benchmarks/issues/201)) ([4b6d832](https://github.com/dryvist/mlx-benchmarks/commit/4b6d832ec3e05d7ea8e349d366e4b731fd710a12))
+
 ## [0.19.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.19.0...v0.19.1) (2026-08-26)
 
 
