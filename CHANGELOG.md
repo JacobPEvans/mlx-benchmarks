@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.19.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.8...v0.19.0) (2026-08-26)
+
+
+### Features
+
+* separate experimental benchmark evidence ([53636d7](https://github.com/dryvist/mlx-benchmarks/commit/53636d782a42479ae004f355fe0d7828bde88357))
+* separate experimental benchmark evidence ([6f2440c](https://github.com/dryvist/mlx-benchmarks/commit/6f2440c74f263f0d5afbf3f41118b4ba78ee4a18))
+
+
+### Documentation
+
+* wrap MTP rollout prompt ([9ac1696](https://github.com/dryvist/mlx-benchmarks/commit/9ac1696d78c330dc60c9112a61e2f623499d7654))
+
 ## [0.18.8](https://github.com/dryvist/mlx-benchmarks/compare/v0.18.7...v0.18.8) (2026-08-24)
 
 
