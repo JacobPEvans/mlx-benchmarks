@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - space/**
+      - metadata/run-index-v1.json
       - .github/workflows/deploy-space.yml
   workflow_dispatch:
 
@@ -31,6 +32,15 @@ jobs:
 
       - name: Install huggingface_hub
         run: python -m pip install --no-cache-dir "huggingface_hub[cli]>=0.30"
+
+      - name: Upload canonical run index
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN_WRITE_ALL }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          hf upload JacobPEvans/mlx-benchmarks metadata/run-index-v1.json metadata/run-index-v1.json \
+            --repo-type=dataset \
+            --commit-message="Publish run index from ${GIT_SHA}"
 
       - name: Upload space
         env:

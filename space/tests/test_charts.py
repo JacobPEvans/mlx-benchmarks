@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import sys
 from pathlib import Path
 
@@ -38,6 +39,8 @@ SAMPLE_ROWS = [
 def _sample_df() -> pd.DataFrame:
     df = pd.DataFrame(SAMPLE_ROWS)
     df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    df["source_path"] = ["data/scored-a.parquet", "data/scored-b.parquet"]
+    df = app.add_evidence_metadata(df, {}, pd.Timestamp("2026-08-25T00:00:00Z"))
     df["model_short"] = df["model"].apply(app.short_model)
     return df
 
@@ -67,7 +70,7 @@ def test_trend_chart_renders_with_rows() -> None:
         "reasoning",
         "gsm8k_cot_zeroshot",
         "exact_match_flexible",
-        models=[app.short_model(m) for m in df["model"].unique()],
+        models=df["series_key"].tolist(),
     )
     assert isinstance(fig, go.Figure)
     assert len(fig.data) >= 1
@@ -77,7 +80,7 @@ def test_summary_table_returns_dataframe() -> None:
     df = _sample_df()
     pivot = app.summary_table(df, "reasoning", "exact_match_flexible")
     assert isinstance(pivot, pd.DataFrame)
-    assert "Model" in pivot.columns or pivot.empty
+    assert "Comparison series" in pivot.columns or pivot.empty
 
 
 def test_short_model_strips_common_prefixes() -> None:
@@ -111,3 +114,37 @@ def test_normalize_rows_coalesces_layouts_and_drops_non_measurements() -> None:
     assert surfaced["name"] == "should-call-tool"
     assert surfaced["metric"] == "accuracy"
     assert surfaced["value"] == 0.9
+
+
+def test_unindexed_current_rows_are_experimental() -> None:
+    df = pd.DataFrame(
+        [{"timestamp": "2026-08-25T00:00:00Z", "model": "m/a", "source_path": "data/new.parquet"}]
+    )
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    out = app.add_evidence_metadata(df, {}, pd.Timestamp("2026-08-25T00:00:00Z"))
+    assert out.loc[0, "evidence_status"] == "experimental"
+    assert app.evidence_view(out).empty
+
+
+def test_mtp_run_index_retains_all_historical_shards_as_non_scored() -> None:
+    index_path = SPACE_ROOT.parent / "metadata" / "run-index-v1.json"
+    entries = json.loads(index_path.read_text())["runs"]
+    assert len(entries) == 29
+    assert {entry["status"] for entry in entries} <= {"experimental", "recovered"}
+    assert all(entry["caveat"] for entry in entries)
+
+
+def test_bar_chart_keeps_variants_in_separate_series() -> None:
+    df = _sample_df()
+    duplicate = df.iloc[[0]].copy()
+    duplicate["variant"] = "MTP default"
+    duplicate["series_key"] = " | ".join(
+        [str(duplicate.iloc[0]["model"]), "unknown", "unknown", "MTP default", "unspecified", "unspecified"]
+    )
+    fig = app.bar_chart(
+        pd.concat([df, duplicate], ignore_index=True),
+        "reasoning",
+        "gsm8k_cot_zeroshot",
+        "exact_match_flexible",
+    )
+    assert len(fig.data[0].y) == 3
