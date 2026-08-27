@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.20.0...v0.21.0) (2026-08-27)
+
+
+### Features
+
+* publish throughput probe evidence ([#204](https://github.com/dryvist/mlx-benchmarks/issues/204)) ([eb393ba](https://github.com/dryvist/mlx-benchmarks/commit/eb393ba00c4aa5e26c34440ed5208b642af72456))
+
 ## [0.20.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.19.1...v0.20.0) (2026-08-26)
 
 
