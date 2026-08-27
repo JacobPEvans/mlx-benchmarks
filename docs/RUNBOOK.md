@@ -184,8 +184,8 @@ budget ~**4×**; discard + re-run a diverging pair.
 
 - **Running server** — vllm `benchmark_serving` ([config](../configs/vllm/benchmark_serving.toml)).
 - **Direct-load** — `mlx-bench` loads the model; server down first ([trap 4](benchmark-traps.md#trap-4-mlx-bench-loads-directly)).
-- **Local probe** — publish output as `throughput-probe`: cumulative tok/s is
-  headline; decode/prefill/TTFT support it. Capped responses are not quality results.
+- **Local probe** — publish as `throughput-probe`: cumulative tok/s is headline;
+  decode/prefill/TTFT support it. Capped responses are not quality results.
 
 ### 4b. Coding (`--kind lm-eval --suite coding`) — ~3 h
 
