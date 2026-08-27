@@ -182,18 +182,10 @@ budget ~**4×**; discard + re-run a diverging pair.
 
 ### 4a. Throughput (`--kind vllm|throughput-probe --suite throughput`)
 
-Two ways, never at the same time as anything else:
-
-- **Against the running server** — vllm `benchmark_serving` (what the published
-  Studio baseline uses). See
-  [`../configs/vllm/benchmark_serving.toml`](../configs/vllm/benchmark_serving.toml).
-- **Direct-load** — the nix-ai `mlx-bench` wrapper loads the model **itself**, so
-  the server must be DOWN first ([trap 4](benchmark-traps.md#trap-4-mlx-bench-loads-directly)).
-- **Local probe** — `harness/throughput/run.py` emits its own repeated-request
-  summary. Publish that JSON with `--kind throughput-probe`; its cumulative
-  tok/s median is the headline, with decode/prefill and TTFT retained as
-  supporting metrics. A response that reaches its configured token cap must be
-  tagged as truncated and is not a quality result.
+- **Running server** — vllm `benchmark_serving` ([config](../configs/vllm/benchmark_serving.toml)).
+- **Direct-load** — `mlx-bench` loads the model; server down first ([trap 4](benchmark-traps.md#trap-4-mlx-bench-loads-directly)).
+- **Local probe** — publish output as `throughput-probe`: cumulative tok/s is
+  headline; decode/prefill/TTFT support it. Capped responses are not quality results.
 
 ### 4b. Coding (`--kind lm-eval --suite coding`) — ~3 h
 
