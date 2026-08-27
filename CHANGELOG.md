@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.0...v0.21.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* avoid cached long-context probes ([#203](https://github.com/dryvist/mlx-benchmarks/issues/203)) ([093c3aa](https://github.com/dryvist/mlx-benchmarks/commit/093c3aa61882efd0a762d7720e5bf4d9d1f43b53))
+
 ## [0.21.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.20.0...v0.21.0) (2026-08-27)
 
 
