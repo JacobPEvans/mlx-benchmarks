@@ -12,7 +12,11 @@ def test_throughput_probe_round_trip() -> None:
         "started_utc": "2026-08-24T11:41:57Z",
         "max_tokens": 256,
         "thinking": "off",
-        "sequential_runs": 4,
+        "context_tokens_target": 21333,
+        "sequential_runs": [
+            {"prompt_tokens": 64031, "completion_tokens": 47},
+            {"prompt_tokens": 64031, "completion_tokens": 47},
+        ],
         "sequential": {
             "n_ok": 4,
             "n_err": 0,
@@ -43,4 +47,6 @@ def test_throughput_probe_round_trip() -> None:
     assert by_metric["throughput_output_toks_per_s"]["value"] == 42.97
     assert by_metric["ttft_p50_ms"]["value"] == 490.0
     assert by_metric["throughput_total_toks_per_s"]["tags"]["truncated_rate"] == "1.0"
-    assert by_metric["throughput_total_toks_per_s"]["raw"] == raw["sequential"]
+    assert by_metric["throughput_total_toks_per_s"]["tags"]["context_tokens_target"] == "21333"
+    assert by_metric["throughput_total_toks_per_s"]["tags"]["context_tokens_actual"] == "64031"
+    assert by_metric["throughput_total_toks_per_s"]["raw"] == raw

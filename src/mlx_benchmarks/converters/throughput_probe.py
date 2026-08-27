@@ -57,8 +57,18 @@ class ThroughputProbeConverter:
             tags["max_tokens"] = str(raw["max_tokens"])
         if "thinking" in raw:
             tags["thinking"] = str(raw["thinking"])
-        if "sequential_runs" in raw:
-            tags["repetitions"] = str(raw["sequential_runs"])
+        if "context_tokens_target" in raw:
+            tags["context_tokens_target"] = str(raw["context_tokens_target"])
+        sequential_runs = raw.get("sequential_runs")
+        if isinstance(sequential_runs, list):
+            tags["measured_repetitions"] = str(len(sequential_runs))
+            prompt_tokens = {
+                run["prompt_tokens"]
+                for run in sequential_runs
+                if isinstance(run, dict) and isinstance(run.get("prompt_tokens"), int)
+            }
+            if prompt_tokens:
+                tags["context_tokens_actual"] = ",".join(map(str, sorted(prompt_tokens)))
 
         results: list[Result] = []
         for source_key, metric, unit in _METRICS:
@@ -79,7 +89,7 @@ class ThroughputProbeConverter:
                     "value": value,
                     "unit": unit,
                     "tags": result_tags,
-                    "raw": sequential,
+                    "raw": raw,
                 }
             )
         return results
