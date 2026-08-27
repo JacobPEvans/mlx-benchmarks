@@ -312,10 +312,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
       [ -e "$f" ] || continue
       base="$(basename "$f" .json)"
       case "$base" in
-        # throughput.json has no converter kind at all (see harness/throughput
-        # /run.py's module docstring). Say so once; do not fabricate a --kind
-        # that the publisher would reject.
-        throughput) echo "  SKIPPED $f: no mlx-bench-publish converter for this shape"; continue ;;
+        throughput) kind="throughput-probe" ;;
         agentic)    kind="agentic" ;;
         *)          kind="lm-eval" ;;
       esac

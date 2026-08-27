@@ -129,9 +129,10 @@ def test_unindexed_current_rows_are_experimental() -> None:
 def test_mtp_run_index_retains_all_historical_shards_as_non_scored() -> None:
     index_path = SPACE_ROOT.parent / "metadata" / "run-index-v1.json"
     entries = json.loads(index_path.read_text())["runs"]
-    assert len(entries) == 29
+    assert len(entries) == 31
     assert {entry["status"] for entry in entries} <= {"experimental", "recovered"}
     assert all(entry["caveat"] for entry in entries)
+    assert {entry["context_band"] for entry in entries} >= {"64k", "128k"}
 
 
 def test_bar_chart_keeps_variants_in_separate_series() -> None:

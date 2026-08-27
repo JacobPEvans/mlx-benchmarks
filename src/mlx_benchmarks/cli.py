@@ -39,7 +39,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--kind",
         default="lm-eval",
-        choices=["agentic", "bench-serve", "factual", "lm-eval", "promptstack", "vllm"],
+        choices=[
+            "agentic",
+            "agentic-partial",
+            "bench-serve",
+            "factual",
+            "lm-eval",
+            "promptstack",
+            "throughput-probe",
+            "vllm",
+        ],
         help="Source format of results_json",
     )
     parser.add_argument("--suite", required=True, help="Envelope suite (must be in schema enum)")
@@ -101,7 +110,11 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        raw: dict[str, Any] = json.loads(args.results_json.read_text())
+        raw: Any
+        if args.results_json.suffix == ".jsonl":
+            raw = [json.loads(line) for line in args.results_json.read_text().splitlines() if line]
+        else:
+            raw = json.loads(args.results_json.read_text())
     except OSError as exc:
         log.error("cannot read %s: %s", args.results_json, exc)
         return 2
