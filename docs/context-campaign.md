@@ -43,6 +43,7 @@ context-window map; it is not maintained in this repository.
 ```sh
 uv run scripts/generate-context-inventory.py \
   --windows-json /path/to/evaluated-windows.json \
+  --proxy-config /path/to/generated-proxy-config.json \
   --campaign-id context-20260828-a \
   --output /tmp/context-campaign.json
 ```
@@ -56,6 +57,12 @@ The non-dry run queries the live inventory once, writes only below
 publisher in `--dry-run` mode. The probe rejects a cell when the server does
 not report the expected prompt token count (within the declared tolerance), or
 when actual prompt plus the reserved output exceeds the selected window.
+
+When `--proxy-config` is supplied, the generator parses each worker's current
+`--max-tokens` admission cap and takes the lower of that cap and the evaluated
+catalog window. This is deliberate: a catalog window is not a live capacity
+claim. The manifest preserves both dimensions so a blocked 32k cell is
+diagnostic rather than an invented benchmark failure.
 
 ## What every successful row means
 
