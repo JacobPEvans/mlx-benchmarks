@@ -8,6 +8,8 @@ import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+from urllib.error import URLError
+from urllib.request import urlopen
 
 VALID_STATUSES = frozenset(
     {"success", "failed", "capacity_gated", "unsupported", "aborted", "not_applicable"}
@@ -54,6 +56,23 @@ def _positive_ints(values: object, field: str) -> list[int]:
     return [_positive_int(value, field) for value in values]
 
 
+def _profile_id(profile: dict[str, Any]) -> str:
+    explicit = profile.get("id")
+    if explicit is not None:
+        if not isinstance(explicit, str) or not explicit:
+            raise ValueError("profile.id must be a non-empty string")
+        return explicit
+    model = profile.get("model")
+    if not isinstance(model, str) or not model:
+        raise ValueError("profile.model must be a non-empty string")
+    return model.rsplit("/", 1)[-1]
+
+
+def _profile_windows(profile: dict[str, Any], configured_windows: list[int]) -> list[int]:
+    limit = _positive_int(profile.get("window_limit_tokens"), "profile.window_limit_tokens")
+    return [window for window in configured_windows if window <= limit]
+
+
 def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
     campaign_id = manifest.get("campaign_id")
     if not isinstance(campaign_id, str) or not campaign_id:
@@ -62,7 +81,7 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
     if not isinstance(defaults, dict):
         raise ValueError("defaults must be an object")
     targets = _positive_ints(defaults.get("targets"), "defaults.targets")
-    default_windows = _positive_ints(defaults.get("configured_windows"), "defaults.configured_windows")
+    configured_windows = _positive_ints(defaults.get("configured_windows"), "defaults.configured_windows")
     output_tokens = _positive_int(defaults.get("output_tokens", 512), "defaults.output_tokens")
     prompt_tolerance_tokens = _positive_int(
         defaults.get("prompt_tolerance_tokens", 64), "defaults.prompt_tolerance_tokens"
@@ -83,14 +102,12 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
     for profile in profiles:
         if not isinstance(profile, dict):
             raise ValueError("each profile must be an object")
-        profile_id, model = profile.get("id"), profile.get("model")
-        if not isinstance(profile_id, str) or not profile_id:
-            raise ValueError("profile.id must be a non-empty string")
+        profile_id, model = _profile_id(profile), profile.get("model")
         if not isinstance(model, str) or not model:
             raise ValueError("profile.model must be a non-empty string")
-        windows = _positive_ints(
-            profile.get("configured_windows", default_windows), "profile.configured_windows"
-        )
+        if profile.get("enabled", True) is not True:
+            continue
+        windows = _profile_windows(profile, configured_windows)
         for window in windows:
             for target in targets:
                 cells.append(
@@ -109,6 +126,19 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
                     )
                 )
     return cells
+
+
+def served_models(base_url: str) -> set[str]:
+    url = base_url.rstrip("/") + "/models"
+    try:
+        with urlopen(url, timeout=10) as response:
+            payload = json.loads(response.read())
+    except (OSError, URLError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"could not read live model inventory from {url}: {exc}") from exc
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, list):
+        raise RuntimeError(f"live model inventory from {url} has no data array")
+    return {item["id"] for item in data if isinstance(item, dict) and isinstance(item.get("id"), str)}
 
 
 def cell_dir(output_root: Path, cell: CampaignCell) -> Path:
@@ -185,7 +215,13 @@ def write_status(path: Path, cell: CampaignCell, status: str, **extra: object) -
     path.write_text(json.dumps({"status": status, "cell": asdict(cell), **extra}, indent=2) + "\n")
 
 
-def run_cell(repo_root: Path, output_root: Path, cell: CampaignCell, dry_run: bool) -> str:
+def run_cell(
+    repo_root: Path,
+    output_root: Path,
+    cell: CampaignCell,
+    dry_run: bool,
+    live_models: set[str] | None,
+) -> str:
     directory = cell_dir(output_root, cell)
     raw_output = directory / "throughput.json"
     if cell.status == "not_applicable":
@@ -201,6 +237,17 @@ def run_cell(repo_root: Path, output_root: Path, cell: CampaignCell, dry_run: bo
             f"{cell.cell_id} not_applicable: {cell.target_tokens}+{cell.output_tokens}>{cell.configured_window}"
         )
         return cell.status
+
+    if live_models is not None and cell.model not in live_models:
+        directory.mkdir(parents=True, exist_ok=True)
+        write_status(
+            directory / "cell.json",
+            cell,
+            "unsupported",
+            reason="model is not present in the live endpoint inventory",
+        )
+        print(f"{cell.cell_id} unsupported: {cell.model} is absent from live inventory")
+        return "unsupported"
 
     commands = [probe_command(cell, raw_output), publisher_command(cell, raw_output)]
     if dry_run:
@@ -247,7 +294,8 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         parser.error(str(exc))
     repo_root = Path(__file__).resolve().parents[1]
-    statuses = [run_cell(repo_root, output_root, cell, args.dry_run) for cell in cells]
+    live_models = None if args.dry_run else served_models(next(iter(cells)).base_url) if cells else set()
+    statuses = [run_cell(repo_root, output_root, cell, args.dry_run, live_models) for cell in cells]
     return 0 if all(status in {"success", "not_applicable"} for status in statuses) else 1
 
 

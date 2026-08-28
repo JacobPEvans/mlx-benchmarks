@@ -35,7 +35,12 @@ def manifest() -> dict:
             "repeats": 4,
             "concurrency": 1,
         },
-        "profiles": [{"id": "qwen38-mtp", "model": "mlx-community/Qwen3.8-27B-4bit"}],
+        "profiles": [
+            {
+                "model": "mlx-community/Qwen3.8-27B-4bit",
+                "window_limit_tokens": 65536,
+            }
+        ],
     }
 
 
@@ -43,6 +48,7 @@ def test_expansion_is_deterministic_and_reserves_output_tokens() -> None:
     cells = runner.load_cells(manifest())
     assert len(cells) == 4
     assert [cell.status for cell in cells] == ["success", "not_applicable", "success", "success"]
+    assert cells[0].profile_id == "Qwen3.8-27B-4bit"
     assert cells[0].cell_id == runner.load_cells(manifest())[0].cell_id
     assert len(cells[0].cell_id) == 16
 

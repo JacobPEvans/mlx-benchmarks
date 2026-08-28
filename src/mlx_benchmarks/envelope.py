@@ -82,6 +82,23 @@ class GenKwargs(TypedDict, total=False):
     top_k: int
 
 
+class Campaign(TypedDict, total=False):
+    id: str
+    cell_id: str
+    profile: str
+
+
+class ContextDimensions(TypedDict, total=False):
+    model_max_tokens: int
+    catalog_max_tokens: int
+    proxy_max_tokens: int
+    worker_max_tokens: int
+    configured_window_tokens: int
+    requested_prompt_tokens: int
+    actual_prompt_tokens: int
+    output_reservation_tokens: int
+
+
 class Envelope(TypedDict, total=False):
     # Keys marked Required[...] mirror schema.json's `required` list — they are
     # always present on a validated envelope (and `LmEvalConverter.build_envelope`
@@ -98,6 +115,9 @@ class Envelope(TypedDict, total=False):
     model: Required[str]
     model_revision: str
     quantization: str
+    campaign: Campaign
+    cell_status: str
+    context: ContextDimensions
     skipped: bool
     seed: int
     gen_kwargs: GenKwargs
