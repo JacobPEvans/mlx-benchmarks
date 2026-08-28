@@ -254,6 +254,19 @@ def context_validation(
     return None
 
 
+def calibrated_repetitions(
+    first_prompt_tokens: int, second_prompt_tokens: int, target_prompt_tokens: int
+) -> int:
+    tokens_per_repetition = second_prompt_tokens - first_prompt_tokens
+    fixed_tokens = first_prompt_tokens - tokens_per_repetition
+    if tokens_per_repetition < 1:
+        raise ValueError("calibration did not increase prompt_tokens per repeated unit")
+    repetitions = round((target_prompt_tokens - fixed_tokens) / tokens_per_repetition)
+    if repetitions < 1:
+        raise ValueError("target prompt tokens are below the fixed prompt overhead")
+    return repetitions
+
+
 async def main():
     import httpx
 
@@ -271,6 +284,11 @@ async def main():
         "--expected-prompt-tokens",
         type=int,
         help="required actual server prompt-token count for a comparable campaign cell",
+    )
+    ap.add_argument(
+        "--target-prompt-tokens",
+        type=int,
+        help="calibrate repeated context units from server usage to this actual prompt-token target",
     )
     ap.add_argument(
         "--prompt-tolerance-tokens",
@@ -311,6 +329,8 @@ async def main():
         ap.error("--context-tokens must be >= 0")
     if a.expected_prompt_tokens is not None and a.expected_prompt_tokens < 0:
         ap.error("--expected-prompt-tokens must be >= 0")
+    if a.target_prompt_tokens is not None and a.target_prompt_tokens < 1:
+        ap.error("--target-prompt-tokens must be >= 1")
     if a.window_limit_tokens is not None and a.window_limit_tokens < 1:
         ap.error("--window-limit-tokens must be >= 1")
     think_val = a.think == "on"
@@ -322,14 +342,15 @@ async def main():
     context = {"output_reservation_tokens": a.max_tokens}
     if a.window_limit_tokens is not None:
         context["configured_window_tokens"] = a.window_limit_tokens
-    if a.expected_prompt_tokens is not None:
-        context["requested_prompt_tokens"] = a.expected_prompt_tokens
+    expected_prompt_tokens = a.target_prompt_tokens or a.expected_prompt_tokens
+    if expected_prompt_tokens is not None:
+        context["requested_prompt_tokens"] = expected_prompt_tokens
     res = {
         "model": a.model,
         "base_url": a.base_url,
         "max_tokens": a.max_tokens,
         "context_tokens_target": a.context_tokens,
-        "context_cache_busting": a.context_tokens > 0,
+        "context_cache_busting": a.context_tokens > 0 or a.target_prompt_tokens is not None,
         "cell_status": "success",
         "context": context,
         "thinking": a.think,
@@ -347,12 +368,38 @@ async def main():
         res["campaign"] = {"id": a.campaign_id, "cell_id": a.cell_id, "profile": a.profile}
 
     async with httpx.AsyncClient() as client:
+        context_repetitions = a.context_tokens
+        if a.target_prompt_tokens is not None:
+            calibration_runs = []
+            for repetitions in (1, 2):
+                calibration = await one_retry(
+                    client,
+                    url,
+                    a.model,
+                    prompt_for_context(repetitions, variant=-(repetitions + 1)),
+                    1,
+                    a.think_kwarg,
+                    think_val,
+                    label=f"calibration[{repetitions}] ",
+                )
+                calibration_runs.append(calibration)
+            res["context_calibration"] = calibration_runs
+            try:
+                first, second = (run["prompt_tokens"] for run in calibration_runs)
+                context_repetitions = calibrated_repetitions(first, second, a.target_prompt_tokens)
+            except (KeyError, TypeError, ValueError) as exc:
+                res["cell_status"] = "aborted"
+                res["aborted"] = f"context calibration failed: {exc}"
+                Path(a.output).write_text(json.dumps(res, indent=2))
+                return 1
+            res["context_tokens_target"] = context_repetitions
+            res["context"]["synthetic_repetitions"] = context_repetitions
         print("warm-up run (discarded)...", file=sys.stderr, flush=True)
         warm = await one_retry(
             client,
             url,
             a.model,
-            prompt_for_context(a.context_tokens, variant=0),
+            prompt_for_context(context_repetitions, variant=0),
             a.max_tokens,
             a.think_kwarg,
             think_val,
@@ -367,7 +414,7 @@ async def main():
             return 1
 
         warm_context_error = context_validation(
-            warm, a.expected_prompt_tokens, a.prompt_tolerance_tokens, a.window_limit_tokens, a.max_tokens
+            warm, expected_prompt_tokens, a.prompt_tolerance_tokens, a.window_limit_tokens, a.max_tokens
         )
         if warm_context_error:
             res["cell_status"] = "aborted"
@@ -382,7 +429,7 @@ async def main():
                 client,
                 url,
                 a.model,
-                prompt_for_context(a.context_tokens, variant=i + 1),
+                prompt_for_context(context_repetitions, variant=i + 1),
                 a.max_tokens,
                 a.think_kwarg,
                 think_val,
@@ -390,7 +437,7 @@ async def main():
             )
             print(f"  seq[{i}]: {r}", file=sys.stderr, flush=True)
             error = context_validation(
-                r, a.expected_prompt_tokens, a.prompt_tolerance_tokens, a.window_limit_tokens, a.max_tokens
+                r, expected_prompt_tokens, a.prompt_tolerance_tokens, a.window_limit_tokens, a.max_tokens
             )
             if error:
                 r["error"] = error
@@ -418,7 +465,7 @@ async def main():
                         client,
                         url,
                         a.model,
-                        prompt_for_context(a.context_tokens, variant=a.repeats + 1 + i),
+                        prompt_for_context(context_repetitions, variant=a.repeats + 1 + i),
                         a.max_tokens,
                         a.think_kwarg,
                         think_val,

@@ -59,6 +59,10 @@ def test_context_validation_requires_matching_reported_tokens_and_output_headroo
     assert runner.context_validation(run, 32100, 64, 32768, 512) is not None
 
 
+def test_calibrated_repetitions_derives_server_token_target() -> None:
+    assert runner.calibrated_repetitions(35, 38, 64000) == 21323
+
+
 # --- cumulative_tok_s arithmetic (known-good captured data) -------------------
 
 

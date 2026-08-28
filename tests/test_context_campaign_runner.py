@@ -57,9 +57,10 @@ def test_probe_and_dry_run_publish_keep_dimensions() -> None:
     cell = runner.load_cells(manifest())[0]
     probe = runner.probe_command(cell, Path("/tmp/out.json"))
     publish = runner.publisher_command(cell, Path("/tmp/out.json"))
-    assert "--context-tokens" in probe and "32000" in probe
+    assert "--context-tokens" in probe and "0" in probe
+    assert "--target-prompt-tokens" in probe and "32000" in probe
     assert "--max-tokens" in probe and "512" in probe
-    assert "--expected-prompt-tokens" in probe
+    assert "--expected-prompt-tokens" not in probe
     assert "--window-limit-tokens" in probe and "32768" in probe
     assert "throughput-probe" in publish and "--dry-run" in publish
     assert f"cell_id={cell.cell_id}" in publish

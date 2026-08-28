@@ -96,6 +96,7 @@ class ContextDimensions(TypedDict, total=False):
     configured_window_tokens: int
     requested_prompt_tokens: int
     actual_prompt_tokens: int
+    synthetic_repetitions: int
     output_reservation_tokens: int
 
 

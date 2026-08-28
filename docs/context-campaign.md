@@ -73,6 +73,7 @@ The envelope records these dimensions independently:
 | configured window | evaluated inventory | Admission limit selected for this cell. |
 | requested prompt | campaign target | Predeclared comparable target. |
 | actual prompt | server usage | Value used to accept or reject the cell. |
+| synthetic repetitions | server calibration | Input units derived from the target, never a token claim. |
 | output reservation | campaign protocol | Capacity held back for a normal completion. |
 | model/catalog/proxy/worker maxima | generated inventory when available | Distinct limits; never substitute one for another. |
 

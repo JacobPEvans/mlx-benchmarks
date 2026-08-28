@@ -100,6 +100,7 @@
         "configured_window_tokens": { "type": "integer", "minimum": 1 },
         "requested_prompt_tokens": { "type": "integer", "minimum": 0 },
         "actual_prompt_tokens": { "type": "integer", "minimum": 0 },
+        "synthetic_repetitions": { "type": "integer", "minimum": 1 },
         "output_reservation_tokens": { "type": "integer", "minimum": 0 }
       }
     },
