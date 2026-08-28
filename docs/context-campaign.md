@@ -43,7 +43,6 @@ context-window map; it is not maintained in this repository.
 ```sh
 uv run scripts/generate-context-inventory.py \
   --windows-json /path/to/evaluated-windows.json \
-  --proxy-config /path/to/generated-proxy-config.json \
   --campaign-id context-20260828-a \
   --output /tmp/context-campaign.json
 ```
@@ -58,11 +57,11 @@ publisher in `--dry-run` mode. The probe rejects a cell when the server does
 not report the expected prompt token count (within the declared tolerance), or
 when actual prompt plus the reserved output exceeds the selected window.
 
-When `--proxy-config` is supplied, the generator parses each worker's current
-`--max-tokens` admission cap and takes the lower of that cap and the evaluated
-catalog window. This is deliberate: a catalog window is not a live capacity
-claim. The manifest preserves both dimensions so a blocked 32k cell is
-diagnostic rather than an invented benchmark failure.
+The generator deliberately does not infer a prompt limit from a worker's
+`--max-tokens` flag: in the supported MLX server that flag is a default
+completion length, not an input-context admission limit. Actual prompt
+capacity is therefore established by server usage plus the campaign telemetry,
+not by relabeling a generation default as a context window.
 
 ## What every successful row means
 
@@ -75,7 +74,7 @@ The envelope records these dimensions independently:
 | actual prompt | server usage | Value used to accept or reject the cell. |
 | synthetic repetitions | server calibration | Input units derived from the target, never a token claim. |
 | output reservation | campaign protocol | Capacity held back for a normal completion. |
-| model/catalog/proxy/worker maxima | generated inventory when available | Distinct limits; never substitute one for another. |
+| catalog maximum | evaluated inventory | Declared prompt-plus-generation window for the selected profile. |
 
 The raw result also preserves cache-busting, completion finish reasons, and
 the campaign/cell identity. A long prompt that ends before the required normal

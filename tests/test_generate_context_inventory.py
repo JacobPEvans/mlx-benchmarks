@@ -28,14 +28,12 @@ def test_manifest_intersects_evaluated_windows_with_live_models() -> None:
         "http://127.0.0.1:11434/v1",
         {"enabled": 131072, "disabled": 65536},
         {"enabled", "foreign"},
-        {"enabled": 8192},
     )
     assert manifest["profiles"] == [
         {
             "model": "enabled",
-            "window_limit_tokens": 8192,
+            "window_limit_tokens": 131072,
             "catalog_max_tokens": 131072,
-            "worker_max_tokens": 8192,
         }
     ]
     assert manifest["defaults"]["targets"] == [32000, 64000, 128000, 192000]
