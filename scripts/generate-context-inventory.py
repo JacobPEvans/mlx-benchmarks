@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 from urllib.error import URLError
@@ -36,13 +37,43 @@ def fetch_models(base_url: str) -> set[str]:
     return {row["id"] for row in data if isinstance(row, dict) and isinstance(row.get("id"), str)}
 
 
+def load_worker_limits(path: Path) -> dict[str, int]:
+    payload = json.loads(path.read_text())
+    models = payload.get("models") if isinstance(payload, dict) else None
+    if not isinstance(models, dict):
+        raise ValueError("proxy configuration has no models object")
+    limits: dict[str, int] = {}
+    for model, config in models.items():
+        command = config.get("cmd") if isinstance(config, dict) else None
+        match = re.search(r"(?:^|\\s)--max-tokens\\s+(\\d+)(?:\\s|$)", command or "")
+        if isinstance(model, str) and match:
+            limits[model] = int(match.group(1))
+    return limits
+
+
 def build_manifest(
     campaign_id: str,
     output_root: str,
     base_url: str,
     windows: dict[str, int],
     live_models: set[str],
+    worker_limits: dict[str, int] | None = None,
 ) -> dict[str, Any]:
+    worker_limits = worker_limits or {}
+
+    def profile(model: str) -> dict[str, int | str]:
+        catalog_limit = windows[model]
+        worker_limit = worker_limits.get(model)
+        limit = min(catalog_limit, worker_limit) if worker_limit else catalog_limit
+        result: dict[str, int | str] = {
+            "model": model,
+            "window_limit_tokens": limit,
+            "catalog_max_tokens": catalog_limit,
+        }
+        if worker_limit:
+            result["worker_max_tokens"] = worker_limit
+        return result
+
     return {
         "campaign_id": campaign_id,
         "output_root": output_root,
@@ -54,10 +85,7 @@ def build_manifest(
             "repeats": 4,
             "concurrency": 1,
         },
-        "profiles": [
-            {"model": model, "window_limit_tokens": windows[model]}
-            for model in sorted(live_models & windows.keys())
-        ],
+        "profiles": [profile(model) for model in sorted(live_models & windows.keys())],
     }
 
 
@@ -70,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--output-root", default="~/bench-runs")
     parser.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
+    parser.add_argument("--proxy-config", type=Path)
     args = parser.parse_args(argv)
     try:
         manifest = build_manifest(
@@ -78,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
             args.base_url,
             load_windows(args.windows_json),
             fetch_models(args.base_url),
+            load_worker_limits(args.proxy_config) if args.proxy_config else None,
         )
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         parser.error(str(exc))

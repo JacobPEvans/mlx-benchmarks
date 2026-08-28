@@ -14,6 +14,9 @@ from urllib.request import urlopen
 VALID_STATUSES = frozenset(
     {"success", "failed", "capacity_gated", "unsupported", "aborted", "not_applicable"}
 )
+CONTEXT_LIMIT_FIELDS = frozenset(
+    {"model_max_tokens", "catalog_max_tokens", "proxy_max_tokens", "worker_max_tokens"}
+)
 
 
 @dataclass(frozen=True)
@@ -29,6 +32,7 @@ class CampaignCell:
     concurrency: int
     base_url: str
     environment_class: str
+    context_limits: dict[str, int]
 
     @property
     def cell_id(self) -> str:
@@ -73,6 +77,11 @@ def _profile_windows(profile: dict[str, Any], configured_windows: list[int]) -> 
     return [window for window in configured_windows if window <= limit]
 
 
+def _context_limits(profile: dict[str, Any]) -> dict[str, int]:
+    values = {key: value for key, value in profile.items() if key in CONTEXT_LIMIT_FIELDS}
+    return {key: _positive_int(value, f"profile.{key}") for key, value in values.items()}
+
+
 def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
     campaign_id = manifest.get("campaign_id")
     if not isinstance(campaign_id, str) or not campaign_id:
@@ -108,6 +117,7 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
         if profile.get("enabled", True) is not True:
             continue
         windows = _profile_windows(profile, configured_windows)
+        context_limits = _context_limits(profile)
         for window in windows:
             for target in targets:
                 cells.append(
@@ -123,6 +133,7 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
                         concurrency=concurrency,
                         base_url=base_url,
                         environment_class=environment_class,
+                        context_limits=context_limits,
                     )
                 )
     return cells
@@ -270,6 +281,12 @@ def run_cell(
     if raw.get("aborted"):
         write_status(directory / "cell.json", cell, "aborted", phase="probe", reason=raw["aborted"])
         return "aborted"
+    context = raw.get("context")
+    if not isinstance(context, dict):
+        write_status(directory / "cell.json", cell, "failed", phase="probe", reason="missing context")
+        return "failed"
+    raw["context"] = {**cell.context_limits, **context}
+    raw_output.write_text(json.dumps(raw, indent=2) + "\n")
     publisher = subprocess.run(commands[1], cwd=repo_root, check=False)
     status = "success" if publisher.returncode == 0 else "failed"
     write_status(
