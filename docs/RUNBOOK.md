@@ -34,11 +34,6 @@ Two suites sit outside this set, feeding no `RANKINGS.md` row: `promptstack`
 varies the **system prompt** ([`promptstack.md`](promptstack.md)); `factual`
 scores invented numbers in summaries ([`shootout.md`](shootout.md)).
 
-For context-window throughput and the "small prompt under a larger enabled
-window" question, use the generated-inventory protocol in
-[`context-campaign.md`](context-campaign.md). It is a separate context gate;
-ordinary capability suites retain their native task lengths.
-
 ## Decision tree
 
 ```text
