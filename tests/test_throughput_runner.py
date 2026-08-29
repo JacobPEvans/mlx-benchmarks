@@ -52,6 +52,17 @@ def test_context_variants_change_every_repeated_unit_to_defeat_prefix_caching() 
     assert second.count("variant-2") == 3
 
 
+def test_context_validation_requires_matching_reported_tokens_and_output_headroom() -> None:
+    run = {"prompt_tokens": 32000}
+    assert runner.context_validation(run, 32000, 64, 32768, 512) is None
+    assert runner.context_validation(run, 32000, 64, 32000, 512) is not None
+    assert runner.context_validation(run, 32100, 64, 32768, 512) is not None
+
+
+def test_calibrated_repetitions_derives_server_token_target() -> None:
+    assert runner.calibrated_repetitions(35, 38, 64000) == 21323
+
+
 # --- cumulative_tok_s arithmetic (known-good captured data) -------------------
 
 

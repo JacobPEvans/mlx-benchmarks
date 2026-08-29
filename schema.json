@@ -73,6 +73,37 @@
       "type": "string",
       "description": "Quantization scheme as reported by the runtime (e.g. mlx-4bit, mxfp4, mxfp8)"
     },
+    "campaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional immutable campaign and cell identity for a coordinated local benchmark run.",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "cell_id": { "type": "string", "minLength": 1 },
+        "profile": { "type": "string", "minLength": 1 }
+      }
+    },
+    "cell_status": {
+      "type": "string",
+      "enum": ["success", "failed", "capacity_gated", "unsupported", "aborted", "not_applicable"],
+      "description": "Protocol status for this cell. Only success rows carry scored benchmark metrics."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Context dimensions kept separate so configured capacity is never confused with actual prompt length.",
+      "properties": {
+        "model_max_tokens": { "type": "integer", "minimum": 1 },
+        "catalog_max_tokens": { "type": "integer", "minimum": 1 },
+        "proxy_max_tokens": { "type": "integer", "minimum": 1 },
+        "worker_max_tokens": { "type": "integer", "minimum": 1 },
+        "configured_window_tokens": { "type": "integer", "minimum": 1 },
+        "requested_prompt_tokens": { "type": "integer", "minimum": 0 },
+        "actual_prompt_tokens": { "type": "integer", "minimum": 0 },
+        "synthetic_repetitions": { "type": "integer", "minimum": 1 },
+        "output_reservation_tokens": { "type": "integer", "minimum": 0 }
+      }
+    },
     "skipped": {
       "type": "boolean",
       "description": "True when the suite was skipped (e.g. MLX server unavailable on standard runner)"

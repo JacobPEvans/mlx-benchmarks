@@ -36,6 +36,10 @@ Closed suite set: `throughput`, `ttft`, `tool-calling`, `code-accuracy`,
 | `gen_kwargs` | object | `max_gen_toks` / `temperature` / `top_p` / `top_k`. |
 | `memory_snapshots` | array | Future work — RSS / swap per phase. |
 | `errors` | array of string | Non-fatal warnings recorded during the run. |
+| `campaign` | object | Immutable `id`, `cell_id`, and serving `profile` for a coordinated campaign. |
+| `cell_status` | enum | Only `success` rows may be scored; all other listed states preserve a non-scored outcome. |
+| `context` | object | Context dimensions: model/catalog/proxy/worker maxima when known, selected window, requested and actual prompt, and output reservation. |
+| `readiness` | object | First request, excluded from warmed scoring. Stores initial residency and discarded timings. |
 
 ## `system` object
 

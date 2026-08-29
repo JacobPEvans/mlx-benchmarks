@@ -13,6 +13,14 @@ def test_throughput_probe_round_trip() -> None:
         "max_tokens": 256,
         "thinking": "off",
         "context_tokens_target": 21333,
+        "campaign": {"id": "local-context-2026-08", "cell_id": "qwen38-64k-c1", "profile": "mtp"},
+        "cell_status": "success",
+        "context": {
+            "configured_window_tokens": 131072,
+            "requested_prompt_tokens": 64000,
+            "actual_prompt_tokens": 64031,
+            "output_reservation_tokens": 256,
+        },
         "sequential_runs": [
             {"prompt_tokens": 64031, "completion_tokens": 47},
             {"prompt_tokens": 64031, "completion_tokens": 47},
@@ -50,3 +58,5 @@ def test_throughput_probe_round_trip() -> None:
     assert by_metric["throughput_total_toks_per_s"]["tags"]["context_tokens_target"] == "21333"
     assert by_metric["throughput_total_toks_per_s"]["tags"]["context_tokens_actual"] == "64031"
     assert by_metric["throughput_total_toks_per_s"]["raw"] == raw
+    assert envelope["campaign"]["cell_id"] == "qwen38-64k-c1"
+    assert envelope["context"]["actual_prompt_tokens"] == 64031

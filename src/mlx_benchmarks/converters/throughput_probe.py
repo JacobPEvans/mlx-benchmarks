@@ -39,6 +39,10 @@ class ThroughputProbeConverter:
             "results": self._iter_results(raw, ctx),
             "errors": [],
         }
+        for field in ("campaign", "cell_status", "context"):
+            value = raw.get(field)
+            if value is not None:
+                envelope[field] = value
         return apply_optional_fields(envelope, ctx)
 
     def _iter_results(self, raw: Any, ctx: ConverterContext) -> list[Result]:

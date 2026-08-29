@@ -141,8 +141,10 @@ requests either join one continuous batch (1.6–2.3× aggregate) or serialize
 
 The first request after a model (re)load carries the whole cold-load cost
 (measured: an 8.55 s 32-token first request vs 0.55 s warm — a +8 s artifact).
-A naive sweep silently folds that into its first row. Always fire a throwaway
-warm-up request before the measured run, and guard two-point decode math with
+A naive sweep silently folds that into its first row. Always record the
+pre-request residency state (`cold`, `resident`, or `unknown`), fire a
+throwaway readiness request, archive its timing separately, and then measure
+the warmed run. Never score or rank the readiness request. Guard two-point decode math with
 `dt > 0` (a cold row makes the slope negative). For TTFT, count the first SSE
 `data:` chunk with content — `time_starttransfer` only measures header
 arrival (llama-swap flushes SSE headers immediately).
