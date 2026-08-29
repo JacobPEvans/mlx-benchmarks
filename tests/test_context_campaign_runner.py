@@ -74,6 +74,22 @@ def test_invalid_manifest_is_rejected() -> None:
         runner.load_cells(bad)
 
 
+def test_manifest_can_record_a_non_scored_capacity_outcome() -> None:
+    data = manifest()
+    data["profiles"][0]["outcome"] = {
+        "status": "capacity_gated",
+        "reason": "first nonzero swap interrupted the guarded probe",
+    }
+    cells = runner.load_cells(data)
+    assert [cell.status for cell in cells] == [
+        "capacity_gated",
+        "not_applicable",
+        "capacity_gated",
+        "capacity_gated",
+    ]
+    assert cells[0].reported_reason == "first nonzero swap interrupted the guarded probe"
+
+
 def test_dry_run_does_not_create_external_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     data = manifest()
     data["output_root"] = str(tmp_path / "external")

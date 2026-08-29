@@ -33,6 +33,8 @@ class CampaignCell:
     base_url: str
     environment_class: str
     context_limits: dict[str, int]
+    reported_status: str | None
+    reported_reason: str | None
 
     @property
     def cell_id(self) -> str:
@@ -41,11 +43,9 @@ class CampaignCell:
 
     @property
     def status(self) -> str:
-        return (
-            "not_applicable"
-            if self.target_tokens + self.output_tokens > self.configured_window
-            else "success"
-        )
+        if self.target_tokens + self.output_tokens > self.configured_window:
+            return "not_applicable"
+        return self.reported_status or "success"
 
 
 def _positive_int(value: object, field: str) -> int:
@@ -80,6 +80,21 @@ def _profile_windows(profile: dict[str, Any], configured_windows: list[int]) -> 
 def _context_limits(profile: dict[str, Any]) -> dict[str, int]:
     values = {key: value for key, value in profile.items() if key in CONTEXT_LIMIT_FIELDS}
     return {key: _positive_int(value, f"profile.{key}") for key, value in values.items()}
+
+
+def _reported_outcome(profile: dict[str, Any]) -> tuple[str | None, str | None]:
+    outcome = profile.get("outcome")
+    if outcome is None:
+        return None, None
+    if not isinstance(outcome, dict):
+        raise ValueError("profile.outcome must be an object")
+    status = outcome.get("status")
+    reason = outcome.get("reason")
+    if status not in VALID_STATUSES - {"success", "not_applicable"}:
+        raise ValueError("profile.outcome.status must be a non-success campaign status")
+    if not isinstance(reason, str) or not reason:
+        raise ValueError("profile.outcome.reason must be a non-empty string")
+    return status, reason
 
 
 def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
@@ -118,6 +133,7 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
             continue
         windows = _profile_windows(profile, configured_windows)
         context_limits = _context_limits(profile)
+        reported_status, reported_reason = _reported_outcome(profile)
         for window in windows:
             for target in targets:
                 cells.append(
@@ -134,6 +150,8 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
                         base_url=base_url,
                         environment_class=environment_class,
                         context_limits=context_limits,
+                        reported_status=reported_status,
+                        reported_reason=reported_reason,
                     )
                 )
     return cells
@@ -235,18 +253,21 @@ def run_cell(
 ) -> str:
     directory = cell_dir(output_root, cell)
     raw_output = directory / "throughput.json"
-    if cell.status == "not_applicable":
+    if cell.status != "success":
+        reason = (
+            "requested prompt plus reserved output exceeds configured window"
+            if cell.status == "not_applicable"
+            else cell.reported_reason
+        )
         if not dry_run:
             directory.mkdir(parents=True, exist_ok=True)
             write_status(
                 directory / "cell.json",
                 cell,
                 cell.status,
-                reason="requested prompt plus reserved output exceeds configured window",
+                reason=reason,
             )
-        print(
-            f"{cell.cell_id} not_applicable: {cell.target_tokens}+{cell.output_tokens}>{cell.configured_window}"
-        )
+        print(f"{cell.cell_id} {cell.status}: {reason}")
         return cell.status
 
     if live_models is not None and cell.model not in live_models:
