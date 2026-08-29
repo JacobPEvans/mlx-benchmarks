@@ -39,7 +39,7 @@ Closed suite set: `throughput`, `ttft`, `tool-calling`, `code-accuracy`,
 | `campaign` | object | Immutable `id`, `cell_id`, and serving `profile` for a coordinated campaign. |
 | `cell_status` | enum | `success`, `failed`, `capacity_gated`, `unsupported`, `aborted`, or `not_applicable`. Only success rows may be scored. |
 | `context` | object | Context dimensions: model/catalog/proxy/worker maxima when known, selected window, requested and actual prompt, and output reservation. |
-| `readiness` | object | First-request evidence outside the warmed score: `initial_model_state` is `cold`, `resident`, or `unknown`; `first_request` archives discarded-request timings. |
+| `readiness` | object | First request, excluded from warmed scoring. Stores initial residency and discarded timings. |
 
 ## `system` object
 
