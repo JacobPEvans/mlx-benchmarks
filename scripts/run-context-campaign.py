@@ -82,7 +82,7 @@ def _context_limits(profile: dict[str, Any]) -> dict[str, int]:
     return {key: _positive_int(value, f"profile.{key}") for key, value in values.items()}
 
 
-def _reported_outcome(profile: dict[str, Any]) -> tuple[str | None, str | None]:
+def _reported_outcome(profile: dict[str, Any], target_tokens: int) -> tuple[str | None, str | None]:
     outcome = profile.get("outcome")
     if outcome is None:
         return None, None
@@ -90,10 +90,16 @@ def _reported_outcome(profile: dict[str, Any]) -> tuple[str | None, str | None]:
         raise ValueError("profile.outcome must be an object")
     status = outcome.get("status")
     reason = outcome.get("reason")
+    recorded_target = outcome.get("target_tokens")
     if status not in VALID_STATUSES - {"success", "not_applicable"}:
         raise ValueError("profile.outcome.status must be a non-success campaign status")
     if not isinstance(reason, str) or not reason:
         raise ValueError("profile.outcome.reason must be a non-empty string")
+    if (
+        recorded_target is not None
+        and _positive_int(recorded_target, "profile.outcome.target_tokens") != target_tokens
+    ):
+        return None, None
     return status, reason
 
 
@@ -133,9 +139,9 @@ def load_cells(manifest: dict[str, Any]) -> list[CampaignCell]:
             continue
         windows = _profile_windows(profile, configured_windows)
         context_limits = _context_limits(profile)
-        reported_status, reported_reason = _reported_outcome(profile)
         for window in windows:
             for target in targets:
+                reported_status, reported_reason = _reported_outcome(profile, target)
                 cells.append(
                     CampaignCell(
                         campaign_id=campaign_id,

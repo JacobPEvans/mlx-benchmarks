@@ -79,15 +79,16 @@ def test_manifest_can_record_a_non_scored_capacity_outcome() -> None:
     data["profiles"][0]["outcome"] = {
         "status": "capacity_gated",
         "reason": "first nonzero swap interrupted the guarded probe",
+        "target_tokens": 64000,
     }
     cells = runner.load_cells(data)
     assert [cell.status for cell in cells] == [
-        "capacity_gated",
+        "success",
         "not_applicable",
-        "capacity_gated",
+        "success",
         "capacity_gated",
     ]
-    assert cells[0].reported_reason == "first nonzero swap interrupted the guarded probe"
+    assert cells[3].reported_reason == "first nonzero swap interrupted the guarded probe"
 
 
 def test_dry_run_does_not_create_external_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
