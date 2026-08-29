@@ -19,8 +19,10 @@ metric reports them as if they were. ``prefill_tok_s`` and ``decode_tok_s``
 are kept as supporting detail — useful for root-causing *why* the cumulative
 number moved — but neither is the figure to lead with.
 
-Run 1 of every sequence is a discarded warm-up (cold-start cost, per the
-measurement-discipline rule). Reports median + min/max over the measured runs.
+Run 1 of every sequence is a discarded readiness probe.  It records the first
+request after the caller's declared model state (cold, resident, or unknown)
+but is never folded into the warmed throughput statistics. Reports median +
+min/max over the measured runs.
 
 Output is one raw-results JSON. Publish it through the envelope pipeline with
 ``mlx-bench-publish --kind throughput-probe --suite throughput``.
@@ -304,6 +306,12 @@ async def main():
     ap.add_argument("--campaign-id", help="immutable campaign identifier")
     ap.add_argument("--cell-id", help="immutable campaign cell identifier")
     ap.add_argument("--profile", help="serving profile, for example base or mtp")
+    ap.add_argument(
+        "--initial-model-state",
+        choices=("cold", "resident", "unknown"),
+        default="unknown",
+        help="model residency before the discarded readiness request (default: unknown)",
+    )
     ap.add_argument("--repeats", type=int, default=4, help="measured runs (plus 1 warm-up)")
     ap.add_argument("--concurrency", type=int, default=4, help="parallel probe width")
     ap.add_argument("--think-kwarg", default=None)
@@ -362,6 +370,7 @@ async def main():
         # measurement of maximum-effort reasoning was labelled "off".
         "think_value": think_val if a.think_kwarg else None,
         "think_kwarg_sent": bool(a.think_kwarg),
+        "readiness": {"initial_model_state": a.initial_model_state},
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     if a.campaign_id and a.cell_id and a.profile:
@@ -406,6 +415,7 @@ async def main():
             label="warmup ",
         )
         res["warmup"] = warm
+        res["readiness"]["first_request"] = warm
         print(f"  warmup: {warm}", file=sys.stderr, flush=True)
         if "error" in warm:
             res["aborted"] = "warm-up failed; refusing to record scores"
