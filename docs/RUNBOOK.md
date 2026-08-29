@@ -30,15 +30,7 @@ still **provisional**: a verdict is final only per the
 [verdict policy](verdict-policy.md) (**≥4 runs ≥5 days apart, validated pairs,
 both environment classes**). Read it before any "best/worst" claim.
 
-Two suites sit outside this set, feeding no `RANKINGS.md` row: `promptstack`
-varies the **system prompt** ([`promptstack.md`](promptstack.md)); `factual`
-scores invented numbers in summaries ([`shootout.md`](shootout.md)).
-
-For a safety stop with no valid rate, add a profile-level `outcome` object to
-the context-campaign manifest (for example `capacity_gated`, a reason, and an
-optional `target_tokens` selector).
-The runner writes the cell status without calling the model or publisher; it is
-evidence of the gate, never a zero-throughput measurement.
+`promptstack` and `factual` feed no `RANKINGS.md` row.
 
 ## Decision tree
 
