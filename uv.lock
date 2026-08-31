@@ -362,7 +362,7 @@ wheels = [
 
 [[package]]
 name = "mlx-benchmarks"
-version = "0.21.1"
+version = "0.21.3"
 source = { editable = "." }
 dependencies = [
     { name = "huggingface-hub" },
