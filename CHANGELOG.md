@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.2...v0.21.3) (2026-08-31)
+
+
+### Documentation
+
+* record clean-reset Qwen3.8 128k evidence ([96cb8e7](https://github.com/dryvist/mlx-benchmarks/commit/96cb8e746ee1663f227174f59c050e6af04916f0))
+
 ## [0.21.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.1...v0.21.2) (2026-08-31)
 
 
