@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.1...v0.21.2) (2026-08-31)
+
+
+### Bug Fixes
+
+* make throughput stream timeout configurable ([b27c598](https://github.com/dryvist/mlx-benchmarks/commit/b27c5987e168f62912b1aabb522bdb6e7f08ffde))
+
 ## [0.21.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.0...v0.21.1) (2026-08-27)
 
 
