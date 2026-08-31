@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.3...v0.22.0) (2026-08-31)
+
+
+### Features
+
+* index clean-reset 128k evidence for the viewer ([f8d7e04](https://github.com/dryvist/mlx-benchmarks/commit/f8d7e047c28dea4a8866a7fd3d8e9d1d5ecf42d9))
+
 ## [0.21.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.2...v0.21.3) (2026-08-31)
 
 
