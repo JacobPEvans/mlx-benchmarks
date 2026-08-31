@@ -96,7 +96,9 @@ def cumulative_tok_s(
     return round(((prompt_tokens or 0) + (completion_tokens or 0)) / total_s, 2)
 
 
-async def one(client, url, model, prompt, max_tokens, think_kwarg, think_val) -> dict[str, Any]:
+async def one(
+    client, url, model, prompt, max_tokens, think_kwarg, think_val, request_timeout_s
+) -> dict[str, Any]:
     body = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -110,12 +112,12 @@ async def one(client, url, model, prompt, max_tokens, think_kwarg, think_val) ->
 
     t0 = time.perf_counter()
     try:
-        return await _stream(client, url, body, t0)
+        return await _stream(client, url, body, t0, request_timeout_s)
     except Exception as e:  # server restart / disconnect mid-run
         return {"error": f"{type(e).__name__}: {e}"}
 
 
-async def _stream(client, url, body, t0) -> dict[str, Any]:
+async def _stream(client, url, body, t0, request_timeout_s) -> dict[str, Any]:
     ttft = None
     usage = None
     ntok = 0
@@ -127,7 +129,7 @@ async def _stream(client, url, body, t0) -> dict[str, Any]:
     answer_chars = 0
     reasoning_chars = 0
     finish_reason = None
-    async with client.stream("POST", url, json=body, timeout=1800.0) as r:
+    async with client.stream("POST", url, json=body, timeout=request_timeout_s) as r:
         status = r.status_code
         if status != 200:
             txt = await r.aread()
@@ -176,7 +178,7 @@ async def _stream(client, url, body, t0) -> dict[str, Any]:
 
 
 async def one_retry(
-    client, url, model, prompt, max_tokens, think_kwarg, think_val, attempts=6, label=""
+    client, url, model, prompt, max_tokens, think_kwarg, think_val, request_timeout_s, attempts=6, label=""
 ) -> dict[str, Any]:
     """Retry around a shared, actively-churned endpoint (429 / worker restart).
 
@@ -186,7 +188,7 @@ async def one_retry(
     # raises TypeError instead of reporting the failure it was meant to carry.
     last: dict[str, Any] = {"error": f"no attempt made (attempts={attempts})"}
     for i in range(attempts):
-        r = await one(client, url, model, prompt, max_tokens, think_kwarg, think_val)
+        r = await one(client, url, model, prompt, max_tokens, think_kwarg, think_val, request_timeout_s)
         if "error" not in r:
             if i:
                 r["retries"] = i
@@ -314,6 +316,12 @@ async def main():
     )
     ap.add_argument("--repeats", type=int, default=4, help="measured runs (plus 1 warm-up)")
     ap.add_argument("--concurrency", type=int, default=4, help="parallel probe width")
+    ap.add_argument(
+        "--request-timeout-s",
+        type=float,
+        default=1800.0,
+        help="per-request stream timeout in seconds; raise for intentionally serialized long-context probes",
+    )
     ap.add_argument("--think-kwarg", default=None)
     ap.add_argument("--think", default="off", choices=["on", "off"])
     # Escape hatch from the on/off binary. Reasoning-effort vocabularies differ
@@ -341,6 +349,8 @@ async def main():
         ap.error("--target-prompt-tokens must be >= 1")
     if a.window_limit_tokens is not None and a.window_limit_tokens < 1:
         ap.error("--window-limit-tokens must be >= 1")
+    if a.request_timeout_s <= 0:
+        ap.error("--request-timeout-s must be > 0")
     think_val = a.think == "on"
     if a.think_kwarg == "reasoning_effort":
         think_val = "high" if a.think == "on" else "low"
@@ -389,6 +399,7 @@ async def main():
                     1,
                     a.think_kwarg,
                     think_val,
+                    a.request_timeout_s,
                     label=f"calibration[{repetitions}] ",
                 )
                 calibration_runs.append(calibration)
@@ -412,6 +423,7 @@ async def main():
             a.max_tokens,
             a.think_kwarg,
             think_val,
+            a.request_timeout_s,
             label="warmup ",
         )
         res["warmup"] = warm
@@ -443,6 +455,7 @@ async def main():
                 a.max_tokens,
                 a.think_kwarg,
                 think_val,
+                a.request_timeout_s,
                 label=f"seq[{i}] ",
             )
             print(f"  seq[{i}]: {r}", file=sys.stderr, flush=True)
@@ -479,6 +492,7 @@ async def main():
                         a.max_tokens,
                         a.think_kwarg,
                         think_val,
+                        a.request_timeout_s,
                     )
                     for i in range(a.concurrency)
                 ]
