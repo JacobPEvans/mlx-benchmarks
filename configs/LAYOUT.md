@@ -44,10 +44,16 @@ stack (nix-ai `modules/mlx/packages.nix`), **not** a script in this repo:
 
 - `mlx-eval <tasks…>` — lm-eval against the live vllm-mlx server. It owns the
   connection args: `base_url`, `max_length=32768`, `num_concurrent`
-  (`MLX_EVAL_CONCURRENT`, default 4), `--apply_chat_template`. Do **not**
-  re-specify those as authoritative here — the `[model_args]` blocks below
-  mirror them only so the runbook reads standalone.
+  (`MLX_EVAL_CONCURRENT`, **default 1** — the wrapper sets `:-1` because
+  production serving is intentionally serial while upstream concurrency is
+  qualified; the coding suite raises it explicitly), `--apply_chat_template`.
+  Do **not** re-specify those as authoritative here — the `[model_args]` blocks
+  below mirror them only so the runbook reads standalone.
 - `mlx-bench` / `mlx-bench-raw` — vllm-mlx / raw `mlx_lm.benchmark` throughput.
+  Check both are present before planning a throughput run: on 2026-09-01 the
+  primary serving host carried only `mlx-bench-raw`, with no `mlx-bench`,
+  `vllm-mlx`, or `vllm` on `PATH` — so the non-destructive running-server path
+  had no installed tool while the load path (trap 4, server must be down) did.
 - `mlx-wait` — health-gate the server before a run.
 
 This repo owns only the step *after* a run: convert the tool's JSON to envelope
