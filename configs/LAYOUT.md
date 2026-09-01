@@ -50,10 +50,20 @@ stack (nix-ai `modules/mlx/packages.nix`), **not** a script in this repo:
   Do **not** re-specify those as authoritative here — the `[model_args]` blocks
   below mirror them only so the runbook reads standalone.
 - `mlx-bench` / `mlx-bench-raw` — vllm-mlx / raw `mlx_lm.benchmark` throughput.
-  Check both are present before planning a throughput run: on 2026-09-01 the
-  primary serving host carried only `mlx-bench-raw`, with no `mlx-bench`,
-  `vllm-mlx`, or `vllm` on `PATH` — so the non-destructive running-server path
-  had no installed tool while the load path (trap 4, server must be down) did.
+  **These are not interchangeable, and `mlx-bench` is conditional.** The serving
+  stack gates it (and `mlx-bench-engine`) behind `vllm-mlx` being an enabled
+  backend, commented there as "preserved for future requalification; absent from
+  deployed hosts while the backend is disabled". Where that backend is disabled,
+  `mlx-bench` is deliberately not installed — it is not a packaging oversight to
+  report.
+
+  The consequence for this repo is structural rather than incidental: the
+  running-server throughput path in the RUNBOOK depends on a backend a host may
+  have retired, while the load path (`mlx-bench-raw`, trap 4 — server must be
+  down) does not. On such a host there is no non-destructive throughput route,
+  so a throughput row cannot be produced without either requalifying that
+  backend or adding a path that measures the serving engine actually in use.
+  Confirm which backend a host runs before planning a throughput suite.
 - `mlx-wait` — health-gate the server before a run.
 
 This repo owns only the step *after* a run: convert the tool's JSON to envelope
