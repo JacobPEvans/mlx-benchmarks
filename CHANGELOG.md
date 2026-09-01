@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.22.0...v0.22.1) (2026-09-01)
+
+
+### Documentation
+
+* **configs:** read the endpoint's concurrency limit instead of pinning it ([#217](https://github.com/dryvist/mlx-benchmarks/issues/217)) ([005e83b](https://github.com/dryvist/mlx-benchmarks/commit/005e83b6c3a721dc4fc827337898ac8d052f3009))
+
 ## [0.22.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.21.3...v0.22.0) (2026-08-31)
 
 
