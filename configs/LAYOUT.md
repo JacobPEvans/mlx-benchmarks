@@ -44,10 +44,26 @@ stack (nix-ai `modules/mlx/packages.nix`), **not** a script in this repo:
 
 - `mlx-eval <tasks…>` — lm-eval against the live vllm-mlx server. It owns the
   connection args: `base_url`, `max_length=32768`, `num_concurrent`
-  (`MLX_EVAL_CONCURRENT`, default 4), `--apply_chat_template`. Do **not**
-  re-specify those as authoritative here — the `[model_args]` blocks below
-  mirror them only so the runbook reads standalone.
+  (`MLX_EVAL_CONCURRENT`, **default 1** — the wrapper sets `:-1` because
+  production serving is intentionally serial while upstream concurrency is
+  qualified; the coding suite raises it explicitly), `--apply_chat_template`.
+  Do **not** re-specify those as authoritative here — the `[model_args]` blocks
+  below mirror them only so the runbook reads standalone.
 - `mlx-bench` / `mlx-bench-raw` — vllm-mlx / raw `mlx_lm.benchmark` throughput.
+  **These are not interchangeable, and `mlx-bench` is conditional.** The serving
+  stack gates it (and `mlx-bench-engine`) behind `vllm-mlx` being an enabled
+  backend, commented there as "preserved for future requalification; absent from
+  deployed hosts while the backend is disabled". Where that backend is disabled,
+  `mlx-bench` is deliberately not installed — it is not a packaging oversight to
+  report.
+
+  The consequence for this repo is structural rather than incidental: the
+  running-server throughput path in the RUNBOOK depends on a backend a host may
+  have retired, while the load path (`mlx-bench-raw`, trap 4 — server must be
+  down) does not. On such a host there is no non-destructive throughput route,
+  so a throughput row cannot be produced without either requalifying that
+  backend or adding a path that measures the serving engine actually in use.
+  Confirm which backend a host runs before planning a throughput suite.
 - `mlx-wait` — health-gate the server before a run.
 
 This repo owns only the step *after* a run: convert the tool's JSON to envelope

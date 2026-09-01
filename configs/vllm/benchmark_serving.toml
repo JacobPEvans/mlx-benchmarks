@@ -16,8 +16,30 @@ input_len = 256
 output_len = 256
 num_prompts = 100
 # Concurrency guard (trap 11): never drive above the endpoint's llama-swap
-# concurrencyLimit — excess requests 429 and cascade the client. 4 matches
-# the current limit (nix-ai#1190); vllm-mlx bench-serve's flag is
-# --concurrency (verified against the installed 0.4.0 CLI). Fire one warm-up
-# request before the measured run (trap 12: first request carries cold-load cost).
-concurrency = 4
+# concurrencyLimit — excess requests 429 and cascade the client, and the run
+# records throughput for a load the server never actually accepted.
+#
+# READ THE LIMIT, DO NOT TRUST THIS NUMBER. The serving stack derives it per
+# host and per model — `lib.min operatorConcurrencyCap memoryFitCeiling`, where
+# the memory ceiling comes from that host's live residency budget (nix-ai
+# modules/mlx/options-proxy.nix). A larger resident model lowers it. So no
+# single value is correct across hosts or across catalog changes, and any
+# number written here is a snapshot that rots.
+#
+# The running endpoint publishes the real value — llama-swap's /running returns
+# each model's launch command, which carries --decode-concurrency:
+#
+#   curl -s http://localhost:11434/running \
+#     | python3 -c 'import json,sys; [print(x["model"], x["cmd"]) for x in json.load(sys.stdin)["running"]]'
+#
+# Set this run's concurrency to what that reports for the model under test.
+#
+# The value below is an EXAMPLE, not an assertion about any deployment. It was
+# previously commented as matching the current limit; on 2026-09-01 the tier
+# models on the primary serving host were measured serving at 2, so that claim
+# had drifted and is removed rather than replaced with another literal.
+#
+# vllm-mlx bench-serve's flag is --concurrency (verified against the installed
+# 0.4.0 CLI). Fire one warm-up request before the measured run (trap 12: first
+# request carries cold-load cost).
+concurrency = 2
