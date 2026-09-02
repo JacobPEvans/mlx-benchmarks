@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.22.1...v0.22.2) (2026-09-02)
+
+
+### Documentation
+
+* **journal:** Lane A latency rows for the Studio tier, 2026-09-01 ([#219](https://github.com/dryvist/mlx-benchmarks/issues/219)) ([5aa5195](https://github.com/dryvist/mlx-benchmarks/commit/5aa5195dbcf4576182e32aa75cb47aaee067994e))
+
 ## [0.22.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.22.0...v0.22.1) (2026-09-01)
 
 
