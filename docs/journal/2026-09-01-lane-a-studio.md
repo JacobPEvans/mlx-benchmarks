@@ -1,0 +1,186 @@
+# 2026-09-01 — Lane A latency rows, Studio serving tier
+
+Measurement only. Nothing on the serving tier was changed by this run: no config
+edit, no unload, no reboot, no launchd action. Two attempts were made against the
+27B tier model and one against the 35B-A3B, across two backends. One latency row
+was obtained; the other three attempts produced failure-state evidence instead.
+
+This entry covers the mlx-lm backend. The vllm-mlx attempts, and what the whole
+run does and does not show, are in
+[2026-09-01-lane-a-studio-vllm-mlx.md](2026-09-01-lane-a-studio-vllm-mlx.md).
+
+## Instrument and method
+
+| Field | Value |
+| --- | --- |
+| Harness (row 1) | `harness.py`, stdlib only (urllib, ThreadPoolExecutor, time, json, uuid) |
+| Harness sha256 (row 1) | `39fafc68734e8c6f3586b0179e5cc8aa68fd67baaf15aae2cbb5c9a7e634ca39` |
+| Harness (row 2) | `harness2.py`, sha256 `df692e9c21320b6f5f5575fb9c5634b455ecbdf719525ba9c437779df5aa5665` |
+| Run location | on the Studio itself, under `nohup` |
+| Endpoint | the llama-swap loopback chat-completions endpoint |
+| Client timeout | 300 s socket timeout, enforced in Python |
+| Python | system `python3`, 3.9.6 |
+| Cells | c = 1, 2, 4; 3 replicates each |
+| Waits (row 1) | 15 s between replicates, 30 s between cells |
+| Waits (row 2) | 5 s between replicates, 10 s between cells, to fit a shorter box |
+
+`harness2.py` differs from `harness.py` only in what it records —
+`finish_reason`, `content_len`, and a `valid` flag — plus wait durations moved to
+argv. Request body, prompt hash, cells, and ordering are unchanged, so latency
+figures from the two harnesses are comparable.
+
+### Fixed request parameters
+
+| Parameter | Value |
+| --- | --- |
+| Prompt | one fixed paragraph repeated 8x, pinned by sha256 |
+| Prompt chars | 2856 |
+| Prompt tokens, measured | 549–552 |
+| `max_tokens` | 256 |
+| `temperature` | 0 |
+| `stream` | false |
+| `enable_thinking` | not sent; server default |
+| Per-request marker | `[rid=<uuid8>]` appended to the user message |
+| Completion tokens, actual | 64–73 |
+
+The brief specified a ~256-input-token prompt; the repeated paragraph renders as
+roughly double that. The prompt is pinned by hash, so a post-switch rerun is
+exactly comparable to this run. Only comparison against externally measured
+figures at a different prompt size is affected.
+
+### Join limitation
+
+The `[rid=...]` markers cannot be joined to the llama-swap request log. That log
+records no request body and no model id, so every marker greps to zero
+occurrences; this was verified across 7 request ids. The available fields are
+source address, method, path, HTTP status, response bytes, user-agent, and
+server-side duration. Attributing a log line to a specific model would require
+correlating with upstream model-server access lines, which carry a timestamp but
+also no model id. All per-model attribution below therefore comes from the
+harness and from direct process inspection, not from the request log.
+
+## Row 1 — 35B-A3B on mlx-lm
+
+Window 2026-09-01T21:07:13Z to 21:10:44Z. Admitted concurrency 2. Backend
+`mlx-lm-server`, server version string `0.31.3-0.32.0-macOS-26.5.2-arm64`.
+Warm-up at c1, excluded from the table: 1.372 s, 64 completion tokens.
+
+| c | replicates | n requests | ok | p50 s | p90 s | max s | rejected 429 | hung TIMEOUT | tokens/s aggregate |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 3 | 3 | 3 | 1.23 | 1.26 | 1.26 | 0 | 0 | 56.0 |
+| 2 | 3 | 6 | 6 | 1.66 | 1.68 | 1.68 | 0 | 0 | 78.4 |
+| 4 | 3 | 12 | 6 | 1.68 | 1.70 | 1.70 | 6 | 0 | 79.1 |
+
+Total requests issued against this model: 22, plus 3 one-token probes.
+
+At an admitted concurrency of 2, exactly half of every 4-request replicate was
+rejected, with wall times of 0.007 to 0.013 s. Surplus concurrency is refused at
+the door rather than queued, so served latency at c4 is identical to c2 because
+only 2 requests ever run. Aggregate throughput moves from 56 to 78 tokens/s
+between c1 and c2 and does not move again at c4.
+
+No failure fired during measurement. The post-cell probe returned 200 after every
+cell, at 145.2, 147.1, and 176.0 ms.
+
+## The 27B tier model — wedged before measurement began
+
+The 27B dense model is what the router's default tier resolves to, and it was the
+intended model under test. The pre-flight probe found it rejecting all traffic
+before this session touched the host, and it was still rejecting afterward. Per
+the brief it was recorded and not measured.
+
+An instant 429 is produced both by a stuck admission counter and by a genuinely
+saturated model, so the following evidence was gathered to separate them.
+
+| Check | Result |
+| --- | --- |
+| Reported state | `ready` |
+| 1-token probe, 4 attempts over ~2 min | 429 at 10.7, 19.7, 8.1, 9.0 ms |
+| Direct probe to the model's upstream port, admission gate bypassed | timed out at 120 s |
+| Model process CPU, sampled over 5 s | 0.0 %, state `S` |
+| Process age | 7 h 54 m, alive and listening |
+| Re-probe after the 35B run completed | 429 at 9.9 ms |
+
+The process was alive, listening, and doing no work, yet answered neither the
+proxy nor a direct request. Both the admission counter and the upstream server
+behaved as though work were in flight while the process was idle.
+
+No recovery was attempted during measurement; unloading a model on a serving tier
+is a state change outside a measurement brief.
+
+## The 27B after recovery — saturation, not a second wedge
+
+The 27B was reloaded at 21:27Z. The identical harness, prompt hash, cells, waits,
+and 300 s timeout were re-run against it at 21:28:38Z, admitted concurrency 2.
+
+No latency baseline was obtained. Every request was rejected at the door.
+
+| Event | Status | Wall |
+| --- | --- | --- |
+| Pre-flight 1-token probe | 429 | 7.2 ms |
+| Warm-up | 429 | 0.006 s |
+| c1 replicate 1 | 429 | 0.002 s |
+| c1 replicate 2 | 429 | 0.003 s |
+| c1 replicate 3 | 429 | 0.002 s |
+| Post-cell probe 1 | 429 | 1.2 ms |
+| Post-cell probe 2 | 429 | 2.7 ms |
+| Post-cell probe 3 | 429 | 1.5 ms |
+
+The harness aborted after cell c=1 per the recovery protocol; cells c=2 and c=4
+never ran. Hung count 0.
+
+The instant-429 signature was identical to the pre-recovery state, so the same
+discriminator was applied. It returned the opposite verdict.
+
+| Check | Before reload, 21:05Z | After reload, 21:33Z |
+| --- | --- | --- |
+| Process age | 7 h 54 m | 2 m 59 s |
+| CPU, 5 s sample | 0.0 %, state `S` | 44.5 %, state `R` |
+| Direct probe, gate bypassed | timed out at 120 s | 200 in 17.4 s |
+| Verdict | stuck in-flight count | genuinely full, serving normally |
+
+Twelve 1-token probes at 10 s intervals across 2 minutes were all rejected in 1.3
+to 6.6 ms: zero admissions out of twelve.
+
+Server-side durations of recent successful completions in that window included
+1 m 33 s and 1 m 37 s. With a decode concurrency of 2 and individual requests
+running past 90 seconds, both slots stay occupied. Trailing 150 request lines in
+that window: 23 with status 200, 121 with 429, 6 with 404.
+
+## Three states, one discriminator
+
+Instant 429s alone separate none of these states. Process CPU plus a direct probe
+past the admission gate separates all three.
+
+| State | CPU | Direct probe | Verdict |
+| --- | --- | --- | --- |
+| 27B, 21:05Z, mlx-lm | 0.0 % | timed out at 120 s | model wedged |
+| 27B, 21:33Z, mlx-lm | 44.5 % | 200 in 17.4 s | genuinely saturated |
+| 35B, 23:09Z, vllm-mlx | 2.0 % | 200 in 1.93 s | gate rejecting, backend fine |
+
+The rule "429 in under 20 ms while the model reports ready means wedged" fired on
+a healthy model in two of the three cases. It cannot distinguish a stuck counter
+from a full admission gate, because both produce instant 429s indefinitely.
+
+A fourth state appeared later the same night, in Row 2b of the
+[vllm-mlx entry](2026-09-01-lane-a-studio-vllm-mlx.md).
+
+## Tier-wide status counts
+
+Bucketed from the request log by carrying the last-seen timestamp forward,
+aggregated across all three resident models, local time. This spans the
+measurement windows plus concurrent production traffic and cannot be attributed
+per model, per the join limitation above.
+
+| Window (local) | 200 | 429 |
+| --- | --- | --- |
+| 08:00 | 126 | 185 |
+| 10:00 | 121 | 483 |
+| 11:00 | 136 | 863 |
+| 13:00 | 132 | 469 |
+| 15:00 | 136 | 559 |
+| 16:30 | 141 | 592 |
+
+Successful responses are flat at roughly 130 per 30 minutes across the day while
+rejections run 400 to 860. The 404s are a constant ~45 per 30 minutes from
+something polling a metrics path the proxy does not serve.
