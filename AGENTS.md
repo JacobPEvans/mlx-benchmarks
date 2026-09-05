@@ -1,3 +1,6 @@
+---
+skill-groups: [core, ai]
+---
 # mlx-benchmarks — AI Agent Documentation
 
 Agent-facing notes for AI coding sessions in this repo. For the
