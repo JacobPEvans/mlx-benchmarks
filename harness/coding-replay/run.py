@@ -317,7 +317,7 @@ def run_task(
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else "")
-    ap.add_argument("--tasks-json", type=Path, required=True, help="JSON Lines task list")
+    ap.add_argument("--tasks-json", type=Path, required=True, help="task list: a JSON array of task objects")
     ap.add_argument(
         "--clone-map-json", type=Path, required=True, help="JSON file mapping repo -> local clone path"
     )
