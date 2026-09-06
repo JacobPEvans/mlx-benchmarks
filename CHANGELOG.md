@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.23.1...v0.23.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* **coding-replay:** abort when the agentic CLI never ran ([#226](https://github.com/dryvist/mlx-benchmarks/issues/226)) ([70539a3](https://github.com/dryvist/mlx-benchmarks/commit/70539a3106c85402bab5413d79eaed7a04ab049b))
+
 ## [0.23.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.23.0...v0.23.1) (2026-09-06)
 
 
