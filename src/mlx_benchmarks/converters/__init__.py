@@ -4,6 +4,7 @@ from mlx_benchmarks.converters.agentic import AgenticConverter
 from mlx_benchmarks.converters.agentic_partial import AgenticPartialConverter
 from mlx_benchmarks.converters.base import Converter, ConverterContext
 from mlx_benchmarks.converters.bench_serve import BenchServeConverter
+from mlx_benchmarks.converters.coding_replay import CodingReplayConverter
 from mlx_benchmarks.converters.factual import FactualConverter
 from mlx_benchmarks.converters.lm_eval import LmEvalConverter
 from mlx_benchmarks.converters.promptstack import PromptstackConverter
@@ -14,6 +15,7 @@ __all__ = [
     "AgenticConverter",
     "AgenticPartialConverter",
     "BenchServeConverter",
+    "CodingReplayConverter",
     "Converter",
     "ConverterContext",
     "FactualConverter",
@@ -35,6 +37,7 @@ def get_converter(kind: str) -> Converter:
         "agentic": AgenticConverter,
         "agentic-partial": AgenticPartialConverter,
         "bench-serve": BenchServeConverter,
+        "coding-replay": CodingReplayConverter,
         "factual": FactualConverter,
         "lm-eval": LmEvalConverter,
         "promptstack": PromptstackConverter,

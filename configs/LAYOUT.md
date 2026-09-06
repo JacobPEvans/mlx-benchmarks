@@ -25,17 +25,24 @@ configs/
 ├── factual/
 │   ├── grounded-summary.toml # in-repo runner: harness/factual/run.py
 │   └── fixtures/             # evidence bundles with known-correct answers
+├── coding-replay/
+│   └── tasks.json            # in-repo runner: harness/coding-replay/run.py
 └── shootout/
     └── candidates.toml       # agent-brain slate: model ids, measured weights,
                               # fit budget, and why each rejection was rejected
 ```
 
-Two files here break the "(tool, suite) runbook" rule, deliberately:
-`promptstack/probes/` and `factual/fixtures/` are **data read by their runners
-at run time**, not documentation — freezing them beside their config is what
-makes a score reproducible across runs. `shootout/candidates.toml` is a slate,
-not a suite; it records what will be run and what was excluded, so the next
-sweep does not re-litigate the same rejections.
+Three files here break the "(tool, suite) runbook" rule, deliberately:
+`promptstack/probes/`, `factual/fixtures/`, and `coding-replay/tasks.json` are
+**data read by their runners at run time**, not documentation — freezing them
+beside their config is what makes a score reproducible across runs. Each
+`coding-replay` task pins a real merged PR (repo, PR number, base commit,
+title/body, changed files, and a named repo check) so a replay always starts
+from the same base and scores against the same file set; the repo-to-local-
+clone-path map a run needs is environment-specific and passed via
+`--clone-map-json`, never committed here. `shootout/candidates.toml` is a
+slate, not a suite; it records what will be run and what was excluded, so the
+next sweep does not re-litigate the same rejections.
 
 ## Where the run command lives (single source of truth)
 

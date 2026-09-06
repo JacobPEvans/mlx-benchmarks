@@ -43,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
             "agentic",
             "agentic-partial",
             "bench-serve",
+            "coding-replay",
             "factual",
             "lm-eval",
             "promptstack",

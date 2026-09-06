@@ -1,0 +1,38 @@
+[
+  {
+    "model": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit",
+    "tag": "run1",
+    "task": "tofu-proxmox-1046",
+    "repo": "dryvist/tofu-proxmox",
+    "pr": 1046,
+    "exit_code": 0,
+    "check": "none",
+    "check_rc": 0,
+    "overlap": 1,
+    "overlap_files": [".gitignore"],
+    "changed": [".gitignore"],
+    "pass": true,
+    "tokens": {"input": 31207, "output": 900, "cache_read": 122088, "steps": 5},
+    "ttft_s": 60.7,
+    "wall_s": 99.9,
+    "timestamp": "2026-09-06T00:00:00Z"
+  },
+  {
+    "model": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit",
+    "tag": "run1",
+    "task": "tofu-proxmox-1049",
+    "repo": "dryvist/tofu-proxmox",
+    "pr": 1049,
+    "exit_code": 0,
+    "check": "json-valid",
+    "check_rc": 0,
+    "overlap": 0,
+    "overlap_files": [],
+    "changed": [],
+    "pass": false,
+    "tokens": {"input": 51629, "output": 2161, "cache_read": 741952, "steps": 18},
+    "ttft_s": 61.8,
+    "wall_s": 900.1,
+    "timestamp": "2026-09-06T00:05:00Z"
+  }
+]
