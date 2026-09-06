@@ -1,0 +1,136 @@
+[
+  {
+    "base": "c93eb635a7a63e7022a25449a58e9303ad8516fd",
+    "body": "## Summary\n- Document Cribl in_prometheus_rw dual fan-out to Splunk and VictoriaMetrics.\n\n## Test plan\n- [x] Docs-only\n",
+    "check": "markdownlint",
+    "files": [
+      "docs/AI_OBSERVABILITY.md"
+    ],
+    "pr": 1060,
+    "repo": "dryvist/tofu-proxmox",
+    "title": "docs: Stream fans Prometheus metrics to Splunk and VictoriaMetrics"
+  },
+  {
+    "base": "b52dd38089091ac8d1aa7500d980ba8a38d97f67",
+    "body": "The `openbao_audit` index has existed and been receiving since 2026-07-08, and\n`codex` likewise. The header comment in the AI log-routing constants still\ndescribed both as pending creation \"in a later phase\", pointing at a tracking\nissue that is long closed.\n\nAnyone reading this file to answer \"is this route live?\" got the wrong answer\nfrom the authoritative constants. Comment only — no routing change.\n\nContext: Zammad #1000307.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_018NzfM3XNNco4tJC8f4yVfh",
+    "check": "tofu-validate",
+    "files": [
+      "modules/proxmox-stack/constants-ai-log.tf"
+    ],
+    "pr": 1051,
+    "repo": "dryvist/tofu-proxmox",
+    "title": "docs(ai-log): drop the \"created in a later phase\" note from a live route"
+  },
+  {
+    "base": "fcea72faf1ba864533cab9bb49ffb41883fc73a1",
+    "body": "## Summary\n- \\`deployment.json.example\\` now names the published \\`nixos-herdr-lxc.tar.xz\\` release asset and its sha256 instead of the \\`vX.Y.Z\\` placeholder.\n\n## Notes\n- Example only; no live desired-state object changes here.",
+    "check": "json-valid",
+    "files": [
+      "deployment.json.example"
+    ],
+    "pr": 1049,
+    "repo": "dryvist/tofu-proxmox",
+    "title": "feat(herdr): point the example at the published LXC template asset"
+  },
+  {
+    "base": "cd7399494c785231f82bdad3564d4802d1fad8c2",
+    "body": "# Ignore the conventional plan filenames\n\n## What\n\n`.gitignore` carried `*.tfplan`. That pattern matches `something.tfplan` but not\na plan written to a name with no extension or a non-`.tfplan` suffix, so the\nnames `tofu plan -out=...` is most often pointed at were neither tracked nor\nignored.\n\nAdds `tfplan*` and `plan.out` alongside the existing `*.tfplan`.\n\nA plan file holds resolved variable values, so it belongs with the state and\ntfvars patterns already in that stanza.\n\n## Verification\n\n`git check-ignore`, both directions:\n\n```text\ntfplan                IGNORED\ntfplan.out            IGNORED\ntfplan-ha-1215.out    IGNORED\ntfplan.binary         IGNORED\nplan.out              IGNORED\nmyplan.tfplan         IGNORED\n\nmain.tf               not ignored\noutputs.tf            not ignored\nvariables.tf          not ignored\nREADME.md             not ignored\n```\n\n`git ls-files | git check-ignore --stdin --no-index` returns empty, so no\ncurrently-tracked file becomes ignored by the new patterns.\n\n`*.tfstate`, `*.tfstate.*`, `*.tfvars` and `terraform.tfvars` were already\ncovered and are unchanged.\n",
+    "check": "none",
+    "files": [
+      ".gitignore"
+    ],
+    "pr": 1046,
+    "repo": "dryvist/tofu-proxmox",
+    "title": "fix: ignore the conventional tofu plan filenames"
+  },
+  {
+    "base": "165fd2d557c4e540b8e63fff85fddf5278a7eb53",
+    "body": "## What\n\nSyncs the `pbs` VM block in `deployment.json.example` to the current declaration shape:\n\n- Template clone (`clone_template.template_id`) instead of ISO install — the `pbs` role in ansible-proxmox-apps installs the packages, so the guest is a Debian clone.\n- DNS-first addressing (`dhcp: true`), matching every other declared VM.\n- Both disks on the example's registered dual-parity bulk pool (boot 32 GB, datastore 1 TB) instead of `local-zfs` / an unregistered pool name; a `_pbs_comment` records that the datastore's durability constraint picks the node.\n- Placeholder node moved from the R410 placeholder to the R710 placeholder whose bulk pool carries the backup role.\n- `protection = true` retained (modelled end-to-end: `optional(bool, false)` in the stack VM type, wired to the resource attribute).\n\n## Verification\n\n- `tofu init -backend=false`, `tofu validate`, `tofu fmt -check` pass.\n- `./scripts/tofu-test-modules.sh`: 4 suites, 330 assertions, all pass.\n- Remote plan (Terrakube run 770, full ANSI-stripped log): `Plan: 1 to add, 4 to change, 0 to destroy`; zero `forces replacement`. The add is the pbs VM with every field as declared. The 4 in-place changes are the inventory-publish refresh plus three pre-existing Windows VDI `machine` attribute normalizations, none caused by this change.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n<!-- CURSOR_SUMMARY -->\n---\n\n> [!NOTE]\n> **Low Risk**\n> Example desired-state JSON only; no stack logic changes, though adopters copying this block will plan PBS on proxmox-3 with clone-based provisioning and bulk-pool disks.\n> \n> **Overview**\n> Updates the **`pbs`** entry in `deployment.json.example` so it matches how other Debian guests are declared and how backup storage is meant to land in the example topology.\n> \n> **Provisioning model:** drops the PBS ISO (`cdrom_file_id`) in favor of **`clone_template` 9000** plus a **`user_account`** block; **`dhcp: true`** aligns addressing with the rest of the VM set. Descriptions and a new **`_pbs_comment`** document Ansible **`pbs`** role install/datastore setup instead of manual ISO install.\n> \n> **Placement and disks:** **`node_name`** moves from `proxmox-2` to **`proxmox-3`** (node with the example dual-parity bulk pool). Boot and 1 TB datastore disks both target **`example-bulk-pool`** instead of `local-zfs` / `example-pool`. **`protection: true`** is unchanged.\n> \n> <sup>Reviewed by [Cursor Bugbot](https://cursor.com/bugbot) for commit f9b44a08dd761c71ac24fc8a8e00e0750b8d84e6. Bugbot is set up for automated code reviews on this repo. Configure [here](https://www.cursor.com/dashboard/bugbot).</sup>\n<!-- /CURSOR_SUMMARY -->",
+    "check": "json-valid",
+    "files": [
+      "deployment.json.example"
+    ],
+    "pr": 1017,
+    "repo": "dryvist/tofu-proxmox",
+    "title": "feat(vms): declare the Proxmox Backup Server guest in the example desired state"
+  },
+  {
+    "base": "89e35506b98de8d8af6c75b925af4ee42a765e74",
+    "body": "## What\n\nRemoves two path entries from the apps domain in `roles/openbao_secrets/defaults/main.yml`, added in #654.\n\nThe read policy for that domain is rendered from the generating role's seeding map. Until that role converges, the paths carry no grant, and an ungranted read fails the whole secret fetch closed rather than yielding an empty value.\n\n`optional: true` is deliberately not used here. That flag forgives a missing secret and still fails a missing grant, which is the correct distinction and stays as-is.\n\n## Effect\n\n`seed-keys.yml` is inert without these paths: the values render empty, both entries are rejected from the loop, and nothing is created. That restores the intended property that either half of the pair is safe to merge alone.\n\nThe paths are re-added in the same change that converges the generating half. The ordering constraint is now recorded in `seed-keys.yml`.\n\n## Verification\n\n```\nansible-lint roles/llm_router roles/openbao_secrets\nPassed: 0 failure(s), 0 warning(s) on 45 files. Profile 'production' was required, and it passed.\n\nansible-playbook tests/llm_router/test_alias_servable.yml -i localhost, -c local\nlocalhost : ok=9  changed=0  unreachable=0  failed=0\n```\n\nRefs: Vikunja 2153\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_01AYf9X8uV4ch97MjTuXWc2t\n",
+    "check": "ansible-lint",
+    "files": [
+      "roles/llm_router/tasks/seed-keys.yml",
+      "roles/openbao_secrets/defaults/main.yml"
+    ],
+    "pr": 655,
+    "repo": "dryvist/ansible-proxmox-ai",
+    "title": "fix(openbao_secrets): stop reading the router key paths before their grant exists"
+  },
+  {
+    "base": "98cc7a573b719f7a1bc7d38f3a1322771c1c453b",
+    "body": "The worker binds IPv4 only, while `localhost` inside the container resolves to `::1` first, so every healthcheck records `connection refused` and the container reports unhealthy while the service answers normally on the published port.\n\nVerified against the running container: the healthcheck log shows `Connecting to localhost:3030 ([::1]:3030)` then refused, and the same route over the published port returns 200.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_01AYf9X8uV4ch97MjTuXWc2t",
+    "check": "ansible-lint",
+    "files": [
+      "roles/langfuse_docker/templates/docker-compose.yml.j2"
+    ],
+    "pr": 639,
+    "repo": "dryvist/ansible-proxmox-ai",
+    "title": "fix(langfuse_docker): probe the worker health route over IPv4"
+  },
+  {
+    "base": "ea8f1cb69446025d12af091e73b32ffcff62abcd",
+    "body": "The upstream major validates every outbound LLM-connection URL and rejects one that resolves to a private address, so provisioning the self-hosted router returned 400 with `Blocked IP address detected`. Verified by calling the endpoint directly on the guest.\n\nNames the host in the connection allowlist, derived from the endpoint variable already in the role. Host only, never an address or a range.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_01AYf9X8uV4ch97MjTuXWc2t",
+    "check": "ansible-lint",
+    "files": [
+      "roles/langfuse_docker/defaults/main.yml",
+      "roles/langfuse_docker/templates/docker-compose.yml.j2"
+    ],
+    "pr": 641,
+    "repo": "dryvist/ansible-proxmox-ai",
+    "title": "fix(langfuse_docker): name the router host in the outbound allowlist"
+  },
+  {
+    "base": "01f6ca3d023eed59bde520e8becd093806987e72",
+    "body": "# Move the prompt catalog pin to the triage query fix\n\nThe GitHub triage prompt named no query, so consecutive runs of the same job\ncomposed different ones. One added a `labels` filter, which selects issues\ncarrying a label of that literal name — it returns an empty set rather than\nerroring. Measured on one repository at one moment:\n\n```text\nissues?state=open                 -> 80 open issues\nissues?state=open&labels=none     ->  0 open issues\n```\n\nThat run reported **0 open issues** across the org and a delta of **685 → 0**,\nsix hours after the previous run reported 680 with per-repo backlogs.\n\nThe catalog fix is [ai-llm-prompts#51](https://github.com/dryvist/ai-llm-prompts/pull/51):\nenumerate with `state=open` and nothing else, separate pull requests\nclient-side, use the identical query every run, and sanity-check a total against\nthe remembered baseline before posting — a total that has more than halved or\ncollapsed to zero is treated as evidence about the query first.\n\n## Why the pin moves here\n\nThe workflow is already prescribed in the comment directly above this variable:\n\n> A prompt edit lands in the catalog first; this pin then moves to that merge\n> commit, so the converge is the only thing that changes what a job says.\n\nThis follows that literally. The previously pinned revision was the **immediate\nparent** of the fix's merge commit, so this carries the prompt fix and nothing\nelse — no unrelated catalog changes ride along.\n\n## Verification\n\nBeyond the suite and lint, the pin was checked end to end rather than by\ninspection:\n\n- the pinned ref builds on the controller — the same `nix build` step the\n  converge runs;\n- the built artifact contains both new guards;\n- the role's own frontmatter strip (`regex_replace('(?s)^---\\n.*?\\n---\\n', '')`)\n  was simulated against that artifact: both guards survive it, the body begins\n  at the intended sentence, and no frontmatter leaks into the prompt the agent\n  would receive.\n\n`tests/hermes_agent`: **500 passed**. `ansible-lint`: **Passed**, 0 failures /\n0 warnings, profile `production`.\n\n## Scope\n\nOne pinned revision. No behaviour changes until a converge, which is the point\nof the pin.\n\nThe memory-full condition observed on the same run is not addressed here — a\nplausibility gate compares against a baseline, so that remains tracked\nseparately.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+    "check": "ansible-lint",
+    "files": [
+      "roles/hermes_agent/defaults/main/10-installer-and-bundles.yml"
+    ],
+    "pr": 629,
+    "repo": "dryvist/ansible-proxmox-ai",
+    "title": "fix(hermes_agent): move the prompt catalog pin to the triage query fix"
+  },
+  {
+    "base": "a5d00b94425c1cec66d063f71e34f32a75c25e6f",
+    "body": "## What changed\n\n- `lib/user-config.nix`: `telemetry.logUserPrompts` and `telemetry.logToolDetails` are now `false`, so `OTEL_LOG_USER_PROMPTS` / `OTEL_LOG_TOOL_DETAILS` are no longer set for Claude Code, and Codex `log_user_prompt` follows the same flag.\n\nPrompt and tool content can carry pasted credentials; the collector keeps metrics and traces without it.\n\n## Verification\n\n- `nix flake check` clean on macOS (CI is authoritative for the full check set).\n- nix-ai's telemetry regression check tests the mechanism's default and needs no change.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nhttps://claude.ai/code/session_01GEFd4KfhAvsNFQ3CeRSjH3",
+    "check": "nix-eval",
+    "files": [
+      "lib/user-config.nix"
+    ],
+    "pr": 2364,
+    "repo": "dryvist/nix-darwin",
+    "title": "fix(claude-code): stop exporting user prompts and tool details to OTEL"
+  },
+  {
+    "base": "e2e73af39451b90631541820dcae292fe69f5a69",
+    "body": "Changes the `nix` stub in `tests/shell/test_validate_nix_before_all.bats` to take its shebang from `command -v bash` instead of `#!/usr/bin/env bash`. `/usr/bin/env` is not present in the Nix build sandbox, so the stub could not exec there. This matches the shebang convention already used by `test_cluster_maintenance_window.bats` and `test_openbao_slack_creds.bats`. The script under test is unchanged.\n\nVerification:\n\n- `bats tests/shell/test_validate_nix_before_all.bats` -> 3/3\n- `shellcheck scripts/validate-nix-before-all.sh` -> clean\n- `nix fmt` -> 0 changed\n- `nix flake check` -> exit 0 (x86_64-linux checks omitted on darwin)\n\nThe x86_64-linux `check-shell-tests` result confirms on push to develop, since this host has no Linux builder.",
+    "check": "bats:tests/shell/test_validate_nix_before_all.bats",
+    "files": [
+      "tests/shell/test_validate_nix_before_all.bats"
+    ],
+    "pr": 2338,
+    "repo": "dryvist/nix-darwin",
+    "title": "fix(ci): validate-nix empty homebrew result exits zero in the sandbox"
+  },
+  {
+    "base": "306ab149f019808bfc8a948fb4f14ee2e5412834",
+    "body": "## Summary\n- Sets the generic OTLP endpoint (a base URL) so the logs exporter turns on; traces and metrics keep their signal-specific endpoints.\n- Log records carry the per-request \\`api_request\\` event, the only source that itemises one request's token fields.\n\n## Verification\n- Rendered Claude settings env shows \\`OTEL_LOGS_EXPORTER=otlp\\` with the traces and metrics endpoints unchanged.\n\n## Notes\n- The collector-side leg that keeps log records (apps repo) and the index that receives them (Splunk repo) are separate PRs; merge those first so the new signal has somewhere to land.",
+    "check": "nix-eval",
+    "files": [
+      "lib/user-config.nix"
+    ],
+    "pr": 2330,
+    "repo": "dryvist/nix-darwin",
+    "title": "feat(telemetry): export Claude Code logs to the OTLP collector"
+  }
+]
