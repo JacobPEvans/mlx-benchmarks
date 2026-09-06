@@ -7,8 +7,8 @@
 
 Per task: check out a worktree of the target repo at the PR's base commit,
 prompt the configured agentic CLI (default: ``opencode run --pure --auto
---format json``) with the PR title + body and an instruction to implement and
-stop (no commit, no PR), then score the run:
+--agent build --format json``) with the PR title + body and an instruction to
+implement and stop (no commit, no PR), then score the run:
 
     pass@1 = check_rc == 0 AND overlap > 0
 
@@ -33,6 +33,15 @@ Run (never against a busy Studio without asking)::
         --model mlx/mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit \\
         --tag run1 \\
         --output out.jsonl
+
+The agent is PINNED in the default ``--agent-cmd``. An agentic CLI picks a
+default primary agent from the runner's own configuration, and an
+exploration-oriented one reads and greps without ever editing — which scores
+as a model that cannot do the task. Measured on one model and one task: the
+machine's default agent made 5 grep / 4 read / 1 glob / 2 bash calls and
+changed nothing; ``--agent build`` made 6 edit calls and changed a file. Any
+replacement ``--agent-cmd`` must pin an editing agent or the run measures the
+operator's config rather than the model.
 
 ``--base-url`` is used ONLY for the readiness probe. The agentic CLI resolves
 its own endpoint, so it must be configured separately or it will fail to reach
@@ -364,8 +373,17 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--task-timeout-s", type=int, default=900)
     ap.add_argument(
         "--agent-cmd",
-        default="opencode run --pure --auto --format json",
-        help="agentic CLI invocation, split on whitespace; '-m <model> <prompt>' is appended",
+        # `--agent build` is load-bearing, not decoration. Without it the CLI
+        # uses whatever primary agent the RUNNER'S OWN config makes default,
+        # which on a customised machine is not a stock editing agent — measured
+        # side by side on one model and one task, the default agent made 5 grep
+        # / 4 read / 1 glob / 2 bash calls and changed no files, while
+        # `--agent build` made 6 edit calls and changed one. Same model, same
+        # prompt, same config: the benchmark was scoring the operator's agent,
+        # not the model.
+        default="opencode run --pure --auto --agent build --format json",
+        help="agentic CLI invocation, split on whitespace; '-m <model> <prompt>' is appended. "
+        "Must pin an editing agent, or results measure the runner's local agent config",
     )
     ap.add_argument("--output", type=Path, required=True, help="JSON Lines file; one row appended per task")
     return ap
