@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.23.0...v0.23.1) (2026-09-06)
+
+
+### Documentation
+
+* **coding-replay:** --tasks-json takes a JSON array, not JSON Lines ([#224](https://github.com/dryvist/mlx-benchmarks/issues/224)) ([7e08a6d](https://github.com/dryvist/mlx-benchmarks/commit/7e08a6d6375a47b6fe72f25e05651c69b2373efd))
+
 ## [0.23.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.22.2...v0.23.0) (2026-09-06)
 
 
