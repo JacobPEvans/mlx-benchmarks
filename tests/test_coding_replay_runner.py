@@ -186,3 +186,38 @@ def test_bundled_tasks_json_is_jsonl_of_12_tasks() -> None:
     for task in tasks:
         assert {"repo", "pr", "base", "title", "files", "check"} <= task.keys()
         assert runner.check_steps(task["check"]) is not None
+
+
+# --- timeout stdout normalisation ---------------------------------------------
+
+
+def test_decode_timeout_stdout_decodes_bytes() -> None:
+    # subprocess.TimeoutExpired.stdout carries RAW BYTES even when the call set
+    # text=True — the decoding wrapper never runs on the timeout path. A capped
+    # run is the common outcome for a slow local model, so this is the hot path,
+    # not an edge case.
+    assert runner.decode_timeout_stdout(b'{"type":"text"}\n') == '{"type":"text"}\n'
+
+
+def test_decode_timeout_stdout_passes_str_through() -> None:
+    assert runner.decode_timeout_stdout('{"type":"text"}') == '{"type":"text"}'
+
+
+def test_decode_timeout_stdout_handles_none() -> None:
+    assert runner.decode_timeout_stdout(None) == ""
+
+
+def test_decode_timeout_stdout_survives_invalid_utf8() -> None:
+    # A run killed mid-write can leave a partial multi-byte sequence; losing the
+    # whole capped task to a UnicodeDecodeError would be worse than one mojibake
+    # character in one event line.
+    assert runner.decode_timeout_stdout(b"ok\xff") == "ok�"
+
+
+def test_timed_out_events_still_parse_after_decoding() -> None:
+    # End to end for the bug: bytes off a timeout, through the decoder, into the
+    # event parser that scoring depends on.
+    raw = b'{"type":"text","part":{"time":{"start":1000}}}\n{"type":"step_finish"}\n'
+    events = runner.parse_events(runner.decode_timeout_stdout(raw))
+    assert len(events) == 2
+    assert runner.first_text_start_ms(events) == 1000

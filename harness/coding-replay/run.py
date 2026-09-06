@@ -205,6 +205,23 @@ def wait_for_slot(base_url: str, model: str, attempts: int = 60, interval_s: flo
     return False
 
 
+def decode_timeout_stdout(raw: bytes | str | None) -> str:
+    """Normalise ``TimeoutExpired.stdout`` to text.
+
+    ``subprocess.TimeoutExpired.stdout`` carries RAW BYTES even when the call
+    set ``text=True`` — the decoding wrapper never runs on the timeout path.
+    This matters here rather than being a formality: a capped run is the common
+    outcome for a slow local model, so the timeout branch is the hot path, and
+    handing bytes to the event parser downstream would lose every task that ran
+    out of clock.
+    """
+    if raw is None:
+        return ""
+    if isinstance(raw, bytes):
+        return raw.decode("utf-8", "replace")
+    return raw
+
+
 def run_agent(
     prompt: str, worktree: Path, model: str, agent_cmd: Sequence[str], timeout_s: int
 ) -> tuple[int, str]:
@@ -216,7 +233,7 @@ def run_agent(
         )
         return proc.returncode, proc.stdout
     except subprocess.TimeoutExpired as exc:
-        return 124, exc.stdout or ""
+        return 124, decode_timeout_stdout(exc.stdout)
 
 
 def run_check(check: str, cwd: Path) -> int:
