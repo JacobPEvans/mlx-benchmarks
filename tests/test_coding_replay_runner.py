@@ -192,6 +192,36 @@ def test_bundled_tasks_json_is_jsonl_of_12_tasks() -> None:
         assert runner.check_steps(task["check"]) is not None
 
 
+# --- agent launch detection ----------------------------------------------------
+
+
+def test_agent_launched_false_when_no_step_events_and_instant_exit() -> None:
+    # Measured against the real CLI: a bare physical model id with no provider
+    # prefix exits 1 in 0.8s having emitted only an error event. Scored, that is
+    # indistinguishable from a genuine failure — pass False, overlap 0 — so a
+    # whole run of them reads as a verdict on the model.
+    events = [{"type": "error", "error": {"name": "UnknownError"}}]
+    assert runner.agent_launched(events, 0.8) is False
+
+
+def test_agent_launched_false_on_empty_transcript() -> None:
+    assert runner.agent_launched([], 0.5) is False
+
+
+def test_agent_launched_true_on_a_real_transcript() -> None:
+    events = [
+        {"type": "step_start"},
+        {"type": "text", "part": {"time": {"start": 1000}}},
+        {"type": "step_finish", "part": {"tokens": {"input": 1, "output": 1}}},
+    ]
+    assert runner.agent_launched(events, 12.3) is True
+
+
+def test_agent_launched_true_for_a_slow_run_that_did_start() -> None:
+    # A long run that produced steps counts as launched even with no text part.
+    assert runner.agent_launched([{"type": "step_start"}], 900.0) is True
+
+
 # --- timeout stdout normalisation ---------------------------------------------
 
 

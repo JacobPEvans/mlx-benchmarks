@@ -30,9 +30,16 @@ Run (never against a busy Studio without asking)::
         --clone-map-json clone-map.json \\
         --work-dir /tmp/coding-replay-wt \\
         --base-url http://127.0.0.1:11434/v1 \\
-        --model mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit \\
+        --model mlx/mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit \\
         --tag run1 \\
         --output out.jsonl
+
+``--base-url`` is used ONLY for the readiness probe. The agentic CLI resolves
+its own endpoint, so it must be configured separately or it will fail to reach
+the model at all — for opencode that means ``OPENCODE_CONFIG`` pointing at a
+config that declares the provider, and a ``--model`` of the form
+``<provider>/<physical id>``. A bare physical id has no provider and the CLI
+exits immediately.
 
 ``clone-map.json`` maps each task's ``repo`` (``owner/name``) to the local
 path of its clone, e.g.
@@ -109,6 +116,24 @@ def passed(check_rc: int | None, overlap: int) -> bool:
     score a false pass.
     """
     return check_rc == 0 and overlap > 0
+
+
+def agent_launched(events: Sequence[Mapping[str, Any]], wall_s: float) -> bool:
+    """Whether the agentic CLI actually started and produced a transcript.
+
+    A CLI that cannot reach its model exits within a second having emitted no
+    events (or one error event) — and that is INDISTINGUISHABLE from a genuine
+    failure once scored: `pass` is False either way, `overlap` is 0 either way.
+    A whole run in that state reads as a damning verdict on the model when the
+    real fault is configuration. Measured: a bare physical model id with no
+    provider produced exit 1, zero steps, wall 0.8s, and scored as a legitimate
+    task failure.
+
+    A real run always emits at least one ``step_start``/``step_finish``.
+    """
+    if wall_s < 2.0 and not any(e.get("type", "").startswith("step") for e in events):
+        return False
+    return any(e.get("type", "").startswith("step") for e in events)
 
 
 def check_steps(check: str) -> list[list[str]] | None:
@@ -308,6 +333,7 @@ def run_task(
         "overlap_files": overlap,
         "changed": changed,
         "pass": passed(check_rc, len(overlap)),
+        "agent_launched": agent_launched(events, round(end - start, 1)),
         "tokens": aggregate_tokens(events),
         "ttft_s": ttft_seconds(first_text_start_ms(events), start),
         "wall_s": round(end - start, 1),
@@ -368,6 +394,19 @@ def main(argv: list[str] | None = None) -> int:
                 f"{row['task']}: pass={row['pass']} overlap={row['overlap']} check_rc={row['check_rc']}",
                 file=sys.stderr,
             )
+            if not row["agent_launched"]:
+                # Abort rather than grind through the remaining tasks. Every
+                # one would score a false failure, and a full sheet of zeros
+                # reads as a verdict on the model instead of a broken setup.
+                print(
+                    f"ABORT: the agentic CLI did not run for {row['task']} "
+                    f"(exit {row['exit_code']}, {row['wall_s']}s, no step events). "
+                    "This is a configuration fault, not a model result — the CLI "
+                    "resolves its own endpoint, so check its config and that "
+                    "--model carries a provider prefix. No further tasks attempted.",
+                    file=sys.stderr,
+                )
+                return 2
     return 0
 
 
