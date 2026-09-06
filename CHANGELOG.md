@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.22.2...v0.23.0) (2026-09-06)
+
+
+### Features
+
+* **coding-replay:** add a real-PR-replay benchmark suite ([#222](https://github.com/dryvist/mlx-benchmarks/issues/222)) ([b05aa3f](https://github.com/dryvist/mlx-benchmarks/commit/b05aa3f3fb553797901c06ef7b89b5e4f94dd334))
+
 ## [0.22.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.22.1...v0.22.2) (2026-09-02)
 
 
