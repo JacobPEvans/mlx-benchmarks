@@ -313,6 +313,14 @@ def run_task(
         break
 
     events = parse_events(stdout)
+    # Keep the agent's raw transcript. A scored zero is otherwise unexplainable
+    # after the fact: `pass` false with `overlap` 0 looks identical whether the
+    # model reasoned for the whole cap without reaching an edit, or emitted one
+    # error and quit. Reconstructing that needed a separate probe run against a
+    # live model, which is a poor substitute for having kept the evidence.
+    transcript = work_dir / f"{name}-{tag}.transcript.jsonl"
+    transcript.write_text(stdout)
+
     status = subprocess.run(
         ["git", "-C", str(worktree), "status", "--porcelain"], capture_output=True, text=True, check=False
     )
@@ -334,6 +342,7 @@ def run_task(
         "changed": changed,
         "pass": passed(check_rc, len(overlap)),
         "agent_launched": agent_launched(events, round(end - start, 1)),
+        "transcript": str(transcript),
         "tokens": aggregate_tokens(events),
         "ttft_s": ttft_seconds(first_text_start_ms(events), start),
         "wall_s": round(end - start, 1),
