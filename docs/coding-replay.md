@@ -6,8 +6,11 @@ it produced *some* text and exited 0.
 
 Runner: [`harness/coding-replay/run.py`](../harness/coding-replay/run.py).
 Task list: [`configs/coding-replay/tasks.json`](../configs/coding-replay/tasks.json)
-(JSON Lines — one real merged PR per line: repo, PR number, base commit,
-title/body, changed files, and a named repo check). Converter:
+(a JSON array — one real merged PR per entry: repo, PR number, base commit,
+title/body, changed files, and a named repo check). It is a single JSON
+document rather than JSON Lines because the `check-json` pre-commit hook
+validates every `.json` file as one document; a `.jsonl` name would have made
+that check stop applying rather than pass. Converter:
 [`../src/mlx_benchmarks/converters/coding_replay.py`](../src/mlx_benchmarks/converters/coding_replay.py),
 `--kind coding-replay`.
 

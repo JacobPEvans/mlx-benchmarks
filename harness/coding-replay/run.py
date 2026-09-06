@@ -338,7 +338,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    tasks = [json.loads(line) for line in args.tasks_json.read_text().splitlines() if line.strip()]
+    tasks = json.loads(args.tasks_json.read_text())
     clone_map = json.loads(args.clone_map_json.read_text())
     args.work_dir.mkdir(parents=True, exist_ok=True)
     pattern = re.compile(args.filter)
