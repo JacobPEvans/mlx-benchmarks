@@ -31,15 +31,8 @@ still **provisional**: a verdict is final only per the
 both environment classes**). Read it before any "best/worst" claim.
 
 `promptstack` and `factual` feed no `RANKINGS.md` row. Neither does
-`coding-replay` — a real-merged-PR replay suite, canonical invocation and
-scoring rule in [`coding-replay.md`](coding-replay.md):
-
-```sh
-uv run harness/coding-replay/run.py \
-  --tasks-json configs/coding-replay/tasks.json --clone-map-json clone-map.json \
-  --work-dir /tmp/coding-replay-wt --model <served-model> --tag <tag> --output out.jsonl
-.venv/bin/mlx-bench-publish out.jsonl --kind coding-replay --suite coding
-```
+`coding-replay`, a real-merged-PR replay suite — invocation and scoring rule in
+[`coding-replay.md`](coding-replay.md).
 
 ## Decision tree
 
