@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.23.2...v0.24.0) (2026-09-06)
+
+
+### Features
+
+* **coding-replay:** keep the agent transcript so a zero is explainable ([#228](https://github.com/dryvist/mlx-benchmarks/issues/228)) ([e0352b2](https://github.com/dryvist/mlx-benchmarks/commit/e0352b226825dd626da7dd8b764dfbe5a96354ef))
+
+
+### Bug Fixes
+
+* **coding-replay:** pin an editing agent, or the benchmark scores the operator ([#229](https://github.com/dryvist/mlx-benchmarks/issues/229)) ([3c98e36](https://github.com/dryvist/mlx-benchmarks/commit/3c98e36d9b2e52e4cb1e6e859f30663fd3f64db9))
+
 ## [0.23.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.23.1...v0.23.2) (2026-09-06)
 
 
