@@ -22,8 +22,8 @@ pass@1 = check_rc == 0 AND overlap > 0
 
 `check_rc` is the exit code of the task's named repo check
 (`markdownlint`, `tofu-validate`, `ansible-lint`, `nix-eval`, `bats:<path>`,
-`json-valid`, `none`) run in the worktree after the CLI exits. `overlap` is
-the count of changed files that intersect the real PR's file list.
+`json-valid`, `none`) run in the task's clone after the CLI exits. `overlap`
+is the count of changed files that intersect the real PR's file list.
 
 A clean exit or a clean check is not by itself evidence of anything: a
 `check: none` task, or a check that happens to pass on an untouched tree,
@@ -42,10 +42,31 @@ suite does not feed a `RANKINGS.md` row of its own).
 
 ## Running it
 
-Per task: a git worktree of the target repo at the PR's base commit, a
-prompt of the PR title + body plus an instruction to implement and stop (no
-commit, no PR), the configured agentic CLI headless with a timeout, then
-scoring. The local serving gate refuses rather than queues (one slot per
+Per task: an isolated `--shared` clone of the target repo at the PR's base
+commit, a prompt of the PR title + body plus an instruction to implement and
+stop (no commit, no PR), the configured agentic CLI headless with a timeout,
+then scoring.
+
+> **Isolation is NOT currently proven, and this suite must not be pointed at a
+> repository you care about.** Measured 2026-09-06: with `cwd` set to the task
+> sandbox, the agentic CLI read and *edited* files in the **source** clone
+> instead — a completed edit of a tracked file — while `git status` in the
+> sandbox stayed empty and the task scored zero. It reproduced with the sandbox
+> as a git worktree *and* as a real `--shared` clone whose `git rev-parse
+> --show-toplevel` returned the sandbox. Whatever resolves that path is neither
+> `cwd` nor the git root and has not been identified.
+>
+> Every row therefore carries `source_touched`, sampled either side of the run,
+> and the runner **aborts** on a true one rather than continue writing to a real
+> repository. Until a write-prompt run lands inside the sandbox with
+> `source_touched` false, treat every `pass@1` this suite produces as invalid:
+> changes land outside the scored tree, so `overlap` is 0 and `pass` is False
+> regardless of the model.
+
+The sandbox is a `--shared` clone rather than a git worktree because a
+worktree's `.git` is a file pointing back at the source repository, which
+removes one known path home. That change is necessary but did not by itself
+stop the leak. The local serving gate refuses rather than queues (one slot per
 model), so the runner polls for a real 200 completion before each task and
 retries once if a run's stdout carries an HTTP 429.
 
