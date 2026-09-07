@@ -98,7 +98,25 @@ def build_prompt(title: str, body: str) -> str:
 
 
 def physical_model(model: str) -> str:
-    """Strip a router-style ``mlx/`` prefix for the readiness-probe body."""
+    """Strip an agent-CLI provider prefix for the readiness-probe body.
+
+    The agent CLI addresses a model as ``<provider>/<physical id>``; the served
+    endpoint wants the physical id alone. A physical id is itself normally
+    ``<org>/<name>``, so a prefixed ref carries two slashes and a bare one
+    carries at most one — which is what distinguishes them without knowing the
+    provider's name.
+
+    Matching on the literal ``mlx/`` instead was wrong in a way that cost a
+    600 s run: a provider named anything else left the prefix on, the probe
+    asked the endpoint for a model id it does not serve, got a 404 on every
+    poll, and the runner aborted blaming the endpoint ("check that the model is
+    loaded"). The configuration fault was reported as a serving fault.
+
+    The bare ``mlx/<name>`` case is kept for single-segment physical ids.
+    """
+    _, sep, rest = model.partition("/")
+    if sep and "/" in rest:
+        return rest
     return model.removeprefix("mlx/")
 
 

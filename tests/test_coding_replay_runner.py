@@ -55,6 +55,36 @@ def test_physical_model_strips_router_prefix() -> None:
     assert runner.physical_model("mlx-community/Qwen3.8-27B-4bit") == "mlx-community/Qwen3.8-27B-4bit"
 
 
+def test_physical_model_strips_any_provider_not_only_mlx() -> None:
+    """A provider named anything but ``mlx`` must still be stripped.
+
+    Matching the literal ``mlx/`` left the prefix on for every other provider
+    name, so the readiness probe asked the endpoint for an id it does not
+    serve. That 404s on every poll and the runner aborts reporting a serving
+    fault, which is the one diagnosis that is certainly wrong.
+    """
+    assert (
+        runner.physical_model("kimi/mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit")
+        == "mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit"
+    )
+    assert runner.physical_model("anything/org/name") == "org/name"
+
+
+def test_physical_model_leaves_a_bare_two_segment_id_alone() -> None:
+    """Anti-vacuity: the rule must not eat the org from a bare physical id.
+
+    ``mlx-community/X`` is already physical. Stripping its first segment would
+    send a bare model name to the endpoint and fail exactly like the bug this
+    replaced, so the two cases must stay distinguishable.
+    """
+    assert runner.physical_model("mlx-community/Qwen3.6-35B-A3B-4bit") == "mlx-community/Qwen3.6-35B-A3B-4bit"
+    assert runner.physical_model("lmstudio-community/Qwen3-Coder-Next-MLX-4bit") == (
+        "lmstudio-community/Qwen3-Coder-Next-MLX-4bit"
+    )
+    # Single-segment physical id behind the historical prefix still works.
+    assert runner.physical_model("mlx/some-single-segment-model") == "some-single-segment-model"
+
+
 # --- parse_changed_files / overlap_files ----------------------------------------
 
 
