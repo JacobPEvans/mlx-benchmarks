@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import time
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 
 def _load_runner() -> ModuleType:
@@ -255,3 +257,50 @@ def test_timed_out_events_still_parse_after_decoding() -> None:
     events = runner.parse_events(runner.decode_timeout_stdout(raw))
     assert len(events) == 2
     assert runner.first_text_start_ms(events) == 1000
+
+
+# --- slot wait: bounded by wall clock, not by an attempt count -----------------
+
+
+class _FakeResp:
+    status = 200
+
+    def __enter__(self) -> _FakeResp:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        return None
+
+
+def test_wait_for_slot_returns_true_on_a_200(monkeypatch: Any) -> None:
+    monkeypatch.setattr(runner.urllib.request, "urlopen", lambda *a, **k: _FakeResp())
+    assert runner.wait_for_slot("http://x/v1", "m", deadline_s=5.0) is True
+
+
+def test_wait_for_slot_gives_up_within_its_deadline(monkeypatch: Any) -> None:
+    # The regression this guards: the old form bounded the loop by an attempt
+    # COUNT (60) while each attempt's cost came from a separate 120s request
+    # timeout, so the real ceiling was ~2 hours and no caller could see it. A
+    # wall-clock deadline is the only bound that holds when a request hangs.
+    def boom(*_a: object, **_k: object) -> None:
+        raise runner.urllib.error.URLError("refused")
+
+    monkeypatch.setattr(runner.urllib.request, "urlopen", boom)
+    started = time.monotonic()
+    assert runner.wait_for_slot("http://x/v1", "m", deadline_s=0.3, interval_s=0.05) is False
+    assert time.monotonic() - started < 5.0
+
+
+def test_wait_for_slot_never_lets_one_request_outlive_the_budget(monkeypatch: Any) -> None:
+    # A single request must not outlive the whole budget — that is precisely how
+    # a 120s timeout under a 60-attempt loop turned into hours of silent stall.
+    seen: list[float] = []
+
+    def capture(*_a: object, **kwargs: Any) -> None:
+        seen.append(float(kwargs["timeout"]))
+        raise runner.urllib.error.URLError("refused")
+
+    monkeypatch.setattr(runner.urllib.request, "urlopen", capture)
+    runner.wait_for_slot("http://x/v1", "m", deadline_s=0.2, interval_s=0.05, request_timeout_s=30.0)
+    assert seen, "no request was attempted"
+    assert max(seen) <= 0.2

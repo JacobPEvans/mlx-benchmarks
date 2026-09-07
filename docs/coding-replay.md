@@ -49,6 +49,12 @@ scoring. The local serving gate refuses rather than queues (one slot per
 model), so the runner polls for a real 200 completion before each task and
 retries once if a run's stdout carries an HTTP 429.
 
+That poll is bounded by wall clock (`--slot-wait-s`, default 600). If no slot
+opens inside it the run **aborts** rather than scoring the task: a model that
+was never asked would otherwise record a zero indistinguishable from a real
+failure. Raise the flag only for an endpoint known to be slow to admit — never
+to ride out a wedged one.
+
 ```sh
 uv run harness/coding-replay/run.py \
   --tasks-json configs/coding-replay/tasks.json \

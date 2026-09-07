@@ -221,22 +221,52 @@ def ttft_seconds(first_text_start_ms_value: float | None, request_start_epoch_s:
 # ---------------------------------------------------------------------------
 
 
-def wait_for_slot(base_url: str, model: str, attempts: int = 60, interval_s: float = 5.0) -> bool:
-    """Poll the endpoint for a real 200 completion; the gate refuses rather than queues."""
+def wait_for_slot(
+    base_url: str,
+    model: str,
+    deadline_s: float = 600.0,
+    interval_s: float = 5.0,
+    request_timeout_s: float = 30.0,
+) -> bool:
+    """Poll the endpoint for a real 200 completion; the gate refuses rather than queues.
+
+    Bounded by WALL CLOCK, not by an attempt count. The earlier form counted 60
+    attempts against a 120 s per-request timeout, so a hung endpoint blocked for
+    up to ~2 hours per call — and `run_task` calls this inside a two-attempt
+    retry, making ~4 hours per task. Measured: a run stalled at 1 of 12 tasks
+    after 128 minutes with no output, which is exactly this path. An attempt
+    count cannot bound anything when each attempt's cost is set elsewhere.
+
+    The probe asks for one token, so 30 s is already generous for it; the long
+    wait belongs in the deadline, where it is visible and configurable, not
+    hidden in a per-request timeout multiplied by a loop.
+    """
     url = base_url.rstrip("/") + "/chat/completions"
     body = json.dumps(
         {"model": model, "messages": [{"role": "user", "content": "OK"}], "max_tokens": 1}
     ).encode()
-    for _ in range(attempts):
+    deadline = time.monotonic() + deadline_s
+    announced = False
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
         req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=min(request_timeout_s, remaining)) as resp:
                 if resp.status == 200:
                     return True
         except (urllib.error.URLError, TimeoutError):
             pass
-        time.sleep(interval_s)
-    return False
+        # Say something the first time the slot is busy. A silent wait is
+        # indistinguishable from a wedged run for however long the deadline is.
+        if not announced:
+            print(
+                f"waiting up to {deadline_s:.0f}s for a free slot on {model}...",
+                file=sys.stderr,
+            )
+            announced = True
+        time.sleep(min(interval_s, max(0.0, deadline - time.monotonic())))
 
 
 def decode_timeout_stdout(raw: bytes | str | None) -> str:
@@ -299,6 +329,7 @@ def run_task(
     agent_cmd: Sequence[str],
     base_url: str,
     task_timeout_s: int,
+    slot_wait_s: float = 600.0,
 ) -> dict[str, Any]:
     repo, pr, base = task["repo"], task["pr"], task["base"]
     name = task_name(repo, pr)
@@ -310,9 +341,11 @@ def run_task(
 
     start = end = time.time()
     rc, stdout = -1, ""
+    slot_opened = False
     for attempt in range(2):
-        if not wait_for_slot(base_url, phys):
+        if not wait_for_slot(base_url, phys, deadline_s=slot_wait_s):
             break
+        slot_opened = True
         start = time.time()
         rc, stdout = run_agent(prompt, worktree, model, agent_cmd, task_timeout_s)
         end = time.time()
@@ -351,6 +384,10 @@ def run_task(
         "changed": changed,
         "pass": passed(check_rc, len(overlap)),
         "agent_launched": agent_launched(events, round(end - start, 1)),
+        # Whether a serving slot ever opened. False means the agent was never
+        # given the chance to run, so the zero below is about the endpoint, not
+        # the model — same false-negative class as `agent_launched`.
+        "slot_opened": slot_opened,
         "transcript": str(transcript),
         "tokens": aggregate_tokens(events),
         "ttft_s": ttft_seconds(first_text_start_ms(events), start),
@@ -371,6 +408,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--tag", required=True, help="run tag recorded on every task row")
     ap.add_argument("--filter", default=".", help="regex over 'repo#pr', matched with re.search")
     ap.add_argument("--task-timeout-s", type=int, default=900)
+    ap.add_argument(
+        "--slot-wait-s",
+        type=float,
+        default=600.0,
+        help="wall-clock ceiling on waiting for a free serving slot, per attempt. "
+        "Bounds the whole wait; a busy endpoint aborts the run instead of stalling",
+    )
     ap.add_argument(
         "--agent-cmd",
         # `--agent build` is load-bearing, not decoration. Without it the CLI
@@ -414,6 +458,7 @@ def main(argv: list[str] | None = None) -> int:
                 agent_cmd,
                 args.base_url,
                 args.task_timeout_s,
+                args.slot_wait_s,
             )
             out.write(json.dumps(row) + "\n")
             out.flush()
@@ -421,6 +466,20 @@ def main(argv: list[str] | None = None) -> int:
                 f"{row['task']}: pass={row['pass']} overlap={row['overlap']} check_rc={row['check_rc']}",
                 file=sys.stderr,
             )
+            if not row["slot_opened"]:
+                # Same reasoning as the agent_launched abort below: no slot
+                # means no attempt, and every remaining task would score an
+                # identical false zero against a model that was never asked.
+                print(
+                    f"ABORT: no serving slot opened for {row['task']} within "
+                    f"{args.slot_wait_s:.0f}s. This is an endpoint fault, not a "
+                    "model result — check that the model is loaded and that no "
+                    "other run holds the single local slot. Raise --slot-wait-s "
+                    "only if the endpoint is known to be slow to admit, never to "
+                    "paper over a wedged one. No further tasks attempted.",
+                    file=sys.stderr,
+                )
+                return 2
             if not row["agent_launched"]:
                 # Abort rather than grind through the remaining tasks. Every
                 # one would score a false failure, and a full sheet of zeros
