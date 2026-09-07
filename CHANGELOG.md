@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.0...v0.24.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **coding-replay:** bound the slot wait by wall clock, and abort when none opens ([#231](https://github.com/dryvist/mlx-benchmarks/issues/231)) ([068b5e9](https://github.com/dryvist/mlx-benchmarks/commit/068b5e959eaf480b47f00807f287cc8cd029e987))
+
 ## [0.24.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.23.2...v0.24.0) (2026-09-06)
 
 
