@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.2...v0.24.3) (2026-09-07)
+
+
+### Bug Fixes
+
+* **coding-replay:** re-wait on a 429, and attribute it correctly ([#235](https://github.com/dryvist/mlx-benchmarks/issues/235)) ([7c3355f](https://github.com/dryvist/mlx-benchmarks/commit/7c3355fa322efb2635e936574ecf34ed0ff5b90e))
+
 ## [0.24.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.1...v0.24.2) (2026-09-07)
 
 
