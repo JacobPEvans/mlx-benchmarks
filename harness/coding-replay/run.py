@@ -415,8 +415,7 @@ def run_task(
         if is_rate_limited(stdout) and attempt + 1 < rate_limit_attempts:
             subprocess.run(["git", "-C", str(checkout), "checkout", "-q", "--", "."], check=False)
             print(
-                f"{name}: rate-limited, re-waiting for a slot "
-                f"(attempt {attempt + 1}/{rate_limit_attempts})",
+                f"{name}: rate-limited, re-waiting for a slot (attempt {attempt + 1}/{rate_limit_attempts})",
                 file=sys.stderr,
             )
             continue
