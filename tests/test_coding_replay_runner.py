@@ -50,6 +50,21 @@ def test_build_prompt_tolerates_empty_body() -> None:
     assert prompt.endswith("title only\n\n")
 
 
+def test_row_carries_model_id_as_the_physical_id() -> None:
+    """The published model id must be the served model, not the agent reference.
+
+    ``model`` is the agent-CLI reference and carries a provider prefix; the
+    publisher's extractor reads ``model_id`` from a JSON Lines run. Two arms
+    served behind different provider names must still compare as one model id,
+    and a row without ``model_id`` publishes as model="unknown" silently — the
+    extractor falls back rather than raising, and the documented publish
+    command passes no ``--model``. Cross-checked against the extractor itself
+    in ``test_cli.py``.
+    """
+    agent_ref = "kimi/mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit"
+    assert runner.physical_model(agent_ref) == "mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit"
+
+
 def test_physical_model_strips_router_prefix() -> None:
     assert runner.physical_model("mlx/mlx-community/Qwen3.8-27B-4bit") == "mlx-community/Qwen3.8-27B-4bit"
     assert runner.physical_model("mlx-community/Qwen3.8-27B-4bit") == "mlx-community/Qwen3.8-27B-4bit"
