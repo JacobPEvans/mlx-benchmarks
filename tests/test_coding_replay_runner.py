@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import time
 from pathlib import Path
 from types import ModuleType
@@ -304,3 +305,95 @@ def test_wait_for_slot_never_lets_one_request_outlive_the_budget(monkeypatch: An
     runner.wait_for_slot("http://x/v1", "m", deadline_s=0.2, interval_s=0.05, request_timeout_s=30.0)
     assert seen, "no request was attempted"
     assert max(seen) <= 0.2
+
+
+# --- sandbox isolation ---------------------------------------------------------
+
+
+def _git(*args: str) -> None:
+    subprocess.run(["git", *args], check=True, capture_output=True)
+
+
+def _seed_repo(path: Path) -> str:
+    """A real one-commit repo; returns the commit sha."""
+    path.mkdir(parents=True)
+    _git("-C", str(path), "init", "-q")
+    _git("-C", str(path), "config", "user.email", "t@example.test")
+    _git("-C", str(path), "config", "user.name", "t")
+    (path / "AGENTS.md").write_text("# seed\n")
+    _git("-C", str(path), "add", "AGENTS.md")
+    # No signing in a throwaway fixture: -c disables it for THIS call only and
+    # never writes commit.gpgsign into any config.
+    _git("-C", str(path), "-c", "commit.gpgsign=false", "commit", "-q", "-m", "seed")
+    out = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    )
+    return out.stdout.strip()
+
+
+def test_prepare_checkout_gives_the_task_a_real_git_dir_not_a_worktree_pointer(tmp_path: Path) -> None:
+    # THE regression this guards. A git worktree's `.git` is a FILE holding
+    # "gitdir: <source>/.git/worktrees/<name>". Any CLI resolving its project
+    # root through git follows that back to the source repo and edits there —
+    # measured, including a completed edit of a tracked file, while the scored
+    # tree stayed empty. A real .git DIRECTORY terminates that resolution inside
+    # the sandbox, which is why the sandbox must be a clone.
+    source = tmp_path / "source"
+    sha = _seed_repo(source)
+    dest = tmp_path / "task"
+    runner.prepare_checkout(source, sha, dest)
+
+    assert (dest / ".git").is_dir(), ".git must be a real directory, not a worktree pointer file"
+    assert (dest / "AGENTS.md").read_text() == "# seed\n"
+
+
+def test_source_fingerprint_notices_a_write_to_the_source_clone(tmp_path: Path) -> None:
+    # The containment canary. Isolation has already failed silently once, so the
+    # runner compares this either side of every agent run instead of trusting
+    # that the sandbox held.
+    source = tmp_path / "source"
+    _seed_repo(source)
+    before = runner.source_fingerprint(source)
+    (source / "AGENTS.md").write_text("# tampered\n")
+    assert runner.source_fingerprint(source) != before
+
+
+def test_run_agent_repoints_PWD_at_the_sandbox(tmp_path: Path, monkeypatch: Any) -> None:
+    # THE bug that made this suite write to real repositories. subprocess sets
+    # the child's working directory but leaves the inherited PWD naming the
+    # caller's directory, and a Node/Bun CLI resolves its project from
+    # process.env.PWD, not process.cwd(). Measured: cwd and the git root were
+    # both correct and both ignored; the agent edited the source repo.
+    seen: dict[str, Any] = {}
+
+    def fake_run(argv: Any, **kwargs: Any) -> Any:
+        seen.update(kwargs)
+
+        class P:
+            returncode = 0
+            stdout = ""
+
+        return P()
+
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+    monkeypatch.setenv("PWD", "/somewhere/else")
+    monkeypatch.setenv("DIRENV_DIR", "-/somewhere/else")
+    monkeypatch.setenv("DIRENV_FILE", "/somewhere/else/.envrc")
+
+    runner.run_agent("do a thing", tmp_path, "mlx/m", ["opencode", "run"], 10)
+
+    assert seen["cwd"] == tmp_path
+    assert seen["env"]["PWD"] == str(tmp_path), "PWD must name the sandbox, not the caller's directory"
+    assert not [k for k in seen["env"] if k.startswith("DIRENV_")], "direnv vars re-pin the old project"
+
+
+def test_source_fingerprint_is_stable_when_only_the_task_clone_changes(tmp_path: Path) -> None:
+    # Anti-vacuity: the canary must not fire on the sandbox doing its job, or it
+    # would abort every run and prove nothing.
+    source = tmp_path / "source"
+    sha = _seed_repo(source)
+    dest = tmp_path / "task"
+    runner.prepare_checkout(source, sha, dest)
+    before = runner.source_fingerprint(source)
+    (dest / "AGENTS.md").write_text("# edited in the sandbox\n")
+    assert runner.source_fingerprint(source) == before

@@ -5,7 +5,7 @@
 # ///
 """coding-replay — replay merged PRs through an agentic CLI, score pass@1.
 
-Per task: check out a worktree of the target repo at the PR's base commit,
+Per task: make an isolated clone of the target repo at the PR's base commit,
 prompt the configured agentic CLI (default: ``opencode run --pure --auto
 --agent build --format json``) with the PR title + body and an instruction to
 implement and stop (no commit, no PR), then score the run:
@@ -17,7 +17,7 @@ changed files and exits cleanly (e.g. a ``check: none`` task) must score a
 failure. ``overlap`` is the count of changed files that intersect the real
 PR's file list; ``check`` is a named repo check (``markdownlint``,
 ``tofu-validate``, ``ansible-lint``, ``nix-eval``, ``bats:<path>``,
-``json-valid``, ``none``) run in the worktree after the CLI exits.
+``json-valid``, ``none``) run in that clone after the CLI exits.
 
 The local serving gate refuses rather than queues (one slot per model), so a
 readiness probe waits for a real 200 completion before each task starts, and
@@ -69,6 +69,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import re
 import subprocess
 import sys
@@ -287,13 +288,35 @@ def decode_timeout_stdout(raw: bytes | str | None) -> str:
 
 
 def run_agent(
-    prompt: str, worktree: Path, model: str, agent_cmd: Sequence[str], timeout_s: int
+    prompt: str, checkout: Path, model: str, agent_cmd: Sequence[str], timeout_s: int
 ) -> tuple[int, str]:
-    """Run the agentic CLI headless in ``worktree``; returns (exit_code, stdout)."""
+    """Run the agentic CLI headless in ``checkout``; returns (exit_code, stdout).
+
+    ``cwd`` ALONE DOES NOT CONFINE THE AGENT, and this is the whole reason the
+    suite was writing to real repositories. ``subprocess`` sets the child's
+    working directory but leaves the INHERITED ``PWD`` untouched, and a
+    Node/Bun-based CLI commonly resolves its project directory from
+    ``process.env.PWD`` rather than ``process.cwd()``. Measured 2026-09-06: with
+    ``cwd`` set to the sandbox and ``PWD`` still naming the source clone, every
+    file the agent read and edited was in the SOURCE — under a git worktree and
+    again under a real clone whose ``rev-parse --show-toplevel`` was the sandbox.
+
+    ``direnv`` variables pin the old directory the same way, so they go too;
+    leaving them lets the CLI's shell re-enter the source project's environment.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.startswith("DIRENV_")}
+    env["PWD"] = str(checkout)
+    env.pop("OLDPWD", None)
     argv = [*agent_cmd, "-m", model, prompt]
     try:
         proc = subprocess.run(
-            argv, cwd=worktree, capture_output=True, text=True, timeout=timeout_s, stdin=subprocess.DEVNULL
+            argv,
+            cwd=checkout,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            stdin=subprocess.DEVNULL,
         )
         return proc.returncode, proc.stdout
     except subprocess.TimeoutExpired as exc:
@@ -311,13 +334,43 @@ def run_check(check: str, cwd: Path) -> int:
     return 0
 
 
-def prepare_worktree(clone: Path, base: str, worktree: Path) -> None:
-    subprocess.run(["git", "-C", str(clone), "worktree", "prune"], check=False)
+def prepare_checkout(clone: Path, base: str, dest: Path) -> None:
+    """Give the task its own real clone. NEVER a git worktree.
+
+    A git worktree's ``.git`` is a FILE holding ``gitdir: <source>/.git/worktrees/<name>``.
+    An agentic CLI that resolves its own project root through git follows that
+    pointer back to the SOURCE clone, then reads and EDITS there — outside the
+    tree the score is computed from.
+
+    Measured 2026-09-06 on the first real run: with ``cwd`` set to the worktree,
+    every path the agent touched was still rooted at the source clone — the glob
+    root, three reads, and a completed edit of a tracked file. ``git status`` in
+    the worktree stayed empty, so the task scored zero while the real repository
+    was modified. Passing ``cwd`` to the subprocess does not constrain a CLI that
+    resolves its root itself.
+
+    A clone has a real ``.git`` DIRECTORY, so git-based root resolution
+    terminates inside the sandbox. On its own that did NOT stop the leak — the
+    actual cause was an inherited ``PWD``; see ``run_agent``. Both matter, and
+    ``source_touched`` proves it held on every run rather than assuming it.
+    """
     subprocess.run(["git", "-C", str(clone), "fetch", "-q", "origin", base], check=False)
-    subprocess.run(["rm", "-rf", str(worktree)], check=False)
-    subprocess.run(
-        ["git", "-C", str(clone), "worktree", "add", "-q", "--detach", str(worktree), base], check=True
+    subprocess.run(["rm", "-rf", str(dest)], check=False)
+    subprocess.run(["git", "clone", "-q", "--shared", "--no-checkout", str(clone), str(dest)], check=True)
+    subprocess.run(["git", "-C", str(dest), "checkout", "-q", "--detach", base], check=True)
+
+
+def source_fingerprint(clone: Path) -> str:
+    """Working-tree state of the SOURCE clone, as the containment canary.
+
+    Compared either side of the agent run. Isolation is a property that has now
+    failed silently once, and the only honest way to claim it holds is to check
+    it every time rather than trust the sandbox construction.
+    """
+    proc = subprocess.run(
+        ["git", "-C", str(clone), "status", "--porcelain"], capture_output=True, text=True, check=False
     )
+    return proc.stdout
 
 
 def run_task(
@@ -334,10 +387,11 @@ def run_task(
     repo, pr, base = task["repo"], task["pr"], task["base"]
     name = task_name(repo, pr)
     clone = Path(clone_map[repo])
-    worktree = work_dir / f"{name}-{tag}"
-    prepare_worktree(clone, base, worktree)
+    checkout = work_dir / f"{name}-{tag}"
+    prepare_checkout(clone, base, checkout)
     prompt = build_prompt(task["title"], task.get("body", ""))
     phys = physical_model(model)
+    source_before = source_fingerprint(clone)
 
     start = end = time.time()
     rc, stdout = -1, ""
@@ -347,10 +401,10 @@ def run_task(
             break
         slot_opened = True
         start = time.time()
-        rc, stdout = run_agent(prompt, worktree, model, agent_cmd, task_timeout_s)
+        rc, stdout = run_agent(prompt, checkout, model, agent_cmd, task_timeout_s)
         end = time.time()
         if is_rate_limited(stdout) and attempt == 0:
-            subprocess.run(["git", "-C", str(worktree), "checkout", "-q", "--", "."], check=False)
+            subprocess.run(["git", "-C", str(checkout), "checkout", "-q", "--", "."], check=False)
             continue
         break
 
@@ -364,11 +418,11 @@ def run_task(
     transcript.write_text(stdout)
 
     status = subprocess.run(
-        ["git", "-C", str(worktree), "status", "--porcelain"], capture_output=True, text=True, check=False
+        ["git", "-C", str(checkout), "status", "--porcelain"], capture_output=True, text=True, check=False
     )
     changed = parse_changed_files(status.stdout)
     overlap = overlap_files(changed, task.get("files", []))
-    check_rc = run_check(task["check"], worktree)
+    check_rc = run_check(task["check"], checkout)
 
     return {
         "model": model,
@@ -388,6 +442,9 @@ def run_task(
         # given the chance to run, so the zero below is about the endpoint, not
         # the model — same false-negative class as `agent_launched`.
         "slot_opened": slot_opened,
+        # Containment: did the agent modify the SOURCE clone? True means the
+        # sandbox leaked and both the result and the repository are suspect.
+        "source_touched": source_fingerprint(clone) != source_before,
         "transcript": str(transcript),
         "tokens": aggregate_tokens(events),
         "ttft_s": ttft_seconds(first_text_start_ms(events), start),
@@ -402,7 +459,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument(
         "--clone-map-json", type=Path, required=True, help="JSON file mapping repo -> local clone path"
     )
-    ap.add_argument("--work-dir", type=Path, required=True, help="scratch directory for per-task worktrees")
+    ap.add_argument("--work-dir", type=Path, required=True, help="scratch directory for per-task clones")
     ap.add_argument("--base-url", default="http://127.0.0.1:11434/v1")
     ap.add_argument("--model", required=True)
     ap.add_argument("--tag", required=True, help="run tag recorded on every task row")
@@ -466,6 +523,19 @@ def main(argv: list[str] | None = None) -> int:
                 f"{row['task']}: pass={row['pass']} overlap={row['overlap']} check_rc={row['check_rc']}",
                 file=sys.stderr,
             )
+            if row["source_touched"]:
+                # Stop at once: this is a containment breach, not a result. The
+                # source clone is a real repository the operator works in, and
+                # every further task would keep writing to it while scoring zero.
+                print(
+                    f"ABORT: {row['task']} modified the SOURCE clone at "
+                    f"{clone_map[task['repo']]}. The agent escaped its sandbox, so "
+                    "this row is not a model result and the repository needs "
+                    "inspecting — check `git status` there and revert what the run "
+                    "wrote. No further tasks attempted.",
+                    file=sys.stderr,
+                )
+                return 3
             if not row["slot_opened"]:
                 # Same reasoning as the agent_launched abort below: no slot
                 # means no attempt, and every remaining task would score an
