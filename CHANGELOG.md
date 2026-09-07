@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.2](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.1...v0.24.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* **coding-replay:** confine the agent with PWD, not just cwd ([#233](https://github.com/dryvist/mlx-benchmarks/issues/233)) ([2da8776](https://github.com/dryvist/mlx-benchmarks/commit/2da87764711859e6076fe40c2645a15a34c448f5))
+
 ## [0.24.1](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.0...v0.24.1) (2026-09-07)
 
 
