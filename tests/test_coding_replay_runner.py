@@ -387,6 +387,19 @@ def test_run_agent_repoints_PWD_at_the_sandbox(tmp_path: Path, monkeypatch: Any)
     assert not [k for k in seen["env"] if k.startswith("DIRENV_")], "direnv vars re-pin the old project"
 
 
+def test_is_rate_limited_separates_contention_from_a_bad_config() -> None:
+    # Both produce "exit 1, no step events". Only this distinguishes them, and
+    # the abort message picks its advice from it — telling someone to check
+    # their provider prefix while another consumer holds the slot sends them
+    # after the wrong thing.
+    contention = '{"type":"error","error":{"data":{"statusCode":429}}}'
+    bad_config = '{"type":"error","error":{"name":"UnknownError"}}'
+    assert runner.is_rate_limited(contention) is True
+    assert runner.is_rate_limited(bad_config) is False
+    assert runner.agent_launched(runner.parse_events(contention), 7.9) is False
+    assert runner.agent_launched(runner.parse_events(bad_config), 0.8) is False
+
+
 def test_source_fingerprint_is_stable_when_only_the_task_clone_changes(tmp_path: Path) -> None:
     # Anti-vacuity: the canary must not fire on the sandbox doing its job, or it
     # would abort every run and prove nothing.

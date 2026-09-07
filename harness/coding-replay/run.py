@@ -20,8 +20,11 @@ PR's file list; ``check`` is a named repo check (``markdownlint``,
 ``json-valid``, ``none``) run in that clone after the CLI exits.
 
 The local serving gate refuses rather than queues (one slot per model), so a
-readiness probe waits for a real 200 completion before each task starts, and
-a run whose stdout carries an HTTP 429 is retried once.
+readiness probe waits for a real 200 completion before each task starts, and a
+run whose stdout carries an HTTP 429 re-waits and retries (``--rate-limit-attempts``,
+default 4). The probe proves a slot was free at probe time only — on a shared
+endpoint another consumer can take it before the agent's first call, so a 429
+after a clean probe is contention, not misconfiguration.
 
 Run (never against a busy Studio without asking)::
 
@@ -383,6 +386,7 @@ def run_task(
     base_url: str,
     task_timeout_s: int,
     slot_wait_s: float = 600.0,
+    rate_limit_attempts: int = 4,
 ) -> dict[str, Any]:
     repo, pr, base = task["repo"], task["pr"], task["base"]
     name = task_name(repo, pr)
@@ -396,15 +400,24 @@ def run_task(
     start = end = time.time()
     rc, stdout = -1, ""
     slot_opened = False
-    for attempt in range(2):
+    # A single retry is not enough on a shared endpoint. `wait_for_slot` proves a
+    # slot was free at probe time, but another consumer can take it in the gap
+    # before the agent's first call — so a 429 here is CONTENTION, not a verdict
+    # and not a misconfiguration. Measured: a 12-task run lost its third task to
+    # exactly this, 7.9s and zero steps, with two attempts exhausted.
+    for attempt in range(rate_limit_attempts):
         if not wait_for_slot(base_url, phys, deadline_s=slot_wait_s):
             break
         slot_opened = True
         start = time.time()
         rc, stdout = run_agent(prompt, checkout, model, agent_cmd, task_timeout_s)
         end = time.time()
-        if is_rate_limited(stdout) and attempt == 0:
+        if is_rate_limited(stdout) and attempt + 1 < rate_limit_attempts:
             subprocess.run(["git", "-C", str(checkout), "checkout", "-q", "--", "."], check=False)
+            print(
+                f"{name}: rate-limited, re-waiting for a slot (attempt {attempt + 1}/{rate_limit_attempts})",
+                file=sys.stderr,
+            )
             continue
         break
 
@@ -442,6 +455,9 @@ def run_task(
         # given the chance to run, so the zero below is about the endpoint, not
         # the model — same false-negative class as `agent_launched`.
         "slot_opened": slot_opened,
+        # Whether the FINAL attempt died to a 429. With agent_launched false this
+        # says contention, not configuration — the two need different fixes.
+        "rate_limited": is_rate_limited(stdout),
         # Containment: did the agent modify the SOURCE clone? True means the
         # sandbox leaked and both the result and the repository are suspect.
         "source_touched": source_fingerprint(clone) != source_before,
@@ -465,6 +481,14 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--tag", required=True, help="run tag recorded on every task row")
     ap.add_argument("--filter", default=".", help="regex over 'repo#pr', matched with re.search")
     ap.add_argument("--task-timeout-s", type=int, default=900)
+    ap.add_argument(
+        "--rate-limit-attempts",
+        type=int,
+        default=4,
+        help="times to re-wait for a slot and retry after an HTTP 429. A shared "
+        "endpoint can hand the slot to another consumer between the readiness "
+        "probe and the agent's first call",
+    )
     ap.add_argument(
         "--slot-wait-s",
         type=float,
@@ -516,6 +540,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.base_url,
                 args.task_timeout_s,
                 args.slot_wait_s,
+                args.rate_limit_attempts,
             )
             out.write(json.dumps(row) + "\n")
             out.flush()
@@ -554,14 +579,31 @@ def main(argv: list[str] | None = None) -> int:
                 # Abort rather than grind through the remaining tasks. Every
                 # one would score a false failure, and a full sheet of zeros
                 # reads as a verdict on the model instead of a broken setup.
-                print(
-                    f"ABORT: the agentic CLI did not run for {row['task']} "
-                    f"(exit {row['exit_code']}, {row['wall_s']}s, no step events). "
-                    "This is a configuration fault, not a model result — the CLI "
-                    "resolves its own endpoint, so check its config and that "
-                    "--model carries a provider prefix. No further tasks attempted.",
-                    file=sys.stderr,
-                )
+                #
+                # Name the RIGHT cause. A 429 and a bad provider prefix both
+                # produce "exit 1, no step events", but one is a busy endpoint
+                # and the other is a typo — telling someone to check their
+                # config while another consumer holds the slot sends them after
+                # the wrong thing entirely.
+                if row["rate_limited"]:
+                    print(
+                        f"ABORT: {row['task']} was rate-limited on every one of "
+                        f"{args.rate_limit_attempts} attempts. This is CONTENTION, "
+                        "not configuration and not a model result — another consumer "
+                        "holds the single serving slot. Re-run when the endpoint is "
+                        "quiet, or raise --rate-limit-attempts. No further tasks "
+                        "attempted.",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        f"ABORT: the agentic CLI did not run for {row['task']} "
+                        f"(exit {row['exit_code']}, {row['wall_s']}s, no step events). "
+                        "This is a configuration fault, not a model result — the CLI "
+                        "resolves its own endpoint, so check its config and that "
+                        "--model carries a provider prefix. No further tasks attempted.",
+                        file=sys.stderr,
+                    )
                 return 2
     return 0
 
