@@ -146,6 +146,39 @@ def test_cli_rejects_invalid_tag(tmp_path: Path, lm_eval_sample: dict) -> None:
         )
 
 
+def test_extract_model_reads_model_id_from_a_json_lines_run() -> None:
+    """A coding-replay row must publish under the served model, not "unknown".
+
+    The extractor reads ``model_id`` from a list-shaped run. The coding-replay
+    runner's ``model`` field is the agent-CLI reference and carries a provider
+    prefix, so it is not the right key: two arms served behind different
+    provider names would publish as different models. A row missing
+    ``model_id`` yields "unknown" *silently* — the extractor falls back rather
+    than raising, and the documented publish command passes no ``--model``.
+    """
+    from mlx_benchmarks.cli import _extract_model
+
+    row = {
+        "model": "kimi/mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit",
+        "model_id": "mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit",
+        "task": "repo-1",
+    }
+    assert _extract_model([row]) == "mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit"
+
+    # Anti-vacuity: the assertion above must be carried by model_id, not by the
+    # prefixed `model` field happening to be picked up.
+    assert _extract_model([{k: v for k, v in row.items() if k != "model_id"}]) == "unknown"
+
+
+def test_extract_model_still_reads_model_id_for_other_kinds() -> None:
+    """bench-serve records already carry model_id; that path must not change."""
+    from mlx_benchmarks.cli import _extract_model
+
+    assert _extract_model([{"model_id": "mlx-community/Qwen3.6-35B-A3B-4bit"}]) == (
+        "mlx-community/Qwen3.6-35B-A3B-4bit"
+    )
+
+
 def test_cli_rejects_malformed_json(tmp_path: Path) -> None:
     bad = tmp_path / "bad.json"
     bad.write_text("{this is not json")

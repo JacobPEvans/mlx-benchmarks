@@ -457,6 +457,14 @@ def run_task(
 
     return {
         "model": model,
+        # The physical id, under the key the publisher's model extractor reads
+        # for a JSON Lines run. Without it every coding-replay row publishes as
+        # model="unknown" — silently, because the extractor falls back rather
+        # than raising, and the documented publish command passes no --model.
+        # `model` above stays the agent-CLI reference (provider prefix and all)
+        # for provenance; only this one is the served model, so two arms behind
+        # different provider names still compare as the same model id.
+        "model_id": physical_model(model),
         "tag": tag,
         "task": name,
         "repo": repo,
