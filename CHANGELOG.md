@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.4...v0.24.5) (2026-09-07)
+
+
+### Bug Fixes
+
+* **coding-replay:** publish rows under the served model, not "unknown" ([#240](https://github.com/dryvist/mlx-benchmarks/issues/240)) ([0a01f5f](https://github.com/dryvist/mlx-benchmarks/commit/0a01f5fd900f8b5d42325126edd6d1bd54760ff0))
+
 ## [0.24.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.3...v0.24.4) (2026-09-07)
 
 
