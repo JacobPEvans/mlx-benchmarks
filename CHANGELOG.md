@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.4](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.3...v0.24.4) (2026-09-07)
+
+
+### Bug Fixes
+
+* **coding-replay:** strip any provider prefix, not only the literal mlx/ ([#238](https://github.com/dryvist/mlx-benchmarks/issues/238)) ([2a014d3](https://github.com/dryvist/mlx-benchmarks/commit/2a014d3b163e6ee40e50345d7077cc6032572f15))
+
 ## [0.24.3](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.2...v0.24.3) (2026-09-07)
 
 
