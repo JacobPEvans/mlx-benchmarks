@@ -47,26 +47,30 @@ commit, a prompt of the PR title + body plus an instruction to implement and
 stop (no commit, no PR), the configured agentic CLI headless with a timeout,
 then scoring.
 
-> **Isolation is NOT currently proven, and this suite must not be pointed at a
-> repository you care about.** Measured 2026-09-06: with `cwd` set to the task
-> sandbox, the agentic CLI read and *edited* files in the **source** clone
-> instead — a completed edit of a tracked file — while `git status` in the
-> sandbox stayed empty and the task scored zero. It reproduced with the sandbox
-> as a git worktree *and* as a real `--shared` clone whose `git rev-parse
-> --show-toplevel` returned the sandbox. Whatever resolves that path is neither
-> `cwd` nor the git root and has not been identified.
+> **`cwd` does not confine an agentic CLI. `PWD` does.** Measured 2026-09-06:
+> with `cwd` set to the task sandbox, the CLI read and *edited* files in the
+> **source** clone — a completed edit of a tracked file — while `git status` in
+> the sandbox stayed empty and the task scored zero. `subprocess` sets the
+> child's working directory but leaves the inherited `PWD` alone, and a
+> Node/Bun CLI commonly resolves its project directory from `process.env.PWD`
+> rather than `process.cwd()`. It reproduced under a git worktree *and* under a
+> real clone whose `git rev-parse --show-toplevel` returned the sandbox — cwd
+> and the git root were both correct and both ignored.
 >
-> Every row therefore carries `source_touched`, sampled either side of the run,
-> and the runner **aborts** on a true one rather than continue writing to a real
-> repository. Until a write-prompt run lands inside the sandbox with
-> `source_touched` false, treat every `pass@1` this suite produces as invalid:
-> changes land outside the scored tree, so `overlap` is 0 and `pass` is False
-> regardless of the model.
+> The runner now passes an explicit environment with `PWD` set to the sandbox
+> and every `DIRENV_*` variable stripped (they pin the old project directory the
+> same way). Verified both directions: the agent's edit lands in the sandbox,
+> and `source_touched` stays false.
+>
+> Every row still carries `source_touched`, sampled either side of the run, and
+> the runner **aborts** on a true one. Isolation is a property that failed
+> silently once; it is checked every run rather than assumed. Any `pass@1`
+> produced before this fix is invalid — changes landed outside the scored tree,
+> so `overlap` was 0 and `pass` False regardless of model.
 
-The sandbox is a `--shared` clone rather than a git worktree because a
-worktree's `.git` is a file pointing back at the source repository, which
-removes one known path home. That change is necessary but did not by itself
-stop the leak. The local serving gate refuses rather than queues (one slot per
+The sandbox is also a `--shared` clone rather than a git worktree: a worktree's
+`.git` is a file pointing back at the source repository, so git-based root
+resolution walks home. Necessary, but it was not what was leaking. The local serving gate refuses rather than queues (one slot per
 model), so the runner polls for a real 200 completion before each task and
 retries once if a run's stdout carries an HTTP 429.
 

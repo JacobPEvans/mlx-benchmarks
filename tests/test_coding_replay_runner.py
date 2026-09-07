@@ -358,6 +358,35 @@ def test_source_fingerprint_notices_a_write_to_the_source_clone(tmp_path: Path) 
     assert runner.source_fingerprint(source) != before
 
 
+def test_run_agent_repoints_PWD_at_the_sandbox(tmp_path: Path, monkeypatch: Any) -> None:
+    # THE bug that made this suite write to real repositories. subprocess sets
+    # the child's working directory but leaves the inherited PWD naming the
+    # caller's directory, and a Node/Bun CLI resolves its project from
+    # process.env.PWD, not process.cwd(). Measured: cwd and the git root were
+    # both correct and both ignored; the agent edited the source repo.
+    seen: dict[str, Any] = {}
+
+    def fake_run(argv: Any, **kwargs: Any) -> Any:
+        seen.update(kwargs)
+
+        class P:
+            returncode = 0
+            stdout = ""
+
+        return P()
+
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+    monkeypatch.setenv("PWD", "/somewhere/else")
+    monkeypatch.setenv("DIRENV_DIR", "-/somewhere/else")
+    monkeypatch.setenv("DIRENV_FILE", "/somewhere/else/.envrc")
+
+    runner.run_agent("do a thing", tmp_path, "mlx/m", ["opencode", "run"], 10)
+
+    assert seen["cwd"] == tmp_path
+    assert seen["env"]["PWD"] == str(tmp_path), "PWD must name the sandbox, not the caller's directory"
+    assert not [k for k in seen["env"] if k.startswith("DIRENV_")], "direnv vars re-pin the old project"
+
+
 def test_source_fingerprint_is_stable_when_only_the_task_clone_changes(tmp_path: Path) -> None:
     # Anti-vacuity: the canary must not fire on the sandbox doing its job, or it
     # would abort every run and prove nothing.

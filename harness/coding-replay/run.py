@@ -69,6 +69,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import re
 import subprocess
 import sys
@@ -291,13 +292,31 @@ def run_agent(
 ) -> tuple[int, str]:
     """Run the agentic CLI headless in ``checkout``; returns (exit_code, stdout).
 
-    ``cwd`` alone does NOT confine a CLI that resolves its own project root; see
-    ``prepare_checkout`` for why the sandbox must be a clone.
+    ``cwd`` ALONE DOES NOT CONFINE THE AGENT, and this is the whole reason the
+    suite was writing to real repositories. ``subprocess`` sets the child's
+    working directory but leaves the INHERITED ``PWD`` untouched, and a
+    Node/Bun-based CLI commonly resolves its project directory from
+    ``process.env.PWD`` rather than ``process.cwd()``. Measured 2026-09-06: with
+    ``cwd`` set to the sandbox and ``PWD`` still naming the source clone, every
+    file the agent read and edited was in the SOURCE — under a git worktree and
+    again under a real clone whose ``rev-parse --show-toplevel`` was the sandbox.
+
+    ``direnv`` variables pin the old directory the same way, so they go too;
+    leaving them lets the CLI's shell re-enter the source project's environment.
     """
+    env = {k: v for k, v in os.environ.items() if not k.startswith("DIRENV_")}
+    env["PWD"] = str(checkout)
+    env.pop("OLDPWD", None)
     argv = [*agent_cmd, "-m", model, prompt]
     try:
         proc = subprocess.run(
-            argv, cwd=checkout, capture_output=True, text=True, timeout=timeout_s, stdin=subprocess.DEVNULL
+            argv,
+            cwd=checkout,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            stdin=subprocess.DEVNULL,
         )
         return proc.returncode, proc.stdout
     except subprocess.TimeoutExpired as exc:
@@ -331,16 +350,9 @@ def prepare_checkout(clone: Path, base: str, dest: Path) -> None:
     resolves its root itself.
 
     A clone has a real ``.git`` DIRECTORY, so git-based root resolution
-    terminates inside the sandbox. That is necessary but — measured, same day —
-    **not sufficient**: with ``cwd`` set to a clone whose ``rev-parse
-    --show-toplevel`` returned the clone, the CLI still read and edited the
-    SOURCE path. Whatever resolves that path is not ``cwd`` and not the git root,
-    and is not yet identified.
-
-    So this function does not make the sandbox safe on its own. ``source_touched``
-    is what actually protects the repository, and the runner aborts on it.
-    Treat isolation as unproven for any new agentic CLI until a write-prompt run
-    lands inside the sandbox and leaves ``source_touched`` false.
+    terminates inside the sandbox. On its own that did NOT stop the leak — the
+    actual cause was an inherited ``PWD``; see ``run_agent``. Both matter, and
+    ``source_touched`` proves it held on every run rather than assuming it.
     """
     subprocess.run(["git", "-C", str(clone), "fetch", "-q", "origin", base], check=False)
     subprocess.run(["rm", "-rf", str(dest)], check=False)
