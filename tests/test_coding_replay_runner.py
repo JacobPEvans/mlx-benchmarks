@@ -9,6 +9,7 @@ model, or git checkout is needed to exercise these functions.
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
 import subprocess
@@ -63,6 +64,46 @@ def test_row_carries_model_id_as_the_physical_id() -> None:
     """
     agent_ref = "kimi/mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit"
     assert runner.physical_model(agent_ref) == "mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit"
+
+
+def _parse(*extra: str) -> argparse.Namespace:
+    """Parse a minimal valid argv, plus whatever the caller adds."""
+    argv = [
+        "--tasks-json",
+        "t.json",
+        "--clone-map-json",
+        "c.json",
+        "--work-dir",
+        "wd",
+        "--model",
+        "m",
+        "--tag",
+        "tg",
+        "--output",
+        "o.jsonl",
+        *extra,
+    ]
+    return runner.build_parser().parse_args(argv)
+
+
+def test_dedicated_defaults_to_false() -> None:
+    """An undeclared measurement environment must record as NOT dedicated.
+
+    This is the anti-vacuity half of the pair below: it proves the recorded
+    value is carried by the default rather than by ``--dedicated`` happening to
+    be passed on every real invocation. The field exists because the row's other
+    condition flags (``rate_limited``, ``slot_opened``, ``agent_launched``) only
+    catch contention that MANIFESTED — a shared endpoint that happens not to
+    trip a 429 is still not a dedicated measurement, and no per-row symptom can
+    tell the difference. Defaulting true would silently relabel every historical
+    shared run as clean.
+    """
+    assert _parse().dedicated is False
+
+
+def test_dedicated_is_settable_both_ways() -> None:
+    assert _parse("--dedicated").dedicated is True
+    assert _parse("--no-dedicated").dedicated is False
 
 
 def test_physical_model_strips_router_prefix() -> None:

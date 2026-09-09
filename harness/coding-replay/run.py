@@ -405,6 +405,7 @@ def run_task(
     task_timeout_s: int,
     slot_wait_s: float = 600.0,
     rate_limit_attempts: int = 4,
+    dedicated: bool = False,
 ) -> dict[str, Any]:
     repo, pr, base = task["repo"], task["pr"], task["base"]
     name = task_name(repo, pr)
@@ -484,6 +485,14 @@ def run_task(
         # Whether the FINAL attempt died to a 429. With agent_launched false this
         # says contention, not configuration — the two need different fixes.
         "rate_limited": is_rate_limited(stdout),
+        # Was this arm the ONLY consumer of its endpoint? Declared by the caller,
+        # never inferred: the harness cannot see what else is on the box. The
+        # fields above catch contention that MANIFESTED — a shared endpoint that
+        # happens not to trip a 429 still is not a dedicated measurement, and
+        # nothing in a row can tell the difference. Defaults false, because an
+        # unstated measurement environment is an untrusted one. Compare within a
+        # class; never across one.
+        "dedicated": dedicated,
         # Containment: did the agent modify the SOURCE clone? True means the
         # sandbox leaked and both the result and the repository are suspect.
         "source_touched": source_fingerprint(clone) != source_before,
@@ -537,6 +546,16 @@ def build_parser() -> argparse.ArgumentParser:
         "Must pin an editing agent, or results measure the runner's local agent config",
     )
     ap.add_argument("--output", type=Path, required=True, help="JSON Lines file; one row appended per task")
+    ap.add_argument(
+        "--dedicated",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="declare that this arm was the ONLY consumer of its endpoint. Cannot "
+        "be detected — the harness cannot see what else is on the box — so it is "
+        "declared, and defaults to false because an unstated measurement "
+        "environment is an untrusted one. Runs are comparable only within one "
+        "value of this flag",
+    )
     return ap
 
 
@@ -567,6 +586,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.task_timeout_s,
                 args.slot_wait_s,
                 args.rate_limit_attempts,
+                args.dedicated,
             )
             out.write(json.dumps(row) + "\n")
             out.flush()
