@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.5...v0.25.0) (2026-09-09)
+
+
+### Features
+
+* **coding-replay:** record whether a run had the endpoint to itself ([#242](https://github.com/dryvist/mlx-benchmarks/issues/242)) ([bd8d2df](https://github.com/dryvist/mlx-benchmarks/commit/bd8d2df93f40ae919f1e041b0a072148eddfba1b))
+
 ## [0.24.5](https://github.com/dryvist/mlx-benchmarks/compare/v0.24.4...v0.24.5) (2026-09-07)
 
 
